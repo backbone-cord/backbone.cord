@@ -1,0 +1,32 @@
+<html>
+<body>
+	<script type="text/javascript" src="/underscore/underscore.js"></script>
+	<script type="text/javascript" src="/jquery/dist/jquery.js"></script>
+	<script type="text/javascript" src="/backbone/backbone.js"></script>
+	<script type="text/javascript" src="/backbone.cord.js"></script>
+	<script type="text/javascript" src="https://raw.githubusercontent.com/chjj/marked/v0.3.5/marked.min.js"></script>
+	<script type="text/javascript">
+	$(function() {
+		var MarkdownView = Backbone.View.extend({
+			el: function(_L) {
+				return _L('',
+							_L('h3', 'Input'),
+							_L('textarea', {rows:20, cols:50, input: '_markdown'}, 'Type some *markdown* here!'),
+							_L('h3', 'Output'),
+							_L('', {innerHTML:'{_rawMarkup}'})
+						);
+			},
+			properties: {
+				markdown: '',
+				rawMarkup: ''
+			},
+			_setMarkdown: function(value) {
+				this._markdown = value;
+				this.rawMarkup = marked(value, {sanitize: true});
+			}
+		});
+		$(document.body).append((new MarkdownView()).el);
+	});
+	</script>
+</body>
+</html>

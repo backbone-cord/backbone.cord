@@ -1,0 +1,113 @@
+<html>
+<head>
+	<style type="text/css">
+	div {
+		text-align: center;
+	}
+	table {
+		margin-left: auto;
+		margin-right: auto;
+	}
+	tbody tr, th {
+		cursor: pointer;
+	}
+	tr.is-selected {
+		background-color: orange;
+	}
+	</style>
+</head>
+<body>
+	<link href='//fonts.googleapis.com/css?family=Raleway:400,300,600' rel='stylesheet' type='text/css'>
+	<link rel="stylesheet" href="http://getskeleton.com/dist/css/normalize.css">
+	<link rel="stylesheet" href="http://getskeleton.com/dist/css/skeleton.css">
+	<script type="text/javascript" src="/underscore/underscore.js"></script>
+	<script type="text/javascript" src="/jquery/dist/jquery.js"></script>
+	<script type="text/javascript" src="/backbone/backbone.js"></script>
+	<script type="text/javascript" src="/backbone.cord.js"></script>
+	<script type="text/javascript">
+	$(function() {
+		var ItemView = Backbone.View.extend({
+			el: function(_L) {
+				return _L('tr.is-selected(_selected)', {onclick: 'onClick'},
+							_L('td', '{firstName}'),
+							_L('td', '{lastName}'),
+							_L('td', '{version}')
+						);
+			},
+			onClick: function() { this.trigger('select', this.model); },
+			properties: {
+				'selected': false
+			}
+		});
+		var DetailsView = Backbone.View.extend({
+			el: function(_L) {
+				return _L('p', {hidden:'!firstName'}, 'The selected first name is: {firstName}. The selected last name is: {lastName}.');
+			}
+		});
+		var CollectionView = Backbone.View.extend({
+			el: function(_L, _V) {
+				return _L('',
+							_L('table',
+								_L('thead',
+									_L('tr',
+										_L('th', {'data-sort': 'firstName', onclick: 'onSort'}, 'First Name'),
+										_L('th', {'data-sort': 'lastName', onclick: 'onSort'}, 'Last Name'),
+										_L('th', {'data-sort': 'version', onclick: 'onSort'}, 'Version')
+									)
+								),
+								_L('tbody#container')
+							),
+							_V(DetailsView),
+							_L('', 'Viewing {_start} - {_end} out of {_length}.')
+						);
+			},
+			itemView: ItemView,
+			onSort: function(e) {
+				var comparator = e.currentTarget.getAttribute('data-sort');
+				this.collection.comparator = comparator;
+				this.collection.sort();
+			}
+		});
+		window.collection = new Backbone.Collection([
+			{firstName:'Marca', lastName:'Tofu', version: 3},
+			{firstName:'Macro', lastName:'Soft', version: 13},
+			{firstName:'Marcb', lastName:'The Great', version: 5},
+			{firstName:'Sesame1', lastName:'Tofu', version: 2},
+			{firstName:'Sesame2', lastName:'Soft', version: 0},
+			{firstName:'Sesame3', lastName:'The Great', version: 100}
+		]);
+		window.collectionView = new CollectionView({collection: window.collection});
+		$(document.body).append(collectionView.el);
+
+		/******************************************/
+		// Example of rendering HTML code using Backbone Views
+		window.EmailTemplateItem = Backbone.View.extend({
+			divStyle: {
+				color: 'red',
+				fontSize: '24px'
+			},
+			imageStyle: {
+				border: '1px solid black',
+				float: 'left'
+			},
+			el: function(_L) {
+				return _L('', {style: this.divStyle},
+							_L('img', {style: this.imageStyle}),
+							'Photo by {firstName} {lastName}.'
+						);
+			}
+		});
+		window.EmailTemplate = Backbone.View.extend({itemView: EmailTemplateItem});
+		// Setting a collection will run the collection plugin
+		window.template = new EmailTemplate({collection: window.collection});
+		// TODO: Initial variables in the layout get assigned on a setTimeout so delay getting the code, this will be changed soon
+		setTimeout(function() {
+			// Get the HTML code without ever adding to the DOM
+			console.log(template.el.outerHTML);
+			// Cleanup is needed even without adding to the DOM
+			template.remove();
+		}, 1000);
+	});
+	</script>
+</body>
+</html>

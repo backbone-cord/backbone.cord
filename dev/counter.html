@@ -1,0 +1,24 @@
+<html>
+<body>
+	<script type="text/javascript" src="/underscore/underscore.js"></script>
+	<script type="text/javascript" src="/jquery/dist/jquery.js"></script>
+	<script type="text/javascript" src="/backbone/backbone.js"></script>
+	<script type="text/javascript" src="/backbone.cord.js"></script>
+	<script type="text/javascript">
+	$(function() {
+		var Counter = Backbone.View.extend({
+			el: function(_L) { return _L('', 'Seconds Elapsed: {_secondsElapsed}'); },
+			properties: { secondsElapsed: 0 },
+			initialize: function() {
+				this.interval = setInterval(function(){ ++this.secondsElapsed; }.bind(this), 1000);
+			},
+			remove: function() {
+				clearInterval(this.interval);
+				Backbone.View.prototype.remove.call(this);
+			}
+		});
+		$(document.body).append((new Counter()).el);
+	});
+	</script>
+</body>
+</html>

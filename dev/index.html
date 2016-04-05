@@ -1,0 +1,137 @@
+<html>
+<head>
+	<style type="text/css">
+	.square {
+		background-color: blue;
+		width: 100px;
+		height: 100px;
+		/*transition: all 0.1s;*/
+		position: relative;
+	}
+	.red {
+		background-color: red;
+	}
+	.red-true {
+		background-color: red;
+	}
+	.red-false {
+		background-color: #CCC;
+	}
+	.circle {
+		height: 100px;
+		width: 100px;
+		border-radius: 50%;
+		background-color: maroon;
+		color: #FFF;
+		text-align: center;
+		position: relative;
+	}
+	</style>
+</head>
+<body>
+	<script type="text/javascript" src="/underscore/underscore.js"></script>
+	<script type="text/javascript" src="/jquery/dist/jquery.js"></script>
+	<script type="text/javascript" src="/backbone/backbone.js"></script>
+	<script type="text/javascript" src="/backbone.cord.js"></script>
+	<script type="text/javascript">
+	$(function() {
+		window.Circle = Backbone.View.extend({
+			el: function(_L) {
+				return _L('._',
+						_L('#circle.circle', '{lastName}'));
+			},
+			properties: {
+				top: 0,
+				left: 0
+			},
+			_setTop: function(value) { this._top = value; if(this.circle) this.circle.style.top = this._top + 'px'; },
+			_setLeft: function(value) { this._left = value; if(this.circle) this.circle.style.left = this._left + 'px'; }
+		});
+
+		var Square = Backbone.View.extend({
+			className: 'view',
+			styles: {
+				backgroundColor: '#DDD',
+				paddingLeft: '50px',
+				border: '2px dotted #CCC',
+				boxShadow: '1px 2px 2px black',
+				_container: {
+					borderLeft: '10px solid black',
+					borderBottom: ':={_left}*1.5=:px solid purple'
+				},
+				p: {
+					color: 'olive'
+				},
+				tablet: {
+					backgroundColor: '#AAA',
+				},
+				mobile: {
+					backgroundColor: '#888',
+				}
+			},
+			el: function(_L, _V) {
+				return _L('', {onkeyup: 'alertKey'},
+						_L('input', {type: 'checkbox', change: '_message'}),
+						_L('input', {type: 'range', min: 0, max: 100, input: '_left', value: '{_left}'}),
+						_L('#container.square.red(_red)', {style: {borderTop: '{_left}px solid green'}}),
+						_L('p',
+							'Click the button below to change the color.'),
+						_L('button#button', {onclick: 'onButtonClick'}, 'Click Me'),
+						_L('p.red-{_red}',
+							'Red is: {_red}'),
+						_L('.hi',
+							'Hi {firstName}, Blue is: {_blue}'),
+						_L('p#thankyou', {hidden: '_red'},
+							'Thank you much, {firstName} {lastName} aka {nickName}!'),
+						_L('input', {value: ' this is {$shared} world {_blue} hello {firstName}', change: '_message'}),
+						_V(Circle, '#circle', {style: {marginLeft: '{_left}'}}),
+						_V(Circle, '#circle2', {hidden: '_red', onclick: 'onButtonClick'}),
+						_V(Backbone.Cord.EmptyView, '#emptyView')
+					);
+			},
+			properties: {
+				red: true,
+				blue: 123,
+				message: '',
+				top: 0,
+				left: 50
+			},
+			_setBlue: function(value) { this._blue = value + 100; },
+			_setMessage: function(value) { this._message = value; console.log(value); },
+			_setTop: function(value) { this._top = value; if(this.container) this.container.style.top = this._top + 'px'; },
+			_setLeft: function(value) { this._left = value; if(this.container) this.container.style.left = this._left + 'px'; },
+			onButtonClick: function() {
+				this.red = !this.red;
+				this.blue = Math.floor(Math.random() * 100);
+				this.el.appendChild(this._el('p', 'Thank you much, blue * 11 is :={_blue} * 11 - 5.6=: {lastName}!'));
+			},
+			alertKey: function(e) {
+				console.log('keyup ' + e.keyCode);
+				switch(e.keyCode) {
+					case 37:
+						this.left -= 10;
+						this.circle.left -= 10;
+						break;
+					case 38:
+						this.top -= 10;
+						this.circle.top -= 10;
+						break
+					case 39:
+						this.left += 10;
+						this.circle.left += 10;
+						break;
+					case 40:
+						this.top += 10;
+						this.circle.top +=10;
+						break;
+				}
+			}
+		});
+		window.squareModel = new Backbone.Model({firstName:'Marc', lastName:'Awesome'});
+		window.square = new Square({model: squareModel});
+		$(document.body).append(square.el);
+		square.focus();
+	});
+	</script>
+</body>
+</html>

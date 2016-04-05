@@ -1,0 +1,24 @@
+{
+  "name": "backbone.cord",
+  "version": "1.0.0",
+  "description": "",
+  "keywords": [
+    "backbone",
+    "reactive"
+  ],
+  "homepage": "",
+  "license": "MIT",
+  "main": [
+    "dist/backbone.cord.js"
+  ],
+  "moduleType": [
+    "globals"
+  ],
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
