@@ -1,12 +1,16 @@
 {
   "name": "backbone.cord",
   "version": "1.0.0",
-  "description": "",
+  "description": "Backbone addition that enables the easy creation of reactive connected views with two-way data binding and Jade-like declarative syntax.",
   "keywords": [
     "backbone",
-    "reactive"
+    "reactive",
+    "subview",
+    "databinding",
+    "declarative",
+    "plugin"
   ],
-  "homepage": "",
+  "homepage": "https://github.com/backbone-cord/backbone.cord",
   "license": "MIT",
   "main": [
     "dist/backbone.cord.js"
