@@ -89,8 +89,8 @@ function _addRules(rules, _styles, selector, media, id) {
 	}
 }
 
-var __extend = Backbone.View.extend;
-Backbone.View.extend = function(properties) {
+var __extend = Backbone.Cord.View.extend;
+Backbone.Cord.View.extend = function(properties) {
 	// Look for styles hash
 	var _styles = {};
 	if(properties.styles && properties.className) {

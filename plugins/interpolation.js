@@ -14,7 +14,7 @@ function _createFormatObserver(strings, properties, formatObserver) {
 	};
 }
 
-Backbone.View.prototype.observeFormat = function(format, observer, immediate) {
+Backbone.Cord.View.prototype.observeFormat = function(format, observer, immediate) {
 	var strings = format.split(Backbone.Cord.regex.variableSearch);
 	var matches = format.match(Backbone.Cord.regex.variableSearch);
 	if(!matches)

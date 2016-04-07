@@ -29,13 +29,16 @@
 	</style>
 </head>
 <body>
+	<script type="text/javascript">
+		window.cordCompatibilityMode = true;
+	</script>
 	<script type="text/javascript" src="/underscore/underscore.js"></script>
 	<script type="text/javascript" src="/jquery/dist/jquery.js"></script>
 	<script type="text/javascript" src="/backbone/backbone.js"></script>
 	<script type="text/javascript" src="/backbone.cord.js"></script>
 	<script type="text/javascript">
 	$(function() {
-		window.Circle = Backbone.View.extend({
+		window.Circle = Backbone.Cord.View.extend({
 			el: function(_L) {
 				return _L('._',
 						_L('#circle.circle', '{lastName}'));
@@ -48,7 +51,7 @@
 			_setLeft: function(value) { this._left = value; if(this.circle) this.circle.style.left = this._left + 'px'; }
 		});
 
-		var Square = Backbone.View.extend({
+		var Square = Backbone.Cord.View.extend({
 			className: 'view',
 			styles: {
 				backgroundColor: '#DDD',

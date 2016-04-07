@@ -1,5 +1,8 @@
-;(function(Backbone) {
+;(function(root) {
 'use strict';
+
+var Backbone = root.Backbone;
+var compatibilityMode = root.cordCompatibilityMode;
 
 function _plugin(name, context) {
 	// For each callbacks, call and return false if false is returned
@@ -70,7 +73,7 @@ function _subview(instanceClass, idClasses, bindings) {
 	else
 		subview = instanceClass;
 	// Init the subview's model - blocking the _invokeObservers method to prevent unnecessary observer invocations
-	if(this.model !== Backbone.View.prototype.model && subview.model === Backbone.View.prototype.model) {
+	if(this.model !== Backbone.Cord.EmptyModel && subview.model === Backbone.Cord.EmptyModel && subview instanceof Backbone.Cord.View) {
 		subview._invokeObservers = function() {};
 		if(!subview.cascade || subview.cascade(this.model) !== false)
 			subview.setModel(this.model);
@@ -83,7 +86,7 @@ function _subview(instanceClass, idClasses, bindings) {
 	if(typeof idClasses === 'string') {
 		idClasses = idClasses.split('.');
 		id = context.id = idClasses[0].substr(1);
-		if(id && !subview.el.id)
+		if(id && !Backbone.Cord.hasId(subview.el))
 			Backbone.Cord.setId(subview.el, id);
 		classes = idClasses.slice(1);
 		classes = this._plugin('classes', context, classes) || classes;
@@ -129,7 +132,7 @@ function _subview(instanceClass, idClasses, bindings) {
 				if(!value.sid)
 					this._subview(value);
 				// Reapply the id
-				if(id && !el.id)
+				if(id && !Backbone.Cord.hasId(el))
 					Backbone.Cord.setId(el, id);
 			},
 			enumerable: true,
@@ -154,10 +157,13 @@ Backbone.Cord = {
 	},
 	// Plugins install themselves by pushing to this array
 	plugins: [],
-	// EmptyView to use as a subview placeholder
-	EmptyView: Backbone.View.extend({ el: function() { return document.createElement('meta'); }}),
 	convertToString: function(obj) { if(obj === null || obj === undefined) return ''; return obj.toString(); },
 	convertToBool: function(value) { return (value && (value.length === void(0) || value.length)); },
+	// Initialize the Cord View class depending on the compatibility mode
+	View: compatibilityMode ? Backbone.View.extend({}) : Backbone.View,
+	// EmptyModel and EmptyView to use as default model and a subview placeholder
+	EmptyModel: new (Backbone.Model.extend({set: function() { return this; }}))(),
+	EmptyView: Backbone.View.extend({ tagName: 'meta' }),
 	// Unique internal subview id, this unifies how subviews with and without ids are stored
 	_sid: 1,
 	_pluginsChecked: false,
@@ -187,6 +193,9 @@ Backbone.Cord = {
 	}
 };
 
+Backbone.Cord.hasId = function(el) {
+	return !!el.id;
+};
 Backbone.Cord.setId = function(el, id) {
 	el.id = id;
 };
@@ -262,16 +271,16 @@ Backbone.Cord.plugins.push = function(plugin) {
 
 // Expose _el on the View object as well
 // _plugin is added because this._plugin is used for callbacks
-Backbone.View.prototype._el = _el;
-Backbone.View.prototype._subview = _subview;
-Backbone.View.prototype._plugin = _plugin;
-Backbone.View.prototype._getWrappedProperty = function(key) {
+Backbone.Cord.View.prototype._el = _el;
+Backbone.Cord.View.prototype._subview = _subview;
+Backbone.Cord.View.prototype._plugin = _plugin;
+Backbone.Cord.View.prototype._getWrappedProperty = function(key) {
 	return this['_' + key];
 };
-Backbone.View.prototype._setWrappedProperty = function(key, value) {
+Backbone.Cord.View.prototype._setWrappedProperty = function(key, value) {
 	this['_' + key] = value;
 };
-Backbone.View.prototype._wrappedPropertyDescriptor = function(key) {
+Backbone.Cord.View.prototype._wrappedPropertyDescriptor = function(key) {
 	var getFunc = this['_get' + key[0].toUpperCase() + key.substr(1)];
 	var setFunc = this['_set' + key[0].toUpperCase() + key.substr(1)];
 	if(!getFunc)
@@ -285,7 +294,7 @@ Backbone.View.prototype._wrappedPropertyDescriptor = function(key) {
 		enumerable: true
 	};
 };
-Backbone.View.prototype._modelObserver = function(model, options) {
+Backbone.Cord.View.prototype._modelObserver = function(model, options) {
 	var key, changed = options._changed || model.changedAttributes();
 	if(!changed)
 		return;
@@ -296,7 +305,7 @@ Backbone.View.prototype._modelObserver = function(model, options) {
 };
 
 // Do not modify the array or dictionary returned from this method, they may sometimes simply be an empty return value
-Backbone.View.prototype._getObservers = function(newKey, scope) {
+Backbone.Cord.View.prototype._getObservers = function(newKey, scope) {
 	var observers;
 	if(scope)
 		observers = this._observers[scope] || {};
@@ -306,7 +315,7 @@ Backbone.View.prototype._getObservers = function(newKey, scope) {
 		observers = observers[newKey] || [];
 	return observers;
 };
-Backbone.View.prototype._invokeObservers = function(newKey, value, scope) {
+Backbone.Cord.View.prototype._invokeObservers = function(newKey, value, scope) {
 	console.log(newKey, value, scope);
 	var i, observers = this._getObservers(newKey, scope);
 	for(i = 0; i < observers.length; ++i)
@@ -314,7 +323,7 @@ Backbone.View.prototype._invokeObservers = function(newKey, value, scope) {
 	return this;
 };
 
-Backbone.View.prototype.observe = function(key, observer, immediate) {
+Backbone.Cord.View.prototype.observe = function(key, observer, immediate) {
 	var name, immediateCallback, newKey, found, scope, scopes, observers;
 	if(typeof observer === 'string')
 		observer = this[observer];
@@ -367,7 +376,7 @@ Backbone.View.prototype.observe = function(key, observer, immediate) {
 		setTimeout(immediateCallback.bind(this, key, name), 0);
 	return this;
 };
-Backbone.View.prototype.unobserve = function(key, observer) {
+Backbone.Cord.View.prototype.unobserve = function(key, observer) {
 	var newKey, name, observers, index, found, scope, scopes = Backbone.Cord._scopes;
 	if(typeof observer === 'string')
 		observer = this[observer];
@@ -401,7 +410,7 @@ Backbone.View.prototype.unobserve = function(key, observer) {
 		scope.unobserve.call(this, key, observer);
 	return this;
 };
-Backbone.View.prototype.getValue = function(key) {
+Backbone.Cord.View.prototype.getValue = function(key) {
 	var newKey, name, scope, scopes = Backbone.Cord._scopes;
 	for(name in scopes) {
 		if(scopes.hasOwnProperty(name)) {
@@ -415,7 +424,7 @@ Backbone.View.prototype.getValue = function(key) {
 		return this.model.id;
 	return this.model.get(key);
 };
-Backbone.View.prototype.setValue = function(key, value) {
+Backbone.Cord.View.prototype.setValue = function(key, value) {
 	var newKey, name, scope, scopes = Backbone.Cord._scopes;
 	for(name in scopes) {
 		if(scopes.hasOwnProperty(name)) {
@@ -433,10 +442,10 @@ Backbone.View.prototype.setValue = function(key, value) {
 	return this;
 };
 
-Backbone.View.prototype.getChildById = function(id) {
+Backbone.Cord.View.prototype.getChildById = function(id) {
 	return document.getElementById(id);
 };
-Backbone.View.prototype.getSubviewById = function(id) {
+Backbone.Cord.View.prototype.getSubviewById = function(id) {
 	var node = this.getChildById(id);
 	if(node)
 		return this.subviews[node.getAttribute('data-sid')];
@@ -447,13 +456,13 @@ Backbone.View.prototype.getSubviewById = function(id) {
 // For best performance and results, models should normally be provided in the View's constructor - only use setModel to swap out an existing model
 // A default empty model is provided so that Cord and plugins can always count on a model being available, making the logic a bit easier
 // setModel is defined as a method and not a property because it would be too confusing to distinguish between the first set and later changes, this is more explicit
-Backbone.View.prototype.model = new (Backbone.Model.extend({set: function() { return this; }}))();
-Backbone.View.prototype.setModel = function(newModel, noCascade) {
+Backbone.Cord.View.prototype.model = Backbone.Cord.EmptyModel;
+Backbone.Cord.View.prototype.setModel = function(newModel, noCascade) {
 	var key, current, subview;
 	if(this.model === newModel)
 		return this;
 	if(!newModel)
-		newModel = Backbone.View.prototype.model;
+		newModel = Backbone.Cord.EmptyModel;
 	if(!(newModel instanceof Backbone.Model))
 		throw new Error('Attempting to assign a non-Backbone.Model to View.model.');
 	current = this.model;
@@ -463,7 +472,7 @@ Backbone.View.prototype.setModel = function(newModel, noCascade) {
 	// Detect the changes and invoke observers
 	if(Object.keys(this._modelObservers).length) {
 		// Invoke all observers if the model is the empty model
-		if(this.model === Backbone.View.prototype.model) {
+		if(this.model === Backbone.Cord.EmptyModel) {
 			for(key in this._modelObservers) {
 				if(this._modelObservers.hasOwnProperty(key))
 					this._invokeObservers(key);
@@ -477,6 +486,9 @@ Backbone.View.prototype.setModel = function(newModel, noCascade) {
 		for(key in this.subviews) {
 			if(this.subviews.hasOwnProperty(key)) {
 				subview = this.subviews[key];
+				// Do not cascade if the subview is not a Cord View or is intercepted by a cascade method
+				if(!(subview instanceof Backbone.Cord.View))
+					continue;
 				if(subview.cascade && subview.cascade(newModel) === false)
 					continue;
 				if(subview.model === current && !subview.collection)
@@ -488,15 +500,15 @@ Backbone.View.prototype.setModel = function(newModel, noCascade) {
 };
 
 // setCollection provided as a convention for plugins to wrap
-Backbone.View.prototype.setCollection = function(newCollection) {
+Backbone.Cord.View.prototype.setCollection = function(newCollection) {
 	this.stopListening(this.collection);
 	this.collection = newCollection;
 	return this;
 };
 
 // Wrap _ensureElement to add a subviews array
-var __ensureElement = Backbone.View.prototype._ensureElement;
-Backbone.View.prototype._ensureElement = function() {
+var __ensureElement = Backbone.Cord.View.prototype._ensureElement;
+Backbone.Cord.View.prototype._ensureElement = function() {
 	if(!Backbone.Cord._pluginsChecked) {
 		Backbone.Cord.plugins._check();
 		Backbone.Cord._pluginsChecked = true;
@@ -526,7 +538,7 @@ Backbone.View.prototype._ensureElement = function() {
 	this._modelObservers = {};
 	this._sharedObservers = {};
 	// Start listening to the model
-	if(this.model !== Backbone.View.prototype.model)
+	if(this.model !== Backbone.Cord.EmptyModel)
 		this.listenTo(this.model, 'change', this._modelObserver);
 	// After creating the element add any given className
 	var ret = __ensureElement.apply(this, Array.prototype.slice.call(arguments));
@@ -536,8 +548,8 @@ Backbone.View.prototype._ensureElement = function() {
 };
 
 // Wrap the remove method to also process subviews and plugins
-var __remove = Backbone.View.prototype.remove;
-Backbone.View.prototype.remove = function() {
+var __remove = Backbone.Cord.View.prototype.remove;
+Backbone.Cord.View.prototype.remove = function() {
 	var key;
 	this._plugin('remove', {});
 	for(key in this.subviews) {
@@ -623,7 +635,7 @@ Backbone.Model.prototype.mirror = function(model, attrs) {
 	model.track(this, attrs);
 };
 
-})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone);
+})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)));
 
 ;(function(Backbone) {
 'use strict';
@@ -1020,8 +1032,8 @@ function _getItemView(indexModelElement) {
 	return (cid ? this.itemViews[cid] : void(0));
 }
 
-var __setCollection = Backbone.View.prototype.setCollection;
-Backbone.View.prototype.setCollection = function(newCollection) {
+var __setCollection = Backbone.Cord.View.prototype.setCollection;
+Backbone.Cord.View.prototype.setCollection = function(newCollection) {
 	if(this.collection === newCollection)
 		return;
 	var ret = __setCollection.call(this, newCollection);
@@ -1131,12 +1143,15 @@ Backbone.Cord.plugins.push({
 'use strict';
 
 // Overwrite Cord's getChildById
-var __getChildById = Backbone.View.prototype.getChildById;
-Backbone.View.prototype.getChildById = function(id) {
+var __getChildById = Backbone.Cord.View.prototype.getChildById;
+Backbone.Cord.View.prototype.getChildById = function(id) {
 	return this.el.querySelector('[data-id="' + id +  '"]') || __getChildById.call(this, id);
 };
 
 // Overwrite Cord's id processing methods
+Backbone.Cord.hasId = function(el) {
+	return !!el.getAttribute('data-id');
+};
 Backbone.Cord.setId = function(el, id) {
 	el.setAttribute('data-id', id);
 };
@@ -1145,8 +1160,8 @@ Backbone.Cord.regex.replaceIdSelectors = function(query) {
 };
 
 // Wrap extend to alter any event delegation based on #id
-var __extend = Backbone.View.extend;
-Backbone.View.extend = function(properties) {
+var __extend = Backbone.Cord.View.extend;
+Backbone.Cord.View.extend = function(properties) {
 	var key, value;
 	if(properties.events) {
 		for(key in properties.events) {
@@ -1214,7 +1229,7 @@ Backbone.Cord.plugins.push({
 // Focus an element for keyboard events
 // http://stackoverflow.com/questions/3656467/is-it-possible-to-focus-on-a-div-using-javascript-focus-function
 // https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/tabindex
-Backbone.View.prototype.focus = function(id) {
+Backbone.Cord.View.prototype.focus = function(id) {
 	var el = id ? this.getChildById(id) : this.el;
 	// Add tabindex for elements that normally don't support focus and remove the webkit outline
 	if(!el.getAttribute('tabindex')) {
@@ -1296,7 +1311,7 @@ function _createFormatObserver(strings, properties, formatObserver) {
 	};
 }
 
-Backbone.View.prototype.observeFormat = function(format, observer, immediate) {
+Backbone.Cord.View.prototype.observeFormat = function(format, observer, immediate) {
 	var strings = format.split(Backbone.Cord.regex.variableSearch);
 	var matches = format.match(Backbone.Cord.regex.variableSearch);
 	if(!matches)
@@ -1499,8 +1514,8 @@ function _addRules(rules, _styles, selector, media, id) {
 	}
 }
 
-var __extend = Backbone.View.extend;
-Backbone.View.extend = function(properties) {
+var __extend = Backbone.Cord.View.extend;
+Backbone.Cord.View.extend = function(properties) {
 	// Look for styles hash
 	var _styles = {};
 	if(properties.styles && properties.className) {
@@ -1625,14 +1640,14 @@ function _setup() {
 }
 
 // Wrap both setModel and setCollection to addListeners and grab the current value of syncing
-var __setModel = Backbone.View.prototype.setModel;
-Backbone.View.prototype.setModel = function(newModel, noCascade) {
+var __setModel = Backbone.Cord.View.prototype.setModel;
+Backbone.Cord.View.prototype.setModel = function(newModel, noCascade) {
 	var ret = __setModel.call(this, newModel, noCascade);
 	_setup.call(this);
 	return ret;
 };
-var __setCollection = Backbone.View.prototype.setCollection;
-Backbone.View.prototype.setCollection = function(newCollection) {
+var __setCollection = Backbone.Cord.View.prototype.setCollection;
+Backbone.Cord.View.prototype.setCollection = function(newCollection) {
 	var ret = __setCollection.call(this, newCollection);
 	_setup.call(this);
 	return ret;

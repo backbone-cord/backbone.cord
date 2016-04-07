@@ -52,14 +52,14 @@ function _setup() {
 }
 
 // Wrap both setModel and setCollection to addListeners and grab the current value of syncing
-var __setModel = Backbone.View.prototype.setModel;
-Backbone.View.prototype.setModel = function(newModel, noCascade) {
+var __setModel = Backbone.Cord.View.prototype.setModel;
+Backbone.Cord.View.prototype.setModel = function(newModel, noCascade) {
 	var ret = __setModel.call(this, newModel, noCascade);
 	_setup.call(this);
 	return ret;
 };
-var __setCollection = Backbone.View.prototype.setCollection;
-Backbone.View.prototype.setCollection = function(newCollection) {
+var __setCollection = Backbone.Cord.View.prototype.setCollection;
+Backbone.Cord.View.prototype.setCollection = function(newCollection) {
 	var ret = __setCollection.call(this, newCollection);
 	_setup.call(this);
 	return ret;

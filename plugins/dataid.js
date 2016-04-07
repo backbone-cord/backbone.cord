@@ -2,12 +2,15 @@
 'use strict';
 
 // Overwrite Cord's getChildById
-var __getChildById = Backbone.View.prototype.getChildById;
-Backbone.View.prototype.getChildById = function(id) {
+var __getChildById = Backbone.Cord.View.prototype.getChildById;
+Backbone.Cord.View.prototype.getChildById = function(id) {
 	return this.el.querySelector('[data-id="' + id +  '"]') || __getChildById.call(this, id);
 };
 
 // Overwrite Cord's id processing methods
+Backbone.Cord.hasId = function(el) {
+	return !!el.getAttribute('data-id');
+};
 Backbone.Cord.setId = function(el, id) {
 	el.setAttribute('data-id', id);
 };
@@ -16,8 +19,8 @@ Backbone.Cord.regex.replaceIdSelectors = function(query) {
 };
 
 // Wrap extend to alter any event delegation based on #id
-var __extend = Backbone.View.extend;
-Backbone.View.extend = function(properties) {
+var __extend = Backbone.Cord.View.extend;
+Backbone.Cord.View.extend = function(properties) {
 	var key, value;
 	if(properties.events) {
 		for(key in properties.events) {

@@ -273,8 +273,8 @@ function _getItemView(indexModelElement) {
 	return (cid ? this.itemViews[cid] : void(0));
 }
 
-var __setCollection = Backbone.View.prototype.setCollection;
-Backbone.View.prototype.setCollection = function(newCollection) {
+var __setCollection = Backbone.Cord.View.prototype.setCollection;
+Backbone.Cord.View.prototype.setCollection = function(newCollection) {
 	if(this.collection === newCollection)
 		return;
 	var ret = __setCollection.call(this, newCollection);
