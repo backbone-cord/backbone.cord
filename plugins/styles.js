@@ -1,6 +1,8 @@
 ;(function(Backbone) {
 'use strict';
 
+var THIS_ID = '(this)';
+
 Backbone.Cord.mediaQueries = {
 	all: '',
 	hd: 'only screen and (max-width: 1200px)',
@@ -74,11 +76,10 @@ function _addRules(rules, _styles, selector, media, id) {
 			}
 			else {
 				if(Backbone.Cord.regex.variableSearch.test(rules[key])) {
-					if(id) {
-						if(!_styles[id])
-							_styles[id] = {};
-						_styles[id][key] = rules[key];
-					}
+					var scope = id || THIS_ID;
+					if(!_styles[scope])
+						_styles[scope] = {};
+					_styles[scope][key] = rules[key];
 				}
 				else {
 					console.log('@' + media + ' ' + selector + '{' + _camelCaseToDash(key) + ':' + rules[key] + ';}');
@@ -96,7 +97,7 @@ Backbone.Cord.View.extend = function(properties) {
 	if(properties.styles && properties.className) {
 		if(!Backbone.Cord._styleSheets)
 			_createStyleSheets();
-		_addRules(properties.styles, _styles, '.' + properties.className);
+		_addRules(properties.styles, _styles, '.' + properties.className.split(' ').join('.'));
 	}
 	var View = __extend.apply(this, Array.prototype.slice.call(arguments));
 	View.prototype._styles = _styles;
@@ -145,6 +146,17 @@ Backbone.Cord.plugins.push({
 	},
 	attrs: _styles,
 	bindings: _styles,
+	initialize: function(context) {
+		if(this._styles && this._styles[THIS_ID]) {
+			var styles = JSON.parse(JSON.stringify(this._styles[THIS_ID]));
+			console.log(JSON.stringify(styles));
+			this._plugin('strings', context, styles);
+			for(var style in styles) {
+				if(styles.hasOwnProperty(style))
+					this.observeFormat(styles[style], _createStyleObserver(this.el, style), true);
+			}
+		}
+	},
 	complete: function(context) {
 		// Apply any dynamic class styles detected from the initial extend
 		if(this._styles && context.id && this._styles[context.id]) {

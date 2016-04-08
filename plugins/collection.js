@@ -304,8 +304,10 @@ Backbone.Cord.plugins.push({
 	config: {
 		collectionContainerId: 'container'
 	},
-	initialize: function() {
-		if(this.collection && this.itemView) {
+	create: function() {
+		if(this.itemView) {
+			if(!this.collection)
+				this.collection = new Backbone.Collection();
 			this.isCollectionView = true;
 			this.getItemView = _getItemView;
 			this._getStart = _getStart;

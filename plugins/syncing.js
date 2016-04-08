@@ -73,15 +73,13 @@ Backbone.Cord.parseError = function(response) {
 // Adds a "syncing" boolean property to the View to track when its collection or model is syncing
 Backbone.Cord.plugins.push({
 	name: 'syncing',
-	initialize: function(context) {
-		if(context.isView) {
-			var key;
-			key = 'syncing';
-			Object.defineProperty(this, key, this._wrappedPropertyDescriptor(key));
-			key = 'error';
-			Object.defineProperty(this, key, this._wrappedPropertyDescriptor(key));
-			_setup.call(this);
-		}
+	create: function() {
+		var key;
+		key = 'syncing';
+		Object.defineProperty(this, key, this._wrappedPropertyDescriptor(key));
+		key = 'error';
+		Object.defineProperty(this, key, this._wrappedPropertyDescriptor(key));
+		_setup.call(this);
 	}
 });
 

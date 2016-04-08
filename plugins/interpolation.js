@@ -10,7 +10,7 @@ function _createFormatObserver(strings, properties, formatObserver) {
 			formatted.push(this.getValue(property));
 		}
 		formatted.push(strings[i]);
-		formatObserver(key, formatted.join(''));
+		formatObserver.call(this, key, formatted.join(''));
 	};
 }
 

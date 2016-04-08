@@ -73,7 +73,7 @@ function _subview(instanceClass, idClasses, bindings) {
 	else
 		subview = instanceClass;
 	// Init the subview's model - blocking the _invokeObservers method to prevent unnecessary observer invocations
-	if(this.model !== Backbone.Cord.EmptyModel && subview.model === Backbone.Cord.EmptyModel && subview instanceof Backbone.Cord.View) {
+	if(this.model !== Backbone.Cord.EmptyModel && subview.model === Backbone.Cord.EmptyModel && !subview.collection && subview instanceof Backbone.Cord.View) {
 		subview._invokeObservers = function() {};
 		if(!subview.cascade || subview.cascade(this.model) !== false)
 			subview.setModel(this.model);
@@ -185,7 +185,8 @@ Backbone.Cord = {
 		bindings: [],
 		// (el and subview) when creation and setup is complete, right before el and subview return
 		complete: [],
-		// (new View) initialize and remove apply to all views outside of the subview() method
+		// (new View) create, initialize, and remove apply to all views
+		create: [],
 		initialize: [],
 		remove: [],
 		// plugin callback to be used adhoc for processing strings from other plugins
@@ -520,30 +521,33 @@ Backbone.Cord.View.prototype._ensureElement = function() {
 		this.collection = new proto.collection();
 	else if(typeof proto.model === 'function')
 		this.model = new proto.model();
-	// Run plugin initializers and define the properties
-	this._plugin('initialize', {});
-	if(this.properties) {
-		for(var key in this.properties) {
-			if(this.properties.hasOwnProperty(key)) {
-				Object.defineProperty(this, key, this._wrappedPropertyDescriptor(key));
-				this[key] = this.properties[key];
-			}
-		}
-	}
-	// Bind the el method with prefixed args
-	if(typeof this.el === 'function')
-		this.el = this.el.bind(this, this._el.bind(this), this._subview.bind(this));
 	this.subviews = {};
 	this._observers = {};
 	this._modelObservers = {};
 	this._sharedObservers = {};
+	// Run plugin create hooks and define the properties
+	this._plugin('create', {});
+	if(this.properties) {
+		for(var key in this.properties) {
+			if(this.properties.hasOwnProperty(key)) {
+				Object.defineProperty(this, key, this._wrappedPropertyDescriptor(key));
+				this._setWrappedProperty(key, this.properties[key]);
+			}
+		}
+	}
+	// Bind the el method with prefixed args
+	var isFun = (typeof this.el === 'function');
+	if(isFun)
+		this.el = this.el.bind(this, this._el.bind(this), this._subview.bind(this));
 	// Start listening to the model
 	if(this.model !== Backbone.Cord.EmptyModel)
 		this.listenTo(this.model, 'change', this._modelObserver);
 	// After creating the element add any given className
 	var ret = __ensureElement.apply(this, Array.prototype.slice.call(arguments));
-	if(this.className)
+	if(this.className && isFun)
 		this.el.className += (this.el.className.length ? ' ' : '') + this.className;
+	// Run plugin initializers
+	this._plugin('initialize', {});
 	return ret;
 };
 
@@ -576,6 +580,7 @@ Backbone.Model.prototype.track = function(model, attrs, transform) {
 	if(!attrs) {
 		this.listenTo(model, 'change', function(model, options) {
 			if(!options._track) {
+				options = JSON.parse(JSON.stringify(options));
 				options._track = true;
 				this.set(transform(model.attributes), options);
 			}
@@ -587,6 +592,7 @@ Backbone.Model.prototype.track = function(model, attrs, transform) {
 				var data = {};
 				data[attr] = value;
 				if(!options._track) {
+					options = JSON.parse(JSON.stringify(options));
 					options._track = true;
 					this.set(transform(data), options);
 				}
