@@ -149,7 +149,8 @@ Backbone.Cord = {
 	config: {
 		idProperties: true,
 		oncePrefix: '%',
-		notPrefix: '!'
+		notPrefix: '!',
+		filterSeparator: '|'
 	},
 	regex: {
 		idPropertyTest: /^[a-zA-Z_$][0-9a-zA-Z_$]*$/,
@@ -157,6 +158,8 @@ Backbone.Cord = {
 	},
 	// Plugins install themselves by pushing to this array
 	plugins: [],
+	// Filters installed by the app by pushing to this array
+	filters: [],
 	convertToString: function(obj) { if(obj === null || obj === undefined) return ''; return obj.toString(); },
 	convertToBool: function(value) { return (value && (value.length === void(0) || value.length)); },
 	// Initialize the Cord View class depending on the compatibility mode
@@ -317,12 +320,20 @@ Backbone.Cord.View.prototype._getObservers = function(newKey, scope) {
 	return observers;
 };
 Backbone.Cord.View.prototype._invokeObservers = function(newKey, value, scope) {
-	console.log(newKey, value, scope);
+	console.log(newKey + ' | ' + value + ' | ' + scope);
 	var i, observers = this._getObservers(newKey, scope);
 	for(i = 0; i < observers.length; ++i)
 		observers[i].call(this, newKey, value);
 	return this;
 };
+
+function _applyFilters(func, filters) {
+	return function(newKey, val) {
+		for(var i = 0; i < filters.length; ++i)
+			val = filters[i](val);
+		return func.call(this, newKey, val);
+	};
+}
 
 Backbone.Cord.View.prototype.observe = function(key, observer, immediate) {
 	var name, immediateCallback, newKey, found, scope, scopes, observers;
@@ -331,6 +342,14 @@ Backbone.Cord.View.prototype.observe = function(key, observer, immediate) {
 	if(!observer)
 		return this;
 	scopes = Backbone.Cord._scopes;
+	// Apply any filters to the observer function
+	if(key.indexOf(Backbone.Cord.config.filterSeparator) !== -1) {
+		var i, filters = [], names = key.split(Backbone.Cord.config.filterSeparator);
+		key = names[0].trim();
+		for(i = 1; i < names.length; ++i)
+			filters.push(Backbone.Cord.filters[names[i].trim()]);
+		observer = _applyFilters(observer, filters);
+	}
 	// If key starts with oncePrefix, just do an immediate timeout with the getValue
 	// not compatible with the notPrefix and doesn't include the key on callback
 	if(key.indexOf(Backbone.Cord.config.oncePrefix) === 0) {

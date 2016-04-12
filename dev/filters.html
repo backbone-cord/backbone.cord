@@ -1,0 +1,24 @@
+<html>
+<body>
+	<script type="text/javascript" src="/underscore/underscore.js"></script>
+	<script type="text/javascript" src="/jquery/dist/jquery.js"></script>
+	<script type="text/javascript" src="/backbone/backbone.js"></script>
+	<script type="text/javascript" src="/backbone.cord.js"></script>
+	<script type="text/javascript" src="https://raw.githubusercontent.com/HubSpot/humanize/master/dist/humanize.min.js"></script>
+	<script type="text/javascript">
+	$(function() {
+		Backbone.Cord.filters['filesize'] = Humanize.fileSize;
+		var FileSizeView = Backbone.View.extend({
+			el: function(_L) {
+				return _L('p',
+						_L('input', {input: '_bytes'}),
+						' bytes is equal to {_bytes|filesize}.'
+					);
+			},
+			properties: { bytes: 0 }
+		});
+		$(document.body).append((new FileSizeView()).el);
+	});
+	</script>
+</body>
+</html>
