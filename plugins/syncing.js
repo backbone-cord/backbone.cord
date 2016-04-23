@@ -76,9 +76,9 @@ Backbone.Cord.plugins.push({
 	create: function() {
 		var key;
 		key = 'syncing';
-		Object.defineProperty(this, key, this._wrappedPropertyDescriptor(key));
+		Object.defineProperty(this, key, this._synthesizePropertyDescriptor(key));
 		key = 'error';
-		Object.defineProperty(this, key, this._wrappedPropertyDescriptor(key));
+		Object.defineProperty(this, key, this._synthesizePropertyDescriptor(key));
 		_setup.call(this);
 	}
 });

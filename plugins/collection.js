@@ -322,13 +322,13 @@ Backbone.Cord.plugins.push({
 			this._pageStart = 0;
 			this._pageLength = -1;
 			this._selected = null;
-			Object.defineProperty(this, 'length', this._wrappedPropertyDescriptor('length'));
-			Object.defineProperty(this, 'start', this._wrappedPropertyDescriptor('start'));
-			Object.defineProperty(this, 'end', this._wrappedPropertyDescriptor('end'));
-			Object.defineProperty(this, 'more', this._wrappedPropertyDescriptor('more'));
-			Object.defineProperty(this, 'pageStart', this._wrappedPropertyDescriptor('pageStart'));
-			Object.defineProperty(this, 'pageLength', this._wrappedPropertyDescriptor('pageLength'));
-			Object.defineProperty(this, 'selected', this._wrappedPropertyDescriptor('selected'));
+			Object.defineProperty(this, 'length', this._synthesizePropertyDescriptor('length'));
+			Object.defineProperty(this, 'start', this._synthesizePropertyDescriptor('start'));
+			Object.defineProperty(this, 'end', this._synthesizePropertyDescriptor('end'));
+			Object.defineProperty(this, 'more', this._synthesizePropertyDescriptor('more'));
+			Object.defineProperty(this, 'pageStart', this._synthesizePropertyDescriptor('pageStart'));
+			Object.defineProperty(this, 'pageLength', this._synthesizePropertyDescriptor('pageLength'));
+			Object.defineProperty(this, 'selected', this._synthesizePropertyDescriptor('selected'));
 			// Setup, set initial calculated values, and then on next tick, run reset (not based on events to add loading, empty, or render)
 			_setup.call(this);
 			_updateCalculated.call(this);

@@ -21,7 +21,7 @@ function _createExpressionProperty(expr, prop) {
 		this.observe(key, fnc, !i);
 	}
 	// Define the expression property
-	var descriptor = this._wrappedPropertyDescriptor(prop);
+	var descriptor = this._synthesizePropertyDescriptor(prop);
 	descriptor.enumerable = false;
 	Object.defineProperty(this, prop, descriptor);
 }

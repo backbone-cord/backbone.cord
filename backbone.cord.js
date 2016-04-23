@@ -144,7 +144,7 @@ function _subview(instanceClass, idClasses, bindings) {
 }
 
 Backbone.Cord = {
-	VERSION: '1.0.0',
+	VERSION: '1.0.4',
 	el: _el,
 	config: {
 		idProperties: true,
@@ -284,13 +284,21 @@ Backbone.Cord.View.prototype._getWrappedProperty = function(key) {
 Backbone.Cord.View.prototype._setWrappedProperty = function(key, value) {
 	this['_' + key] = value;
 };
-Backbone.Cord.View.prototype._wrappedPropertyDescriptor = function(key) {
+Backbone.Cord.View.prototype._synthesizeGetter = function(key) {
+	key = '_' + key;
+	return function() { return this[key]; };
+};
+Backbone.Cord.View.prototype._synthesizeSetter = function(key) {
+	key = '_' + key;
+	return function(value) { this[key] = value; };
+};
+Backbone.Cord.View.prototype._synthesizePropertyDescriptor = function(key) {
 	var getFunc = this['_get' + key[0].toUpperCase() + key.substr(1)];
 	var setFunc = this['_set' + key[0].toUpperCase() + key.substr(1)];
 	if(!getFunc)
-		getFunc = function() { return this._getWrappedProperty(key); };
+		getFunc = this._synthesizeGetter(key);
 	if(!setFunc)
-		setFunc = function(value) { this._setWrappedProperty(key, value); };
+		setFunc = this._synthesizeSetter(key);
 	return {
 		get: getFunc,
 		set: setFunc,
@@ -549,7 +557,7 @@ Backbone.Cord.View.prototype._ensureElement = function() {
 	if(this.properties) {
 		for(var key in this.properties) {
 			if(this.properties.hasOwnProperty(key)) {
-				Object.defineProperty(this, key, this._wrappedPropertyDescriptor(key));
+				Object.defineProperty(this, key, this._synthesizePropertyDescriptor(key));
 				this._setWrappedProperty(key, this.properties[key]);
 			}
 		}
