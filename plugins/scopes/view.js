@@ -8,7 +8,7 @@ function _propertyObserver(key, prevSet) {
 		if(prevSet)
 			prevSet.call(this, value);
 		else
-			this._setWrappedProperty(key, value);
+			this._setProperty(key, value);
 		this._invokeObservers(key, this[key], SCOPE_NAME);
 	};
 	newSet._cordWrapped = true;
@@ -36,15 +36,15 @@ Backbone.Cord.plugins.push({
 			if(!prop.set._cordWrapped) {
 				if(prop.set) {
 					// Just wrap the setter of a defined property
-					Object.defineProperty(this, key, {set: _propertyObserver.call(this, key, prop.set)});
+					Object.defineProperty(this, key, {set: _propertyObserver(key, prop.set)});
 				}
 				else {
 					// Define a new property without an existing defined setter
-					this._setWrappedProperty(key, this[key]);
+					this._setProperty(key, this[key]);
 					if(delete this[key]) {
 						Object.defineProperty(this, key, {
-							get: this._getWrappedProperty.bind(this, key),
-							set: _propertyObserver.call(this, key),
+							get: this._synthesizeGetter(key),
+							set: _propertyObserver(key),
 							enumerable: true,
 							configurable: true
 						});

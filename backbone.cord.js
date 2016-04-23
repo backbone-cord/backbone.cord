@@ -278,10 +278,10 @@ Backbone.Cord.plugins.push = function(plugin) {
 Backbone.Cord.View.prototype._el = _el;
 Backbone.Cord.View.prototype._subview = _subview;
 Backbone.Cord.View.prototype._plugin = _plugin;
-Backbone.Cord.View.prototype._getWrappedProperty = function(key) {
+Backbone.Cord.View.prototype._getProperty = function(key) {
 	return this['_' + key];
 };
-Backbone.Cord.View.prototype._setWrappedProperty = function(key, value) {
+Backbone.Cord.View.prototype._setProperty = function(key, value) {
 	this['_' + key] = value;
 };
 Backbone.Cord.View.prototype._synthesizeGetter = function(key) {
@@ -561,7 +561,7 @@ Backbone.Cord.View.prototype._ensureElement = function() {
 		for(key in properties) {
 			if(properties.hasOwnProperty(key)) {
 				Object.defineProperty(this, key, this._synthesizePropertyDescriptor(key));
-				this._setWrappedProperty(key, properties[key]);
+				this._setProperty(key, properties[key]);
 			}
 		}
 	}

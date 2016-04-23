@@ -20,10 +20,6 @@ function _createArgObserver(key, getFunc, args) {
 	};
 }
 
-function _createDefaultGetter(key) {
-	return function() { return this._getWrappedProperty(key); };
-}
-
 Backbone.Cord.plugins.push({
 	name: 'calculated',
 	initialize: function() {
@@ -42,7 +38,7 @@ Backbone.Cord.plugins.push({
 							for(i = 0; i < args.length; ++i)
 								this.observe(args[i], observer, i === 0);
 							// The get then needs to be replaced with a default getter
-							Object.defineProperty(this, key, {get: _createDefaultGetter(key)});
+							Object.defineProperty(this, key, {get: this._synthesizeGetter(key)});
 						}
 					}
 				}
