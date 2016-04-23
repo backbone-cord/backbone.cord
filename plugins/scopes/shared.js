@@ -15,6 +15,9 @@ function _modelObserver(model) {
 
 Backbone.Cord.shared = new Backbone.Model();
 
+// Scope for a single globally shared Backbone model
+// Listeners on the model are automatically added and removed
+// Final cleanup is automatic on remove() when backbone calls stopListening()
 Backbone.Cord.plugins.push({
 	name: SCOPE_NAME,
 	config: {

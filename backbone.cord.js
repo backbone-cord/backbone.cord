@@ -552,13 +552,16 @@ Backbone.Cord.View.prototype._ensureElement = function() {
 	this._observers = {};
 	this._modelObservers = {};
 	this._sharedObservers = {};
-	// Run plugin create hooks and define the properties
+	// Run plugin create hooks
 	this._plugin('create', {});
+	// Define any declared properties
+	var key;
 	if(this.properties) {
-		for(var key in this.properties) {
-			if(this.properties.hasOwnProperty(key)) {
+		var properties = this.properties;
+		for(key in properties) {
+			if(properties.hasOwnProperty(key)) {
 				Object.defineProperty(this, key, this._synthesizePropertyDescriptor(key));
-				this._setWrappedProperty(key, this.properties[key]);
+				this._setWrappedProperty(key, properties[key]);
 			}
 		}
 	}
@@ -575,6 +578,13 @@ Backbone.Cord.View.prototype._ensureElement = function() {
 		this.el.className += (this.el.className.length ? ' ' : '') + this.className;
 	// Run plugin initializers
 	this._plugin('initialize', {});
+	// Setup any declared observers
+	if(this.observers) {
+		var observers = this.observers;
+		for(key in observers)
+			if(observers.hasOwnProperty(key))
+				this.observe(key, observers[key]);
+	}
 	return ret;
 };
 

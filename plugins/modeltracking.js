@@ -35,6 +35,7 @@ Backbone.Model.prototype.track = function(model, attrs, transform) {
 			this.listenTo(model, 'change:' + attrs[i], createListener(attrs[i]));
 		}
 	}
+	return this;
 };
 
 // Used for both subobjects and models that are transformed from others
@@ -70,6 +71,7 @@ Backbone.Model.prototype.subsume = function(cls, attr, transform) {
 Backbone.Model.prototype.mirror = function(model, attrs) {
 	this.track(model, attrs);
 	model.track(this, attrs);
+	return this;
 };
 
 // Plugin doesn't actually do anything but register it anyways

@@ -53,6 +53,7 @@ function _storagePlugin(name, prefix, storage) {
 	return plugin;
 }
 
+// Scopes for both localStorange and sessionStorage
 Backbone.Cord.plugins.push(_storagePlugin('localstoragescope', 'ls_', root.localStorage));
 Backbone.Cord.plugins.push(_storagePlugin('sessionstoragescope', 'ss_', root.sessionStorage));
 
