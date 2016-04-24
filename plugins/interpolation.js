@@ -7,7 +7,7 @@ function _createFormatObserver(strings, properties, formatObserver) {
 		for(i = 0; i < properties.length; ++i) {
 			formatted.push(strings[i]);
 			property = properties[i];
-			formatted.push(this.getValue(property));
+			formatted.push(this.getValueForKey(property));
 		}
 		formatted.push(strings[i]);
 		formatObserver.call(this, key, formatted.join(''));

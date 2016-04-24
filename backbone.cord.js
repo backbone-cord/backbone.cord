@@ -362,7 +362,7 @@ Backbone.Cord.View.prototype.observe = function(key, observer, immediate) {
 	// not compatible with the notPrefix and doesn't include the key on callback
 	if(key.indexOf(Backbone.Cord.config.oncePrefix) === 0) {
 		key = key.substr(Backbone.Cord.config.oncePrefix.length);
-		setTimeout(function() { observer.call(this, null, this.getValue.call(this, key)); }.bind(this), 0);
+		setTimeout(function() { observer.call(this, null, this.getValueForKey.call(this, key)); }.bind(this), 0);
 		return this;
 	}
 	// If key starts with notPrefix, apply a not wrapper to the observer function
@@ -438,7 +438,7 @@ Backbone.Cord.View.prototype.unobserve = function(key, observer) {
 		scope.unobserve.call(this, key, observer);
 	return this;
 };
-Backbone.Cord.View.prototype.getValue = function(key) {
+Backbone.Cord.View.prototype.getValueForKey = function(key) {
 	var newKey, name, scope, scopes = Backbone.Cord._scopes;
 	for(name in scopes) {
 		if(scopes.hasOwnProperty(name)) {
@@ -452,7 +452,7 @@ Backbone.Cord.View.prototype.getValue = function(key) {
 		return this.model.id;
 	return this.model.get(key);
 };
-Backbone.Cord.View.prototype.setValue = function(key, value) {
+Backbone.Cord.View.prototype.setValueForKey = function(key, value) {
 	var newKey, name, scope, scopes = Backbone.Cord._scopes;
 	for(name in scopes) {
 		if(scopes.hasOwnProperty(name)) {

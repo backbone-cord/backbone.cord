@@ -49,7 +49,7 @@ function _createValueListener(key) {
 	return function(e) {
 		var el = e.currentTarget;
 		var decoder = _valueDecoders[el.getAttribute('data-type') || el.getAttribute('type')];
-		this.setValue(key, decoder ? decoder.call(this, el) : el.value);
+		this.setValueForKey(key, decoder ? decoder.call(this, el) : el.value);
 	};
 }
 

@@ -15,7 +15,7 @@ function _createArgObserver(key, getFunc, args) {
 	return function() {
 		var i, values = [];
 		for(i = 0; i < args.length; ++i)
-			values.push(this.getValue(args[i]));
+			values.push(this.getValueForKey(args[i]));
 		this[key] = getFunc.apply(this, values);
 	};
 }
