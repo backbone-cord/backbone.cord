@@ -17,12 +17,14 @@
 						);
 			},
 			properties: {
-				markdown: '',
+				markdown: {
+					set: function(value) {
+						this._markdown = value;
+						this.rawMarkup = marked(value, {sanitize: true});
+					},
+					value: ''
+				},
 				rawMarkup: ''
-			},
-			_setMarkdown: function(value) {
-				this._markdown = value;
-				this.rawMarkup = marked(value, {sanitize: true});
 			}
 		});
 		$(document.body).append((new MarkdownView()).el);

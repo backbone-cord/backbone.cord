@@ -65,6 +65,13 @@ function _el(tagIdClasses, attrs) {
 	return el;
 }
 
+// A simple event callback, where the last argument is taken as a value to pass into setValueForKey
+function _createSetValueCallback(key) {
+	return function() {
+		this.setValueForKey(key, arguments[arguments.length - 1]);
+	};
+}
+
 // id and classes on the subview are maintained, but recommended that id is set by the parent view
 function _subview(instanceClass, idClasses, bindings) {
 	var id, classes, subview, context;
@@ -104,7 +111,7 @@ function _subview(instanceClass, idClasses, bindings) {
 		bindings = this._plugin('bindings', context, bindings) || bindings;
 		for(var e in bindings) {
 			if(bindings.hasOwnProperty(e))
-				this.listenTo(subview, e, this[bindings[e]]);
+				this.listenTo(subview, e, this[bindings[e]] || _createSetValueCallback(bindings[e]));
 		}
 	}
 	subview.sid = Backbone.Cord._sid;
@@ -165,7 +172,7 @@ Backbone.Cord = {
 	// Initialize the Cord View class depending on the compatibility mode
 	View: compatibilityMode ? Backbone.View.extend({}) : Backbone.View,
 	// EmptyModel and EmptyView to use as default model and a subview placeholder
-	EmptyModel: new (Backbone.Model.extend({set: function() { return this; }}))(),
+	EmptyModel: new (Backbone.Model.extend({set: function() { return this; }, toString: function() { return ''; }}))(),
 	EmptyView: Backbone.View.extend({ tagName: 'meta' }),
 	// Unique internal subview id, this unifies how subviews with and without ids are stored
 	_sid: 1,
@@ -292,19 +299,28 @@ Backbone.Cord.View.prototype._synthesizeSetter = function(key) {
 	key = '_' + key;
 	return function(value) { this[key] = value; };
 };
-Backbone.Cord.View.prototype._synthesizePropertyDescriptor = function(key) {
-	var getFunc = this['_get' + key[0].toUpperCase() + key.substr(1)];
-	var setFunc = this['_set' + key[0].toUpperCase() + key.substr(1)];
-	if(!getFunc)
-		getFunc = this._synthesizeGetter(key);
-	if(!setFunc)
-		setFunc = this._synthesizeSetter(key);
-	return {
-		get: getFunc,
-		set: setFunc,
-		configurable: true,
-		enumerable: true
-	};
+// Synthesize and define a property using a simple definition, which is one more of (get, set, value), set: null creates a readonly property
+// When definition is a function it implies {get: definition, set: null}
+// When definition is just a value it implies {value: definition} - plain objects need to be explicity set under the value key
+// When get or set is missing default accessors that read/write the backing _key are used
+Backbone.Cord.View.prototype._synthesizeProperty = function(key, definition) {
+	var value = null;
+	var descriptor = { configurable: true, enumerable: true };
+	if(typeof definition === 'function') {
+		descriptor.get = definition;
+	}
+	else if(typeof definition !== 'object' || Object.getPrototypeOf(definition) !== Object.prototype) {
+		value = definition;
+	}
+	else {
+		value = definition.value;
+		descriptor.get = definition.get;
+		descriptor.set = definition.set;
+	}
+	descriptor.get = descriptor.get || this._synthesizeGetter(key);
+	descriptor.set = (descriptor.set === null) ? void(0) : descriptor.set || this._synthesizeSetter(key);
+	Object.defineProperty(this, key, descriptor);
+	this._setProperty(key, value);
 };
 Backbone.Cord.View.prototype._modelObserver = function(model, options) {
 	var key, changed = options._changed || model.changedAttributes();
@@ -554,16 +570,13 @@ Backbone.Cord.View.prototype._ensureElement = function() {
 	this._sharedObservers = {};
 	// Run plugin create hooks
 	this._plugin('create', {});
-	// Define any declared properties
+	// Synthesize any declared properties
 	var key;
 	if(this.properties) {
 		var properties = this.properties;
-		for(key in properties) {
-			if(properties.hasOwnProperty(key)) {
-				Object.defineProperty(this, key, this._synthesizePropertyDescriptor(key));
-				this._setProperty(key, properties[key]);
-			}
-		}
+		for(key in properties)
+			if(properties.hasOwnProperty(key))
+				this._synthesizeProperty(key, properties[key]);
 	}
 	// Bind the el method with prefixed args
 	var isFun = (typeof this.el === 'function');

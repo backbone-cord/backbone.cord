@@ -74,11 +74,8 @@ Backbone.Cord.parseError = function(response) {
 Backbone.Cord.plugins.push({
 	name: 'syncing',
 	create: function() {
-		var key;
-		key = 'syncing';
-		Object.defineProperty(this, key, this._synthesizePropertyDescriptor(key));
-		key = 'error';
-		Object.defineProperty(this, key, this._synthesizePropertyDescriptor(key));
+		this._synthesizeProperty('syncing');
+		this._synthesizeProperty('error');
 		_setup.call(this);
 	}
 });

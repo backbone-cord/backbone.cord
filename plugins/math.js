@@ -20,10 +20,9 @@ function _createExpressionProperty(expr, prop) {
 		key = matches[i];
 		this.observe(key, fnc, !i);
 	}
-	// Define the expression property
-	var descriptor = this._synthesizePropertyDescriptor(prop);
-	descriptor.enumerable = false;
-	Object.defineProperty(this, prop, descriptor);
+	// Define the expression property and set enumarable to false
+	this._synthesizeProperty(prop);
+	Object.defineProperty(this, prop, {enumerable: false});
 }
 
 function _replaceExpressions(str) {

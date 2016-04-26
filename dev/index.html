@@ -39,16 +39,23 @@
 	<script type="text/javascript">
 	$(function() {
 		window.Circle = Backbone.Cord.View.extend({
-			el: function(_L) {
-				return _L('._',
-						_L('#circle.circle', '{lastName}'));
+			el: function(el, view) {
+				return el('._',
+						el('#circle.circle', '{lastName}'));
 			},
 			properties: {
-				top: 0,
-				left: 0
+				top: {
+					set: function(value) { this._top = value; if(this.circle) this.circle.style.top = this._top + 'px'; },
+					value: 0
+				},
+				left: {
+					set: function(value) { this._left = value; if(this.circle) this.circle.style.left = this._left + 'px'; },
+					value: 0
+				}
 			},
-			_setTop: function(value) { this._top = value; if(this.circle) this.circle.style.top = this._top + 'px'; },
-			_setLeft: function(value) { this._left = value; if(this.circle) this.circle.style.left = this._left + 'px'; }
+			observers: {
+				_top: Backbone.Events.trigger
+			}
 		});
 
 		var Square = Backbone.Cord.View.extend({
@@ -74,11 +81,16 @@
 			},
 			el: function(_L, _V) {
 				return _L('', {onkeyup: 'alertKey'},
+						_L('select', {change: 'ls_color'},
+							_L('option', {value: 'purple'}, 'Purple'),
+							_L('option', {value: 'grey'}, 'Grey'),
+							_L('option', {value: 'blue'}, 'Blue')
+						),
 						_L('input', {type: 'checkbox', change: '_message'}),
 						_L('input', {type: 'range', min: 0, max: 100, input: '_left', value: '{_left}'}),
-						_L('#container.square.red(_red)', {style: {borderTop: '{_left}px solid green'}}),
+						_L('#container.square.red(_red)', {style: {borderTop: '{_left}px solid {ls_color}'}}),
 						_L('p',
-							'Click the button below to change the color.'),
+							'Click the button below to change the color.', 'Distance is {_distance}.'),
 						_L('button#button', {onclick: 'onButtonClick'}, 'Click Me'),
 						_L('p.red-{_red}',
 							'Red is: {_red}'),
@@ -87,27 +99,39 @@
 						_L('p#thankyou', {hidden: '_red'},
 							'Thank you much, {firstName} {lastName} aka {nickName}!'),
 						_L('input', {value: ' this is {$shared} world {_blue} hello {firstName}', change: '_message'}),
-						_V(Circle, '#circle', {style: {marginLeft: '{_left}'}}),
+						_V(Circle, '#circle', {style: {marginLeft: '{_left}'}, top: 'onCircleTop'}),
 						_V(Circle, '#circle2', {hidden: '_red', onclick: 'onButtonClick'}),
 						_V(Backbone.Cord.EmptyView, '#emptyView')
 					);
 			},
 			properties: {
+				blue: {
+					value: 123,
+					set: function(value) { this._blue = value + 100; }
+				},
 				red: true,
 				blue: 123,
-				message: '',
-				top: 0,
-				left: 50,
-				borderColor: '#CCC'
+				message: {
+					set: function(value) { this._message = value; console.log(value); }
+				},
+				top: {
+					set: function(value) { this._top = value; if(this.container) this.container.style.top = this._top + 'px'; },
+					value: 0
+				},
+				left: {
+					set: function(value) { this._left = value; if(this.container) this.container.style.left = this._left + 'px'; },
+					value: 50
+				},
+				borderColor: '#CCC',
+				distance: function(_top, _left) { return _top + _left; }
 			},
-			_setBlue: function(value) { this._blue = value + 100; },
-			_setMessage: function(value) { this._message = value; console.log(value); },
-			_setTop: function(value) { this._top = value; if(this.container) this.container.style.top = this._top + 'px'; },
-			_setLeft: function(value) { this._left = value; if(this.container) this.container.style.left = this._left + 'px'; },
 			onButtonClick: function() {
 				this.red = !this.red;
 				this.blue = Math.floor(Math.random() * 100);
 				this.el.appendChild(this._el('p', 'Thank you much, blue * 11 is :={_blue} * 11 - 5.6=: {lastName}!'));
+			},
+			onCircleTop: function(value) {
+				console.log('onCircleTop ' + value);
 			},
 			alertKey: function(e) {
 				console.log('keyup ' + e.keyCode);
@@ -131,7 +155,7 @@
 				}
 			}
 		});
-		window.squareModel = new Backbone.Model({firstName:'Marc', lastName:'Awesome'});
+		window.squareModel = new Backbone.Model({firstName:'Marc', lastName:'Awesome', nickName:'Marco'});
 		window.square = new Square({model: squareModel});
 		$(document.body).append(square.el);
 		square.focus();

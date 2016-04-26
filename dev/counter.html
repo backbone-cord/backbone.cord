@@ -11,10 +11,7 @@
 			properties: { secondsElapsed: 0 },
 			initialize: function() {
 				this.interval = setInterval(function(){ ++this.secondsElapsed; }.bind(this), 1000);
-			},
-			remove: function() {
-				clearInterval(this.interval);
-				Backbone.View.prototype.remove.call(this);
+				this.listenTo(this, 'remove', function() { clearInterval(this.interval); });
 			}
 		});
 		$(document.body).append((new Counter()).el);
