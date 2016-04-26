@@ -3,6 +3,7 @@
 
 var Backbone = root.Backbone;
 var compatibilityMode = root.cordCompatibilityMode;
+var requestAnimationFrame = root.requestAnimationFrame || setTimeout;
 
 function _plugin(name, context) {
 	// For each callbacks, call and return false if false is returned
@@ -378,7 +379,7 @@ Backbone.Cord.View.prototype.observe = function(key, observer, immediate) {
 	// not compatible with the notPrefix and doesn't include the key on callback
 	if(key.indexOf(Backbone.Cord.config.oncePrefix) === 0) {
 		key = key.substr(Backbone.Cord.config.oncePrefix.length);
-		setTimeout(function() { observer.call(this, null, this.getValueForKey.call(this, key)); }.bind(this), 0);
+		requestAnimationFrame(function() { observer.call(this, null, this.getValueForKey.call(this, key)); }.bind(this));
 		return this;
 	}
 	// If key starts with notPrefix, apply a not wrapper to the observer function
@@ -417,7 +418,7 @@ Backbone.Cord.View.prototype.observe = function(key, observer, immediate) {
 		observers[key] = [];
 	observers[key].push(observer);
 	if(immediate)
-		setTimeout(immediateCallback.bind(this, key, name), 0);
+		requestAnimationFrame(immediateCallback.bind(this, key, name));
 	return this;
 };
 Backbone.Cord.View.prototype.unobserve = function(key, observer) {
