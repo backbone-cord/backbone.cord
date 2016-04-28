@@ -153,7 +153,6 @@ function _subview(instanceClass, idClasses, bindings) {
 
 Backbone.Cord = {
 	VERSION: '1.0.4',
-	el: _el,
 	config: {
 		idProperties: true,
 		oncePrefix: '%',
@@ -178,6 +177,7 @@ Backbone.Cord = {
 	// Unique internal subview id, this unifies how subviews with and without ids are stored
 	_sid: 1,
 	_pluginsChecked: false,
+	_el: _el,
 	_subview: _subview,
 	_plugin: _plugin,
 	_scopes: {},
