@@ -42,6 +42,8 @@ var _valueDecoders = {
 	'number': function(el) { return Number(el.value); },
 	'integer': function(el) { return parseInt(el.value); },
 	'decimal': function(el) { return parseFloat(el.value); },
+	'date': function(el) { return new Date(el.value); },
+	'datetime': function(el) { return new Date(el.value); },
 	'checkbox': function(el) { return el.checked; }
 };
 
