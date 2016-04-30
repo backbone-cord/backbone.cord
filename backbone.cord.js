@@ -35,7 +35,7 @@ function _el(tagIdClasses, attrs) {
 	if(arguments.length > 1) {
 		// If attrs is not the start of children, then apply the dictionary as attributes
 		var i = 1;
-		if(!(typeof attrs === 'string' || attrs.nodeType === 1)) {
+		if(!(typeof attrs === 'string' || attrs instanceof Node)) {
 			i = 2;
 			// Copy attrs to prevent side-effects
 			attrs = JSON.parse(JSON.stringify(attrs));
@@ -62,8 +62,7 @@ function _el(tagIdClasses, attrs) {
 			configurable: false
 		});
 	}
-	this._plugin('complete', context);
-	return el;
+	return this._plugin('complete', context) || el;
 }
 
 // A simple event callback, where the last argument is taken as a value to pass into setValueForKey
@@ -88,7 +87,7 @@ function _subview(instanceClass, idClasses, bindings) {
 		delete subview._invokeObservers;
 	}
 	// Create the plugin context - isView should always be true, this method should never be called any other way
-	context = { el: subview.el, isView: this instanceof Backbone.View };
+	context = { el: subview.el, isView: this instanceof Backbone.View, subview: subview };
 	if(!context.isView)
 		throw new Error('Attempting to create a subview without a parent.');
 	if(typeof idClasses === 'string') {
@@ -194,7 +193,7 @@ Backbone.Cord = {
 		children: [],
 		// (subview) bindings that by default get converted to event listeners
 		bindings: [],
-		// (el and subview) when creation and setup is complete, right before el and subview return
+		// (el and subview) when creation and setup is complete, right before el and subview return, returning a different element can replace an el
 		complete: [],
 		// (new View) create, initialize, and remove apply to all views
 		create: [],
