@@ -44,7 +44,7 @@ function _wrapComputedFunc(func, args) {
 }
 
 // Extend computed attribute capabilities to Backbone models
-Backbone.Model.prototype.setComputed = function(key, func) {
+Backbone.Model.prototype._addComputed = function(key, func) {
 	var i, arg, args = _getFunctionArgs(func);
 	if(!this._computed) {
 		this._computed = {};
@@ -64,6 +64,25 @@ Backbone.Model.prototype.setComputed = function(key, func) {
 			this._computedArgs[arg] = [];
 		this._computedArgs[arg].push(key);
 	}
+};
+
+// Wrap extend to wrap the initialize method
+var __extend = Backbone.Model.extend;
+Backbone.Model.extend = function(properties) {
+	var __initialize;
+	if(properties.initialize) {
+		__initialize = properties.initialize;
+		properties.initialize = function() {
+			if(this.computed) {
+				for(var attr in this.computed) {
+					if(this.computed.hasOwnProperty(attr))
+						this._addComputed(attr, this.computed[attr]);
+				}
+			}
+			return __initialize.apply();
+		};
+	}
+	return __extend.apply(this, Array.prototype.slice.call(arguments));
 };
 
 function _createArgObserver(key, getFunc, args) {
