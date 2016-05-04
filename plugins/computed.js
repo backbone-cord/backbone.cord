@@ -70,8 +70,8 @@ Backbone.Model.prototype._addComputed = function(key, func) {
 var __extend = Backbone.Model.extend;
 Backbone.Model.extend = function(properties) {
 	var __initialize;
-	if(properties.initialize) {
-		__initialize = properties.initialize;
+	if(properties.computed) {
+		__initialize = properties.initialize || Backbone.Model.prototype.initialize;
 		properties.initialize = function() {
 			if(this.computed) {
 				for(var attr in this.computed) {
@@ -79,7 +79,7 @@ Backbone.Model.extend = function(properties) {
 						this._addComputed(attr, this.computed[attr]);
 				}
 			}
-			return __initialize.apply();
+			return __initialize.apply(this, Array.prototype.slice.call(arguments));
 		};
 	}
 	return __extend.apply(this, Array.prototype.slice.call(arguments));
