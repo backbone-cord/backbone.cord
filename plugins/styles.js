@@ -117,6 +117,8 @@ function _styles(context, attrs) {
 			styles = this[styles];
 		}
 		if(typeof styles === 'object') {
+			// The math plugin doesn't do a deep process of the attributes so invoke string processing here
+			this._plugin('strings', context, styles);
 			for(var style in styles) {
 				if(styles.hasOwnProperty(style)) {
 					if(styles[style].match(Backbone.Cord.regex.variableSearch) && context.isView)
