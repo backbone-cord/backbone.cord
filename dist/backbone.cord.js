@@ -3,6 +3,7 @@
 
 var Backbone = root.Backbone;
 var compatibilityMode = root.cordCompatibilityMode;
+var requestAnimationFrame = root.requestAnimationFrame || setTimeout;
 
 function _plugin(name, context) {
 	// For each callbacks, call and return false if false is returned
@@ -34,7 +35,7 @@ function _el(tagIdClasses, attrs) {
 	if(arguments.length > 1) {
 		// If attrs is not the start of children, then apply the dictionary as attributes
 		var i = 1;
-		if(!(typeof attrs === 'string' || attrs.nodeType === 1)) {
+		if(!(typeof attrs === 'string' || attrs instanceof Node)) {
 			i = 2;
 			// Copy attrs to prevent side-effects
 			attrs = JSON.parse(JSON.stringify(attrs));
@@ -61,8 +62,14 @@ function _el(tagIdClasses, attrs) {
 			configurable: false
 		});
 	}
-	this._plugin('complete', context);
-	return el;
+	return this._plugin('complete', context) || el;
+}
+
+// A simple event callback, where the last argument is taken as a value to pass into setValueForKey
+function _createSetValueCallback(key) {
+	return function() {
+		this.setValueForKey(key, arguments[arguments.length - 1]);
+	};
 }
 
 // id and classes on the subview are maintained, but recommended that id is set by the parent view
@@ -80,7 +87,7 @@ function _subview(instanceClass, idClasses, bindings) {
 		delete subview._invokeObservers;
 	}
 	// Create the plugin context - isView should always be true, this method should never be called any other way
-	context = { el: subview.el, isView: this instanceof Backbone.View };
+	context = { el: subview.el, isView: this instanceof Backbone.View, subview: subview };
 	if(!context.isView)
 		throw new Error('Attempting to create a subview without a parent.');
 	if(typeof idClasses === 'string') {
@@ -104,7 +111,7 @@ function _subview(instanceClass, idClasses, bindings) {
 		bindings = this._plugin('bindings', context, bindings) || bindings;
 		for(var e in bindings) {
 			if(bindings.hasOwnProperty(e))
-				this.listenTo(subview, e, this[bindings[e]]);
+				this.listenTo(subview, e, this[bindings[e]] || _createSetValueCallback(bindings[e]));
 		}
 	}
 	subview.sid = Backbone.Cord._sid;
@@ -144,8 +151,7 @@ function _subview(instanceClass, idClasses, bindings) {
 }
 
 Backbone.Cord = {
-	VERSION: '1.0.0',
-	el: _el,
+	VERSION: '1.0.4',
 	config: {
 		idProperties: true,
 		oncePrefix: '%',
@@ -165,11 +171,12 @@ Backbone.Cord = {
 	// Initialize the Cord View class depending on the compatibility mode
 	View: compatibilityMode ? Backbone.View.extend({}) : Backbone.View,
 	// EmptyModel and EmptyView to use as default model and a subview placeholder
-	EmptyModel: new (Backbone.Model.extend({set: function() { return this; }}))(),
+	EmptyModel: new (Backbone.Model.extend({set: function() { return this; }, toString: function() { return ''; }}))(),
 	EmptyView: Backbone.View.extend({ tagName: 'meta' }),
 	// Unique internal subview id, this unifies how subviews with and without ids are stored
 	_sid: 1,
 	_pluginsChecked: false,
+	_el: _el,
 	_subview: _subview,
 	_plugin: _plugin,
 	_scopes: {},
@@ -186,7 +193,7 @@ Backbone.Cord = {
 		children: [],
 		// (subview) bindings that by default get converted to event listeners
 		bindings: [],
-		// (el and subview) when creation and setup is complete, right before el and subview return
+		// (el and subview) when creation and setup is complete, right before el and subview return, returning a different element can replace an el
 		complete: [],
 		// (new View) create, initialize, and remove apply to all views
 		create: [],
@@ -278,25 +285,42 @@ Backbone.Cord.plugins.push = function(plugin) {
 Backbone.Cord.View.prototype._el = _el;
 Backbone.Cord.View.prototype._subview = _subview;
 Backbone.Cord.View.prototype._plugin = _plugin;
-Backbone.Cord.View.prototype._getWrappedProperty = function(key) {
+Backbone.Cord.View.prototype._getProperty = function(key) {
 	return this['_' + key];
 };
-Backbone.Cord.View.prototype._setWrappedProperty = function(key, value) {
+Backbone.Cord.View.prototype._setProperty = function(key, value) {
 	this['_' + key] = value;
 };
-Backbone.Cord.View.prototype._wrappedPropertyDescriptor = function(key) {
-	var getFunc = this['_get' + key[0].toUpperCase() + key.substr(1)];
-	var setFunc = this['_set' + key[0].toUpperCase() + key.substr(1)];
-	if(!getFunc)
-		getFunc = function() { return this._getWrappedProperty(key); };
-	if(!setFunc)
-		setFunc = function(value) { this._setWrappedProperty(key, value); };
-	return {
-		get: getFunc,
-		set: setFunc,
-		configurable: true,
-		enumerable: true
-	};
+Backbone.Cord.View.prototype._synthesizeGetter = function(key) {
+	key = '_' + key;
+	return function() { return this[key]; };
+};
+Backbone.Cord.View.prototype._synthesizeSetter = function(key) {
+	key = '_' + key;
+	return function(value) { this[key] = value; };
+};
+// Synthesize and define a property using a simple definition, which is one more of (get, set, value), set: null creates a readonly property
+// When definition is a function it implies {get: definition, set: null}
+// When definition is just a value it implies {value: definition} - plain objects need to be explicity set under the value key
+// When get or set is missing default accessors that read/write the backing _key are used
+Backbone.Cord.View.prototype._synthesizeProperty = function(key, definition) {
+	var value = null;
+	var descriptor = { configurable: true, enumerable: true };
+	if(typeof definition === 'function') {
+		descriptor.get = definition;
+	}
+	else if(typeof definition !== 'object' || Object.getPrototypeOf(definition) !== Object.prototype) {
+		value = definition;
+	}
+	else {
+		value = definition.value;
+		descriptor.get = definition.get;
+		descriptor.set = definition.set;
+	}
+	descriptor.get = descriptor.get || this._synthesizeGetter(key);
+	descriptor.set = (descriptor.set === null) ? void(0) : descriptor.set || this._synthesizeSetter(key);
+	Object.defineProperty(this, key, descriptor);
+	this._setProperty(key, value);
 };
 Backbone.Cord.View.prototype._modelObserver = function(model, options) {
 	var key, changed = options._changed || model.changedAttributes();
@@ -354,7 +378,7 @@ Backbone.Cord.View.prototype.observe = function(key, observer, immediate) {
 	// not compatible with the notPrefix and doesn't include the key on callback
 	if(key.indexOf(Backbone.Cord.config.oncePrefix) === 0) {
 		key = key.substr(Backbone.Cord.config.oncePrefix.length);
-		setTimeout(function() { observer.call(this, null, this.getValue.call(this, key)); }.bind(this), 0);
+		requestAnimationFrame(function() { observer.call(this, null, this.getValueForKey.call(this, key)); }.bind(this));
 		return this;
 	}
 	// If key starts with notPrefix, apply a not wrapper to the observer function
@@ -393,7 +417,7 @@ Backbone.Cord.View.prototype.observe = function(key, observer, immediate) {
 		observers[key] = [];
 	observers[key].push(observer);
 	if(immediate)
-		setTimeout(immediateCallback.bind(this, key, name), 0);
+		requestAnimationFrame(immediateCallback.bind(this, key, name));
 	return this;
 };
 Backbone.Cord.View.prototype.unobserve = function(key, observer) {
@@ -430,7 +454,7 @@ Backbone.Cord.View.prototype.unobserve = function(key, observer) {
 		scope.unobserve.call(this, key, observer);
 	return this;
 };
-Backbone.Cord.View.prototype.getValue = function(key) {
+Backbone.Cord.View.prototype.getValueForKey = function(key) {
 	var newKey, name, scope, scopes = Backbone.Cord._scopes;
 	for(name in scopes) {
 		if(scopes.hasOwnProperty(name)) {
@@ -444,7 +468,7 @@ Backbone.Cord.View.prototype.getValue = function(key) {
 		return this.model.id;
 	return this.model.get(key);
 };
-Backbone.Cord.View.prototype.setValue = function(key, value) {
+Backbone.Cord.View.prototype.setValueForKey = function(key, value) {
 	var newKey, name, scope, scopes = Backbone.Cord._scopes;
 	for(name in scopes) {
 		if(scopes.hasOwnProperty(name)) {
@@ -544,15 +568,15 @@ Backbone.Cord.View.prototype._ensureElement = function() {
 	this._observers = {};
 	this._modelObservers = {};
 	this._sharedObservers = {};
-	// Run plugin create hooks and define the properties
+	// Run plugin create hooks
 	this._plugin('create', {});
+	// Synthesize any declared properties
+	var key;
 	if(this.properties) {
-		for(var key in this.properties) {
-			if(this.properties.hasOwnProperty(key)) {
-				Object.defineProperty(this, key, this._wrappedPropertyDescriptor(key));
-				this._setWrappedProperty(key, this.properties[key]);
-			}
-		}
+		var properties = this.properties;
+		for(key in properties)
+			if(properties.hasOwnProperty(key))
+				this._synthesizeProperty(key, properties[key]);
 	}
 	// Bind the el method with prefixed args
 	var isFun = (typeof this.el === 'function');
@@ -567,6 +591,13 @@ Backbone.Cord.View.prototype._ensureElement = function() {
 		this.el.className += (this.el.className.length ? ' ' : '') + this.className;
 	// Run plugin initializers
 	this._plugin('initialize', {});
+	// Setup any declared observers
+	if(this.observers) {
+		var observers = this.observers;
+		for(key in observers)
+			if(observers.hasOwnProperty(key))
+				this.observe(key, observers[key]);
+	}
 	return ret;
 };
 
@@ -587,77 +618,6 @@ Backbone.Cord.View.prototype.remove = function() {
 	this._sharedObservers = null;
 	this.trigger('remove', this);
 	return __remove.apply(this, Array.prototype.slice.call(arguments));
-};
-
-// One-way attribute(s) tracking
-Backbone.Model.prototype.track = function(model, attrs, transform) {
-	if(typeof attrs === 'function') {
-		transform = attrs;
-		attrs = null;
-	}
-	transform = transform || function(data) { return data; };
-	if(!attrs) {
-		this.listenTo(model, 'change', function(model, options) {
-			if(!options._track) {
-				options = JSON.parse(JSON.stringify(options));
-				options._track = true;
-				this.set(transform(model.attributes), options);
-			}
-		});
-	}
-	else {
-		var createListener = function(attr) {
-			return function(model, value, options) {
-				var data = {};
-				data[attr] = value;
-				if(!options._track) {
-					options = JSON.parse(JSON.stringify(options));
-					options._track = true;
-					this.set(transform(data), options);
-				}
-			};
-		};
-		if(typeof attrs === 'string')
-			attrs = [attrs];
-		for(var i = 0; i < attrs.length; ++i) {
-			this.listenTo(model, 'change:' + attrs[i], createListener(attrs[i]));
-		}
-	}
-};
-
-// Used for both subobjects and models that are transformed from others
-// Submodels could be created on initialize like in the backbone docs
-// Transformed modules could be created on the cascade method
-Backbone.Model.prototype.subsume = function(cls, attr, transform) {
-	var sub = new cls();
-	if(typeof attr === 'function') {
-		transform = attr;
-		attr = null;
-	}
-	transform = transform || sub.transform || function(data) { return data; };
-	// Proxy communication events
-	sub.listenTo(this, 'request sync error', function() {
-		this.trigger.apply(this, Array.prototype.slice.call(arguments));
-	});
-	// Perform the initial set and setup tracking
-	if(attr) {
-		if(Object.keys(this.get(attr)).length)
-			sub.set(transform(sub.parse(this.get(attr))));
-		sub.track(this, attr, function(data) { return data[attr]; });
-		this.track(sub, function(data) { var attrs = {}; attrs[attr] = data; return attrs; });
-	}
-	else {
-		if(Object.keys(this.attributes).length)
-			sub.set(transform(sub.parse(this.attributes)));
-		sub.track(this, transform);
-	}
-	return sub;
-};
-
-// Two-way tracking
-Backbone.Model.prototype.mirror = function(model, attrs) {
-	this.track(model, attrs);
-	model.track(this, attrs);
 };
 
 })(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)));
@@ -706,6 +666,8 @@ var _valueDecoders = {
 	'number': function(el) { return Number(el.value); },
 	'integer': function(el) { return parseInt(el.value); },
 	'decimal': function(el) { return parseFloat(el.value); },
+	'date': function(el) { return new Date(el.value); },
+	'datetime': function(el) { return new Date(el.value); },
 	'checkbox': function(el) { return el.checked; }
 };
 
@@ -713,7 +675,7 @@ function _createValueListener(key) {
 	return function(e) {
 		var el = e.currentTarget;
 		var decoder = _valueDecoders[el.getAttribute('data-type') || el.getAttribute('type')];
-		this.setValue(key, decoder ? decoder.call(this, el) : el.value);
+		this.setValueForKey(key, decoder ? decoder.call(this, el) : el.value);
 	};
 }
 
@@ -1094,25 +1056,13 @@ Backbone.Cord.plugins.push({
 				this.collection = new Backbone.Collection();
 			this.isCollectionView = true;
 			this.getItemView = _getItemView;
-			this._getStart = _getStart;
-			this._getEnd = _getEnd;
-			this._setLength = _setLength;
-			this._setStart = _setStart;
-			this._setEnd = _setEnd;
-			this._setMore = _setMore;
-			this._setPageStart = _setPageStart;
-			this._setPageLength = _setPageLength;
-			this._setSelected = _setSelected;
-			this._pageStart = 0;
-			this._pageLength = -1;
-			this._selected = null;
-			Object.defineProperty(this, 'length', this._wrappedPropertyDescriptor('length'));
-			Object.defineProperty(this, 'start', this._wrappedPropertyDescriptor('start'));
-			Object.defineProperty(this, 'end', this._wrappedPropertyDescriptor('end'));
-			Object.defineProperty(this, 'more', this._wrappedPropertyDescriptor('more'));
-			Object.defineProperty(this, 'pageStart', this._wrappedPropertyDescriptor('pageStart'));
-			Object.defineProperty(this, 'pageLength', this._wrappedPropertyDescriptor('pageLength'));
-			Object.defineProperty(this, 'selected', this._wrappedPropertyDescriptor('selected'));
+			this._synthesizeProperty('length', {set: _setLength});
+			this._synthesizeProperty('start', {get: _getStart, set: _setStart});
+			this._synthesizeProperty('end', {get: _getEnd, set: _setEnd});
+			this._synthesizeProperty('more', {set: _setMore});
+			this._synthesizeProperty('pageStart', {set: _setPageStart, value: 0});
+			this._synthesizeProperty('pageLength', {set: _setPageLength, value: -1});
+			this._synthesizeProperty('selected', {set: _setSelected, value: null});
 			// Setup, set initial calculated values, and then on next tick, run reset (not based on events to add loading, empty, or render)
 			_setup.call(this);
 			_updateCalculated.call(this);
@@ -1122,6 +1072,130 @@ Backbone.Cord.plugins.push({
 	remove: function() {
 		if(this.isCollectionView && this.itemViews) {
 			_removeAll.call(this);
+		}
+	}
+});
+
+})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone);
+
+;(function(Backbone) {
+'use strict';
+
+function _getFunctionArgs(func) {
+	// Get all argument names for a function
+	// Based on http://stackoverflow.com/questions/1007981/how-to-get-function-parameter-names-values-dynamically-from-javascript
+	var str = func.toString();
+	var args = str.slice(str.indexOf('(') + 1, str.indexOf(')')).match(/([^\s,]+)/g);
+	if(!args)
+		args = [];
+	return args;
+}
+
+function _detectComputedChanges() {
+	var i, key, keys;
+	var change, changed = this.changedAttributes();
+	var newChanged = {};
+	for(change in changed) {
+		if(changed.hasOwnProperty(change) && this._computedArgs[change]) {
+			keys = this._computedArgs[change];
+			for(i = 0; i < keys.length; ++i) {
+				key = keys[i];
+				if(!newChanged[key]) {
+					newChanged[key] = this.get(key);
+					this.trigger('change:' + key, this, newChanged[key], {});
+				}
+			}
+		}
+	}
+	// To not interefer with the current change event, use setTimeout to modify the changed object
+	setTimeout(function() {
+		this.changed = newChanged;
+		this.trigger('change', this, {});
+	}.bind(this), 0);
+}
+
+function _wrapComputedFunc(func, args) {
+	return function() {
+		var i, values = [];
+		for(i = 0; i < args.length; ++i)
+			values.push(this.get(args[i]));
+		return func.apply(this, values);
+	};
+}
+
+// Extend computed attribute capabilities to Backbone models
+Backbone.Model.prototype._addComputed = function(key, func) {
+	var i, arg, args = _getFunctionArgs(func);
+	if(!this._computed) {
+		this._computed = {};
+		this._computedArgs = {};
+		this.get = function(attr) {
+			var compFun = this._computed[attr];
+			if(compFun)
+				return compFun.call(this);
+			return Backbone.Model.prototype.get.call(this, attr);
+		};
+		this.listenTo(this, 'change', _detectComputedChanges);
+	}
+	this._computed[key] = _wrapComputedFunc(func, args);
+	for(i = 0; i < args.length; ++i) {
+		arg = args[i];
+		if(!this._computedArgs[arg])
+			this._computedArgs[arg] = [];
+		this._computedArgs[arg].push(key);
+	}
+};
+
+// Wrap extend to wrap the initialize method
+var __extend = Backbone.Model.extend;
+Backbone.Model.extend = function(properties) {
+	var __initialize;
+	if(properties.computed) {
+		__initialize = properties.initialize || Backbone.Model.prototype.initialize;
+		properties.initialize = function() {
+			if(this.computed) {
+				for(var attr in this.computed) {
+					if(this.computed.hasOwnProperty(attr))
+						this._addComputed(attr, this.computed[attr]);
+				}
+			}
+			return __initialize.apply(this, Array.prototype.slice.call(arguments));
+		};
+	}
+	return __extend.apply(this, Array.prototype.slice.call(arguments));
+};
+
+function _createArgObserver(key, getFunc, args) {
+	return function() {
+		var i, values = [];
+		for(i = 0; i < args.length; ++i)
+			values.push(this.getValueForKey(args[i]));
+		this[key] = getFunc.apply(this, values);
+	};
+}
+
+Backbone.Cord.plugins.push({
+	name: 'computed',
+	initialize: function() {
+		// Enumerate all of the get properties to determine which has a get method with arguments
+		if(this.properties) {
+			var key, prop, args, i, observer;
+			for(key in this.properties) {
+				if(this.properties.hasOwnProperty(key)) {
+					prop = Object.getOwnPropertyDescriptor(this, key);
+					if(prop && prop.get) {
+						args = _getFunctionArgs(prop.get);
+						if(args.length) {
+							// The observer method then will call this._setKey(argValues...);
+							observer = _createArgObserver(key, prop.get, args);
+							for(i = 0; i < args.length; ++i)
+								this.observe(args[i], observer, i === 0);
+							// The get then needs to be replaced with a default getter
+							Object.defineProperty(this, key, {get: this._synthesizeGetter(key)});
+						}
+					}
+				}
+			}
 		}
 	}
 });
@@ -1331,7 +1405,7 @@ function _createFormatObserver(strings, properties, formatObserver) {
 		for(i = 0; i < properties.length; ++i) {
 			formatted.push(strings[i]);
 			property = properties[i];
-			formatted.push(this.getValue(property));
+			formatted.push(this.getValueForKey(property));
 		}
 		formatted.push(strings[i]);
 		formatObserver.call(this, key, formatted.join(''));
@@ -1379,7 +1453,7 @@ function _createExpressionProperty(expr, prop) {
 	for(i = 0; i < matches.length; ++i) {
 		code += strings[i];
 		key = matches[i] = Backbone.Cord.regex.variableValue.exec(matches[i])[1];
-		code += 'Number(this.getValue("' + key + '"))';
+		code += 'Number(this.getValueForKey("' + key + '"))';
 	}
 	code += strings[i] + ';';
 	/* jshint -W054 */
@@ -1389,10 +1463,9 @@ function _createExpressionProperty(expr, prop) {
 		key = matches[i];
 		this.observe(key, fnc, !i);
 	}
-	// Define the expression property
-	var descriptor = this._wrappedPropertyDescriptor(prop);
-	descriptor.enumerable = false;
-	Object.defineProperty(this, prop, descriptor);
+	// Define the expression property and set enumarable to false
+	this._synthesizeProperty(prop);
+	Object.defineProperty(this, prop, {enumerable: false});
 }
 
 function _replaceExpressions(str) {
@@ -1444,6 +1517,130 @@ Backbone.Cord.plugins.unshift({
 		for(var str in strings) {
 			if(strings.hasOwnProperty(str) && typeof strings[str] === 'string' && Backbone.Cord.regex.expressionSearch.test(strings[str]))
 				strings[str] = _replaceExpressions.call(this, strings[str]);
+		}
+	}
+});
+
+})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone);
+
+;(function(Backbone) {
+'use strict';
+
+// One-way attribute(s) tracking
+Backbone.Model.prototype.track = function(model, attrs, transform) {
+	if(typeof attrs === 'function') {
+		transform = attrs;
+		attrs = null;
+	}
+	transform = transform || function(data) { return data; };
+	if(!attrs) {
+		this.listenTo(model, 'change', function(model, options) {
+			if(!options._track) {
+				options = JSON.parse(JSON.stringify(options));
+				options._track = true;
+				this.set(transform(model.attributes), options);
+			}
+		});
+	}
+	else {
+		var createListener = function(attr) {
+			return function(model, value, options) {
+				var data = {};
+				data[attr] = value;
+				if(!options._track) {
+					options = JSON.parse(JSON.stringify(options));
+					options._track = true;
+					this.set(transform(data), options);
+				}
+			};
+		};
+		if(typeof attrs === 'string')
+			attrs = [attrs];
+		for(var i = 0; i < attrs.length; ++i) {
+			this.listenTo(model, 'change:' + attrs[i], createListener(attrs[i]));
+		}
+	}
+	return this;
+};
+
+// Used for both subobjects and models that are transformed from others
+// Submodels could be created on initialize like in the backbone docs
+// Transformed modules could be created on the cascade method
+Backbone.Model.prototype.subsume = function(cls, attr, transform) {
+	var sub = new cls();
+	if(typeof attr === 'function') {
+		transform = attr;
+		attr = null;
+	}
+	transform = transform || sub.transform || function(data) { return data; };
+	// Proxy communication events
+	sub.listenTo(this, 'request sync error', function() {
+		this.trigger.apply(this, Array.prototype.slice.call(arguments));
+	});
+	// Perform the initial set and setup tracking
+	if(attr) {
+		if(Object.keys(this.get(attr)).length)
+			sub.set(transform(sub.parse(this.get(attr))));
+		sub.track(this, attr, function(data) { return data[attr]; });
+		this.track(sub, function(data) { var attrs = {}; attrs[attr] = data; return attrs; });
+	}
+	else {
+		if(Object.keys(this.attributes).length)
+			sub.set(transform(sub.parse(this.attributes)));
+		sub.track(this, transform);
+	}
+	return sub;
+};
+
+// Two-way tracking
+Backbone.Model.prototype.mirror = function(model, attrs) {
+	this.track(model, attrs);
+	model.track(this, attrs);
+	return this;
+};
+
+// Plugin doesn't actually do anything but register it anyways
+Backbone.Cord.plugins.push({ name: 'modeltracking' });
+
+})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone);
+
+;(function(Backbone) {
+'use strict';
+
+var _replacementTags = {};
+
+// selector MUST include a tag, but otherwise must be any valid query selector
+// func is the replacement function taking the args el and fragment and can modify the element by:
+// * Modifying the first argument and return nothing
+// * Return a completely new element, which may be a subview's el
+// * Modify the element and add siblings using the documentFragment provided as the second argument
+// NOTES:
+// * If replacing an element the old one may still be around with bindings and even as a property through this if an #id is used - be very aware of what the replacement is doing
+// * DO NOT replace any root elements in a view's el layout
+// * If the element is the root element for a view and the documentfragment is returned, the remove function will not work properly because the view's el becomes an empty documentfragment
+Backbone.Cord.addReplacement = function(selector, func) {
+	var tag = selector.split(' ')[0].split('[')[0].split('.')[0].split('#')[0];
+	if(!_replacementTags[tag])
+		_replacementTags[tag] = [];
+	_replacementTags[tag].push({selector: selector, func: func});
+};
+
+Backbone.Cord.plugins.push({
+	name: 'replacement',
+	complete: function(context) {
+		var el, i, replacement, replacements;
+		if(context.subview)
+			return;
+		el = context.el;
+		replacements = _replacementTags[el.tagName.toLowerCase()];
+		if(replacements) {
+			var fragment = document.createDocumentFragment();
+			fragment.appendChild(el);
+			for(i = 0; i < replacements.length; ++i) {
+				replacement = replacements[i];
+				if(fragment.querySelector(replacement.selector) === el)
+					return replacement.func.call(this, el, fragment) || fragment;
+			}
 		}
 	}
 });
@@ -1569,6 +1766,8 @@ function _styles(context, attrs) {
 			styles = this[styles];
 		}
 		if(typeof styles === 'object') {
+			// The math plugin doesn't do a deep process of the attributes so invoke string processing here
+			this._plugin('strings', context, styles);
 			for(var style in styles) {
 				if(styles.hasOwnProperty(style)) {
 					if(styles[style].match(Backbone.Cord.regex.variableSearch) && context.isView)
@@ -1701,11 +1900,8 @@ Backbone.Cord.parseError = function(response) {
 Backbone.Cord.plugins.push({
 	name: 'syncing',
 	create: function() {
-		var key;
-		key = 'syncing';
-		Object.defineProperty(this, key, this._wrappedPropertyDescriptor(key));
-		key = 'error';
-		Object.defineProperty(this, key, this._wrappedPropertyDescriptor(key));
+		this._synthesizeProperty('syncing');
+		this._synthesizeProperty('error');
 		_setup.call(this);
 	}
 });
@@ -1729,6 +1925,9 @@ function _modelObserver(model) {
 
 Backbone.Cord.shared = new Backbone.Model();
 
+// Scope for a single globally shared Backbone model
+// Listeners on the model are automatically added and removed
+// Final cleanup is automatic on remove() when backbone calls stopListening()
 Backbone.Cord.plugins.push({
 	name: SCOPE_NAME,
 	config: {
@@ -1768,7 +1967,7 @@ function _propertyObserver(key, prevSet) {
 		if(prevSet)
 			prevSet.call(this, value);
 		else
-			this._setWrappedProperty(key, value);
+			this._setProperty(key, value);
 		this._invokeObservers(key, this[key], SCOPE_NAME);
 	};
 	newSet._cordWrapped = true;
@@ -1796,15 +1995,15 @@ Backbone.Cord.plugins.push({
 			if(!prop.set._cordWrapped) {
 				if(prop.set) {
 					// Just wrap the setter of a defined property
-					Object.defineProperty(this, key, {set: _propertyObserver.call(this, key, prop.set)});
+					Object.defineProperty(this, key, {set: _propertyObserver(key, prop.set)});
 				}
 				else {
 					// Define a new property without an existing defined setter
-					this._setWrappedProperty(key, this[key]);
+					this._setProperty(key, this[key]);
 					if(delete this[key]) {
 						Object.defineProperty(this, key, {
-							get: this._getWrappedProperty.bind(this, key),
-							set: _propertyObserver.call(this, key),
+							get: this._synthesizeGetter(key),
+							set: _propertyObserver(key),
 							enumerable: true,
 							configurable: true
 						});
