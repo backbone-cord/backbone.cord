@@ -16,7 +16,7 @@ Backbone.Cord.View.prototype.focus = function(id) {
 
 function _events(context, attrs) {
 	for(var attr in attrs) {
-		if(attr.substr(0,2) === 'on' && attrs.hasOwnProperty(attr)) {
+		if(attr.substr(0, 2) === 'on' && attrs.hasOwnProperty(attr)) {
 			var listener = (typeof attrs[attr] === 'string') ? this[attrs[attr]] : attrs[attr];
 			if(typeof listener === 'function') {
 				if(context.isView)
@@ -34,4 +34,4 @@ Backbone.Cord.plugins.push({
 	bindings: _events
 });
 
-})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone);
+})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone || require('backbone'));

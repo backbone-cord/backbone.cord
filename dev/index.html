@@ -41,17 +41,11 @@
 		window.Circle = Backbone.Cord.View.extend({
 			el: function(el, view) {
 				return el('._',
-						el('#circle.circle', '{lastName}'));
+						el('#circle.circle', {style: {top: '{_top}px', left: '{_left}px'}}, '{lastName}'));
 			},
 			properties: {
-				top: {
-					set: function(value) { this._top = value; if(this.circle) this.circle.style.top = this._top + 'px'; },
-					value: 0
-				},
-				left: {
-					set: function(value) { this._left = value; if(this.circle) this.circle.style.left = this._left + 'px'; },
-					value: 0
-				}
+				top: 0,
+				left: 0
 			},
 			observers: {
 				_top: Backbone.Events.trigger
@@ -88,13 +82,13 @@
 						),
 						_L('input', {type: 'checkbox', change: '_message'}),
 						_L('input', {type: 'range', min: 0, max: 100, input: '_left', value: '{_left}'}),
-						_L('#container.square.red(_red)', {style: {borderTop: '{_left}px solid {ls_color}'}}),
+						_L('#container.square.red(_red)', {style: {borderTop: '{_left}px solid {ls_color}', top: '{_top}px', left: '{_left}px'}}),
 						_L('p',
 							'Click the button below to change the color.', 'Distance is {_distance}.'),
 						_L('button#button', {onclick: 'onButtonClick'}, 'Click Me'),
 						_L('p.red-{_red}',
 							'Red is: {_red}'),
-						_L('.hi',
+						_L('.hi', {style: {paddingLeft: ':={@cursorX}-200=:', paddingTop: ':={@cursorY}/2=:'}},
 							'Hi {firstName}, Blue is: {_blue}'),
 						_L('p#thankyou', {hidden: '_red'},
 							'Thank you much, {firstName} {lastName} aka {nickName}!'),
@@ -114,14 +108,8 @@
 				message: {
 					set: function(value) { this._message = value; console.log(value); }
 				},
-				top: {
-					set: function(value) { this._top = value; if(this.container) this.container.style.top = this._top + 'px'; },
-					value: 0
-				},
-				left: {
-					set: function(value) { this._left = value; if(this.container) this.container.style.left = this._left + 'px'; },
-					value: 50
-				},
+				top: 0,
+				left: 10,
 				borderColor: '#CCC',
 				distance: function(_top, _left) { return _top + _left; }
 			},
@@ -155,7 +143,7 @@
 				}
 			}
 		});
-		window.squareModel = new Backbone.Model({firstName:'Marc', lastName:'Awesome', nickName:'Marco'});
+		window.squareModel = new Backbone.Model({firstName:'Carl', lastName:'Awesome', nickName:'Car'});
 		window.square = new Square({model: squareModel});
 		$(document.body).append(square.el);
 		square.focus();

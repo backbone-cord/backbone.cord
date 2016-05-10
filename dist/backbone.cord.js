@@ -1,7 +1,7 @@
 ;(function(root) {
 'use strict';
 
-var Backbone = root.Backbone;
+var Backbone = root.Backbone || require('backbone');
 var compatibilityMode = root.cordCompatibilityMode;
 var requestAnimationFrame = root.requestAnimationFrame || setTimeout;
 
@@ -151,7 +151,7 @@ function _subview(instanceClass, idClasses, bindings) {
 }
 
 Backbone.Cord = {
-	VERSION: '1.0.4',
+	VERSION: '1.0.5',
 	config: {
 		idProperties: true,
 		oncePrefix: '%',
@@ -742,7 +742,7 @@ Backbone.Cord.plugins.push({
 	}
 });
 
-})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone);
+})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone || require('backbone'));
 
 ;(function(Backbone) {
 'use strict';
@@ -1076,7 +1076,7 @@ Backbone.Cord.plugins.push({
 	}
 });
 
-})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone);
+})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone || require('backbone'));
 
 ;(function(Backbone) {
 'use strict';
@@ -1200,7 +1200,7 @@ Backbone.Cord.plugins.push({
 	}
 });
 
-})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone);
+})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone || require('backbone'));
 
 ;(function(Backbone) {
 'use strict';
@@ -1238,7 +1238,7 @@ Backbone.Cord.plugins.push({
 	}
 });
 
-})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone);
+})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone || require('backbone'));
 
 ;(function(Backbone) {
 'use strict';
@@ -1285,7 +1285,7 @@ Backbone.Cord.View.extend = function(properties) {
 // Plugin doesn't provide callbacks but register it anyways
 Backbone.Cord.plugins.push({ name: 'dataid' });
 
-})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone);
+})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone || require('backbone'));
 
 ;(function(Backbone) {
 'use strict';
@@ -1322,7 +1322,7 @@ Backbone.Cord.plugins.push({
 	}
 });
 
-})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone);
+})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone || require('backbone'));
 
 ;(function(Backbone) {
 'use strict';
@@ -1342,7 +1342,7 @@ Backbone.Cord.View.prototype.focus = function(id) {
 
 function _events(context, attrs) {
 	for(var attr in attrs) {
-		if(attr.substr(0,2) === 'on' && attrs.hasOwnProperty(attr)) {
+		if(attr.substr(0, 2) === 'on' && attrs.hasOwnProperty(attr)) {
 			var listener = (typeof attrs[attr] === 'string') ? this[attrs[attr]] : attrs[attr];
 			if(typeof listener === 'function') {
 				if(context.isView)
@@ -1360,7 +1360,7 @@ Backbone.Cord.plugins.push({
 	bindings: _events
 });
 
-})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone);
+})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone || require('backbone'));
 
 ;(function(Backbone) {
 'use strict';
@@ -1394,7 +1394,7 @@ Backbone.Cord.plugins.push({
 	bindings: _hidden
 });
 
-})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone);
+})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone || require('backbone'));
 
 ;(function(Backbone) {
 'use strict';
@@ -1439,7 +1439,7 @@ Backbone.Cord.View.prototype.observeFormat = function(format, observer, immediat
 // Plugin doesn't actually do anything but register it anyways
 Backbone.Cord.plugins.push({ name: 'interpolation' });
 
-})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone);
+})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone || require('backbone'));
 
 ;(function(Backbone) {
 'use strict';
@@ -1521,7 +1521,7 @@ Backbone.Cord.plugins.unshift({
 	}
 });
 
-})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone);
+})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone || require('backbone'));
 
 ;(function(Backbone) {
 'use strict';
@@ -1602,7 +1602,7 @@ Backbone.Model.prototype.mirror = function(model, attrs) {
 // Plugin doesn't actually do anything but register it anyways
 Backbone.Cord.plugins.push({ name: 'modeltracking' });
 
-})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone);
+})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone || require('backbone'));
 
 ;(function(Backbone) {
 'use strict';
@@ -1645,7 +1645,7 @@ Backbone.Cord.plugins.push({
 	}
 });
 
-})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone);
+})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone || require('backbone'));
 
 ;(function(Backbone) {
 'use strict';
@@ -1822,7 +1822,7 @@ Backbone.Cord.plugins.push({
 	}
 });
 
-})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone);
+})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone || require('backbone'));
 
 ;(function(Backbone) {
 'use strict';
@@ -1906,7 +1906,7 @@ Backbone.Cord.plugins.push({
 	}
 });
 
-})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone);
+})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone || require('backbone'));
 
 ;(function(Backbone) {
 'use strict';
@@ -1955,7 +1955,7 @@ Backbone.Cord.plugins.push({
 	}
 });
 
-})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone);
+})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone || require('backbone'));
 
 ;(function(Backbone) {
 'use strict';
@@ -2035,4 +2035,4 @@ Backbone.Cord.plugins.push({
 	}
 });
 
-})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone);
+})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone || require('backbone'));

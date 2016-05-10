@@ -41,4 +41,4 @@ Backbone.Cord.View.prototype.observeFormat = function(format, observer, immediat
 // Plugin doesn't actually do anything but register it anyways
 Backbone.Cord.plugins.push({ name: 'interpolation' });
 
-})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone);
+})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone || require('backbone'));

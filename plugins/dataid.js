@@ -43,4 +43,4 @@ Backbone.Cord.View.extend = function(properties) {
 // Plugin doesn't provide callbacks but register it anyways
 Backbone.Cord.plugins.push({ name: 'dataid' });
 
-})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone);
+})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone || require('backbone'));

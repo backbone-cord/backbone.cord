@@ -1,7 +1,7 @@
 ;(function(root) {
 'use strict';
 
-var Backbone = root.Backbone;
+var Backbone = root.Backbone || require('backbone');
 var compatibilityMode = root.cordCompatibilityMode;
 var requestAnimationFrame = root.requestAnimationFrame || setTimeout;
 
@@ -151,7 +151,7 @@ function _subview(instanceClass, idClasses, bindings) {
 }
 
 Backbone.Cord = {
-	VERSION: '1.0.4',
+	VERSION: '1.0.5',
 	config: {
 		idProperties: true,
 		oncePrefix: '%',

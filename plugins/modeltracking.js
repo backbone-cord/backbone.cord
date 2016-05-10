@@ -77,4 +77,4 @@ Backbone.Model.prototype.mirror = function(model, attrs) {
 // Plugin doesn't actually do anything but register it anyways
 Backbone.Cord.plugins.push({ name: 'modeltracking' });
 
-})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone);
+})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone || require('backbone'));
