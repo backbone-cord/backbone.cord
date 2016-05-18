@@ -167,7 +167,7 @@ Backbone.Cord = {
 	// Filters installed by the app by pushing to this array
 	filters: [],
 	convertToString: function(obj) { if(obj === null || obj === undefined) return ''; return obj.toString(); },
-	convertToBool: function(value) { return (value && (value.length === void(0) || value.length)); },
+	convertToBool: function(value) { return !!(value && (value.length === void(0) || value.length)); },
 	// Initialize the Cord View class depending on the compatibility mode
 	View: compatibilityMode ? Backbone.View.extend({}) : Backbone.View,
 	// EmptyModel and EmptyView to use as default model and a subview placeholder
@@ -203,6 +203,8 @@ Backbone.Cord = {
 		strings: []
 	}
 };
+if(typeof exports === 'object')
+	module.exports = Backbone.Cord;
 
 Backbone.Cord.hasId = function(el) {
 	return !!el.id;
