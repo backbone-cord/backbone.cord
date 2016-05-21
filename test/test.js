@@ -7,7 +7,7 @@ assert.element = function(el, tagName, id, classes, attrs) {
 	assert.equal(el.nodeType, 1);
 	assert.equal(el.tagName.toLowerCase(), tagName.toLowerCase());
 	if(id)
-		assert.equal(el.id, id);
+		assert.equal(el.getAttribute('data-id'), id);
 	if(classes) {
 		_.each(classes, function(cls) {
 			assert(el.classList.contains(cls));
@@ -79,7 +79,7 @@ describe('_el', function() {
 		it('should return <input id="dog" class="black fluffy"></div>', function() { assert.element(cord._el('input#dog.black.fluffy'), 'input', 'dog', ['black', 'fluffy']); });
 		it('should return <div id="dog">jumped over the fence</div>', function() {
 			var el = cord._el('#dog', 'jumped over the fence');
-			assert.equal(el.outerHTML, '<div id="dog">jumped over the fence</div>');
+			assert.equal(el.outerHTML, '<div data-id="dog">jumped over the fence</div>');
 			assert.element(el, 'div', 'dog');
 			assert.text(el.childNodes[0], 'jumped over the fence');
 		});
