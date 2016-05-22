@@ -151,7 +151,7 @@ function _subview(instanceClass, idClasses, bindings) {
 }
 
 Backbone.Cord = {
-	VERSION: '1.0.5',
+	VERSION: '1.0.7',
 	config: {
 		idProperties: true,
 		oncePrefix: '%',
@@ -164,8 +164,8 @@ Backbone.Cord = {
 	},
 	// Plugins install themselves by pushing to this array
 	plugins: [],
-	// Filters installed by the app by pushing to this array
-	filters: [],
+	// Filters installed by the app by setting keys on this object
+	filters: {},
 	convertToString: function(obj) { if(obj === null || obj === undefined) return ''; return obj.toString(); },
 	convertToBool: function(value) { return !!(value && (value.length === void(0) || value.length)); },
 	// Initialize the Cord View class depending on the compatibility mode
