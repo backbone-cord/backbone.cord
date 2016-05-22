@@ -1,9 +1,9 @@
 var assert = require('assert');
+var Backbone = require('./cordedbackbone');
 
 describe('filters', function() {
 	var view;
 	before(function() {
-		var Backbone = require('./cordedbackbone');
 		Backbone.Cord.filters['plus100'] = function(value) {
 			return value + 100;
 		};

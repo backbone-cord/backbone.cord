@@ -1,9 +1,9 @@
 var assert = require('assert');
+var Backbone = require('./cordedbackbone');
 
 describe('hidden plugin', function() {
 	var view;
 	before(function() {
-		var Backbone = require('./cordedbackbone');
 		view = new (Backbone.View.extend({
 			el: function(h) {
 				return h('',

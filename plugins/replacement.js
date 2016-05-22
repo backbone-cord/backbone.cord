@@ -3,6 +3,9 @@
 
 var _replacementTags = {};
 
+// Each replacement function is function(el, parent), where:
+// * the el is augmented inside the parent (a document fragment)
+// * or a new element is returned, replacing el inside it's parent
 // selector MUST include a tag, but otherwise must be any valid query selector
 // func is the replacement function taking the args el and fragment and can modify the element by:
 // * Modifying the first argument and return nothing
