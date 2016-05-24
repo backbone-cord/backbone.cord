@@ -46,13 +46,16 @@ function _el(tagIdClasses, attrs) {
 			}
 		}
 		// Copy arguments to prevent side-effects
-		var children = Array.prototype.slice.call(arguments, i);
+		var child, children = Array.prototype.slice.call(arguments, i);
 		children = this._plugin('children', context, children) || children;
 		for(i = 0; i < children.length; ++i) {
-			if(typeof children[i] === 'string')
-				el.appendChild(document.createTextNode(children[i]));
+			child = children[i];
+			if(typeof child === 'string')
+				el.appendChild(document.createTextNode(child));
+			else if(child instanceof Backbone.View)
+				el.appendChild(child.el);
 			else
-				el.appendChild(children[i]);
+				el.appendChild(child);
 		}
 	}
 	if(Backbone.Cord.config.idProperties && context.isView && id && Backbone.Cord.regex.testIdProperty(id)) {
@@ -147,7 +150,7 @@ function _subview(instanceClass, idClasses, bindings) {
 		});
 	}
 	this._plugin('complete', context);
-	return subview.el;
+	return subview;
 }
 
 Backbone.Cord = {
@@ -440,7 +443,7 @@ Backbone.Cord.View.prototype.unobserve = function(key, observer) {
 			}
 		}
 	}
-	// If no observers entry set, do model binding
+	// If no observers entry set, do model unbinding
 	if(!found) {
 		observers = this._modelObservers;
 		if(key === 'id')
