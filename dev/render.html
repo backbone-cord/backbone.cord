@@ -11,7 +11,8 @@
 				return h('b', h('i', 'Static layout'));
 			},
 			render: function(h, s, data) {
-				data = data || [];
+				data = data.slice() || [];
+				console.log('here');
 				for(var i = 0; i < data.length; ++i)
 					data[i] = h('p', '{_value} ', data[i]);
 				return data;

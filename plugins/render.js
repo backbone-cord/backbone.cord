@@ -14,6 +14,7 @@ function _subview() {
 }
 
 function _once(func) {
+	// Call the inner function but only once on the next tick
 	var tid;
 	return function() {
 		if(!tid)
@@ -30,7 +31,7 @@ Backbone.Cord.plugins.push({
 		if(this.render !== Backbone.View.prototype.render) {
 			var __render = this.render.bind(this, this._el.bind(this), _subview.bind(this));
 			this.render = function() {
-				var i, key, rendered, fragment, container = _getContainer.call(this);
+				var i, key, rendered, renderedObserver, fragment, container = _getContainer.call(this);
 				// Cleanup from last render, elements, subviews, and observers
 				for(i = 0; i < this._rendered.length; ++i) {
 					rendered = this._rendered[i];
@@ -46,14 +47,19 @@ Backbone.Cord.plugins.push({
 						this.unobserve(key, this._renderedObservers[key]);
 				}
 				this._renderedObservers = {};
+				// Check to see if arguments have been updated and save them to be used when calling the __render method
+				// The initial setTimeout and observer method both use setTimeout with no arguments, so the arguments should be empty through those calls
+				if(arguments.length)
+					this._renderedArgs = Array.prototype.slice.call(arguments);
 				// Render and replace the observe method while rendering, so that observers bound to elements etc aren't saved
 				// Instead just a single immediate callback and the actual observer is a debounced render
+				renderedObserver = _once(this.render.bind(this));
 				this.observe = function(key, observer) {
 					Backbone.Cord.View.prototype.observe.call(this, Backbone.Cord.config.oncePrefix + key, observer);
 					if(!this._renderedObservers[key])
-						Backbone.Cord.View.prototype.observe.call(this, key, this._renderedObservers[key] = _once(this.render.bind(this)));
+						Backbone.Cord.View.prototype.observe.call(this, key, this._renderedObservers[key] = renderedObserver);
 				};
-				this._rendered = __render.apply(this, Array.prototype.slice.call(arguments)) || [];
+				this._rendered = __render.apply(this, this._renderedArgs) || [];
 				if(!(this._rendered instanceof Array))
 					this._rendered = [this._rendered];
 				delete this.observe;
@@ -70,6 +76,7 @@ Backbone.Cord.plugins.push({
 				return this;
 			};
 			this._rendered = [];
+			this._renderedArgs = [];
 			this._renderedSubviews = [];
 			this._renderedObservers = {};
 			setTimeout(this.render.bind(this));
