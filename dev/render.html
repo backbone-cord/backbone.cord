@@ -1,0 +1,26 @@
+<html>
+<body>
+	<script type="text/javascript" src="/underscore/underscore.js"></script>
+	<script type="text/javascript" src="/jquery/dist/jquery.js"></script>
+	<script type="text/javascript" src="/backbone/backbone.js"></script>
+	<script type="text/javascript" src="/backbone.cord.js"></script>
+	<script type="text/javascript">
+	$(function() {
+		var RenderView = Backbone.View.extend({
+			el: function(h) {
+				return h('b', h('i', 'Static layout'));
+			},
+			render: function(h, s, data) {
+				data = data || [];
+				for(var i = 0; i < data.length; ++i)
+					data[i] = h('p', '{_value} ', data[i]);
+				return data;
+			},
+			properties: { value: 0 }
+		});
+		window.view = new RenderView();
+		$(document.body).append(view.render(['1', '2', '3']).el);
+	});
+	</script>
+</body>
+</html>
