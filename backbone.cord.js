@@ -35,7 +35,7 @@ function _el(tagIdClasses, attrs) {
 	if(arguments.length > 1) {
 		// If attrs is not the start of children, then apply the dictionary as attributes
 		var i = 1;
-		if(!(typeof attrs === 'string' || attrs instanceof Node)) {
+		if(!(typeof attrs === 'string' || attrs instanceof Backbone.View || attrs instanceof Node)) {
 			i = 2;
 			// Copy attrs to prevent side-effects
 			attrs = JSON.parse(JSON.stringify(attrs));
@@ -154,7 +154,7 @@ function _subview(instanceClass, idClasses, bindings) {
 }
 
 Backbone.Cord = {
-	VERSION: '1.0.7',
+	VERSION: '1.0.8',
 	config: {
 		idProperties: true,
 		oncePrefix: '%',
