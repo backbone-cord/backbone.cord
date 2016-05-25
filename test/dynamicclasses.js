@@ -13,10 +13,11 @@ describe('dynamicclasses plugin', function() {
 			}
 		}))();
 	});
-	describe('value is one', function() {
+	describe('value is "one"', function() {
+		before(function() { view.value = 'one'; });
 		it('el.className should contain one', function() { assert.notEqual(view.el.className.indexOf('one'), -1); });
 	});
-	describe('value is two', function() {
+	describe('value is "two"', function() {
 		before(function() { view.value = 'two'; });
 		it('el.className should contain two', function() { assert.notEqual(view.el.className.indexOf('two'), -1); });
 	});
