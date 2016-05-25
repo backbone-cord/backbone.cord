@@ -11,11 +11,11 @@
 				return h('b', h('i', 'Static layout'));
 			},
 			render: function(h, s, data) {
-				data = data.slice() || [];
+				var nodes = [];
 				console.log('here');
 				for(var i = 0; i < data.length; ++i)
-					data[i] = h('p', '{_value} ', data[i]);
-				return data;
+					nodes.push(h('p', '{_value} ', data[i]));
+				return nodes;
 			},
 			properties: { value: 0 }
 		});

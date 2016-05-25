@@ -15,7 +15,11 @@
 		});
 		var SamplesView = Backbone.View.extend({
 			el: function(h) {
-				return h('', 'Choose a date: ', h('input', {type: 'date', change: '_value'}), h('br'), 'And another date: ', h('input', {type: 'date'}));
+				return h('',
+						'Choose a date: ', h('input', {type: 'date', change: '_value'}),
+						h('br'),
+						'And another date: ', h('input', {type: 'date'})
+				);
 			},
 			properties: { value: 0 }
 		});

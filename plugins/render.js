@@ -22,6 +22,15 @@ function _once(func) {
 	};
 }
 
+// Plugin to detect and wrap a render function if defined on a Cord View
+// The render function, like the el function will have the _el and _subview method always given as the first two arguments
+// The different is though that additional arguments can be given to the render function and they will be reused when automatic rerenders happen
+// The render method must return a single element or subview or an array of mixed elements and subviews
+// The returned value from render will then be placed into a documentFragment to be added to the DOM appended to the view's root el or a #container element if specified
+// The new wrapped render function gets set on the view instance and can be given the additional arguments directly. e.g. render(arg1, arg2)
+// The new wrapped render() method returns this, so that it can be chained
+// The enw wrapped render() needs to be explicity called, it does not get called automatically unless some binding has changed within it
+// NOTE: do not use reverse binding until more testing is done
 Backbone.Cord.plugins.push({
 	name: 'render',
 	config: {
@@ -79,7 +88,6 @@ Backbone.Cord.plugins.push({
 			this._renderedArgs = [];
 			this._renderedSubviews = [];
 			this._renderedObservers = {};
-			setTimeout(this.render.bind(this));
 		}
 	}
 });
