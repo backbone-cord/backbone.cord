@@ -11,6 +11,9 @@ Backbone.Cord.View.prototype.getChildById = function(id) {
 Backbone.Cord.hasId = function(el) {
 	return !!el.getAttribute('data-id');
 };
+Backbone.Cord.getId = function(el) {
+	return el.getAttribute('data-id');
+};
 Backbone.Cord.setId = function(el, id) {
 	el.setAttribute('data-id', id);
 };

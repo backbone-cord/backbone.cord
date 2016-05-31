@@ -11,7 +11,8 @@
 		// how is pikaday putting the picker in the document?
 		// how to get the date? because the value is not correct
 		Backbone.Cord.addReplacement('input[type="date"]', function(el) {
-			new Pikaday({ field: el });
+			var picker = new Pikaday({ field: el });
+			this.once('remove', function() { picker.destroy(); });
 		});
 		var SamplesView = Backbone.View.extend({
 			el: function(h) {

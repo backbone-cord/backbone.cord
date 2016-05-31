@@ -1,6 +1,6 @@
 {
   "name": "backbone.cord",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "Backbone addition that enables the easy creation of reactive connected views with two-way data binding and Jade-like declarative syntax.",
   "keywords": [
     "backbone",

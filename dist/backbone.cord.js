@@ -141,12 +141,14 @@ function _subview(instanceClass, idClasses, bindings) {
 				// If the new subview doesn't have an sid it needs to get setup, but without idClasses or bindings
 				if(!value.sid)
 					this._subview(value);
-				// Reapply the id
-				if(id && !Backbone.Cord.hasId(el))
+				// Reapply the id or remove the old property if a different id is used
+				if(!Backbone.Cord.hasId(el))
 					Backbone.Cord.setId(el, id);
+				else if(id !== Backbone.Cord.getId(el))
+					delete this[id];
 			},
 			enumerable: true,
-			configurable: false
+			configurable: true
 		});
 	}
 	this._plugin('complete', context);
@@ -154,7 +156,7 @@ function _subview(instanceClass, idClasses, bindings) {
 }
 
 Backbone.Cord = {
-	VERSION: '1.0.8',
+	VERSION: '1.0.9',
 	config: {
 		idProperties: true,
 		oncePrefix: '%',
@@ -211,6 +213,9 @@ if(typeof exports === 'object')
 
 Backbone.Cord.hasId = function(el) {
 	return !!el.id;
+};
+Backbone.Cord.getId = function(el) {
+	return el.id;
 };
 Backbone.Cord.setId = function(el, id) {
 	el.id = id;
@@ -1257,6 +1262,9 @@ Backbone.Cord.View.prototype.getChildById = function(id) {
 // Overwrite Cord's id processing methods
 Backbone.Cord.hasId = function(el) {
 	return !!el.getAttribute('data-id');
+};
+Backbone.Cord.getId = function(el) {
+	return el.getAttribute('data-id');
 };
 Backbone.Cord.setId = function(el, id) {
 	el.setAttribute('data-id', id);
