@@ -24,11 +24,18 @@ Backbone.Cord.addReplacement = function(selector, func) {
 
 Backbone.Cord.plugins.push({
 	name: 'replacement',
+	config: {
+		noReplaceAttribute: 'data-noreplace'
+	},
 	complete: function(context) {
 		var el, i, replacement, replacements;
 		if(context.subview)
 			return;
 		el = context.el;
+		if(el.hasAttribute(Backbone.Cord.config.noReplaceAttribute)) {
+			el.removeAttribute(Backbone.Cord.config.noReplaceAttribute);
+			return;
+		}
 		replacements = _replacementTags[el.tagName.toLowerCase()];
 		if(replacements) {
 			var fragment = document.createDocumentFragment();
