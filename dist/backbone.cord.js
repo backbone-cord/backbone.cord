@@ -3,6 +3,7 @@
 
 var Backbone = root.Backbone || require('backbone');
 var compatibilityMode = root.cordCompatibilityMode;
+var debug = root.cordDebug;
 var requestAnimationFrame = root.requestAnimationFrame || setTimeout;
 
 function _plugin(name, context) {
@@ -156,7 +157,7 @@ function _subview(instanceClass, idClasses, bindings) {
 }
 
 Backbone.Cord = {
-	VERSION: '1.0.9',
+	VERSION: '1.0.10',
 	config: {
 		idProperties: true,
 		oncePrefix: '%',
@@ -211,6 +212,14 @@ Backbone.Cord = {
 if(typeof exports === 'object')
 	module.exports = Backbone.Cord;
 
+Backbone.Cord.log = (debug ? function() {
+	var format = [];
+	var args = Array.prototype.slice.call(arguments);
+	for(var i = 0; i < args.length; ++i)
+		format.push((typeof args[i] === 'object') ? '%O' : '%s');
+	args.unshift(format.join(' | '));
+	console.log.apply(console, args);
+} : function(){});
 Backbone.Cord.hasId = function(el) {
 	return !!el.id;
 };
@@ -354,7 +363,7 @@ Backbone.Cord.View.prototype._getObservers = function(newKey, scope) {
 	return observers;
 };
 Backbone.Cord.View.prototype._invokeObservers = function(newKey, value, scope) {
-	console.log(newKey + ' | ' + value + ' | ' + scope);
+	Backbone.Cord.log(newKey, value, scope);
 	var i, observers = this._getObservers(newKey, scope);
 	for(i = 0; i < observers.length; ++i)
 		observers[i].call(this, newKey, value);
@@ -1739,11 +1748,18 @@ Backbone.Cord.addReplacement = function(selector, func) {
 
 Backbone.Cord.plugins.push({
 	name: 'replacement',
+	config: {
+		noReplaceAttribute: 'data-noreplace'
+	},
 	complete: function(context) {
 		var el, i, replacement, replacements;
 		if(context.subview)
 			return;
 		el = context.el;
+		if(el.hasAttribute(Backbone.Cord.config.noReplaceAttribute)) {
+			el.removeAttribute(Backbone.Cord.config.noReplaceAttribute);
+			return;
+		}
 		replacements = _replacementTags[el.tagName.toLowerCase()];
 		if(replacements) {
 			var fragment = document.createDocumentFragment();
@@ -1843,7 +1859,7 @@ function _addRules(rules, _styles, selector, media, id) {
 					_styles[scope][key] = rules[key];
 				}
 				else {
-					console.log('@' + media + ' ' + selector + '{' + _camelCaseToDash(key) + ':' + rules[key] + ';}');
+					Backbone.Cord.log('@' + media + ' ' + selector + '{' + _camelCaseToDash(key) + ':' + rules[key] + ';}');
 					sheet.insertRule(selector + '{' + _camelCaseToDash(key) + ':' + rules[key] + ';}', 0);
 				}
 			}
@@ -1912,7 +1928,7 @@ Backbone.Cord.plugins.push({
 	initialize: function(context) {
 		if(this._styles && this._styles[THIS_ID]) {
 			var styles = JSON.parse(JSON.stringify(this._styles[THIS_ID]));
-			console.log(JSON.stringify(styles));
+			Backbone.Cord.log(styles);
 			this._plugin('strings', context, styles);
 			for(var style in styles) {
 				if(styles.hasOwnProperty(style))
@@ -1924,7 +1940,7 @@ Backbone.Cord.plugins.push({
 		// Apply any dynamic class styles detected from the initial extend
 		if(this._styles && context.id && this._styles[context.id]) {
 			var styles = JSON.parse(JSON.stringify(this._styles[context.id]));
-			console.log(JSON.stringify(styles));
+			Backbone.Cord.log(styles);
 			this._plugin('strings', context, styles);
 			for(var style in styles) {
 				if(styles.hasOwnProperty(style))

@@ -3,6 +3,7 @@
 
 var Backbone = root.Backbone || require('backbone');
 var compatibilityMode = root.cordCompatibilityMode;
+var debug = root.cordDebug;
 var requestAnimationFrame = root.requestAnimationFrame || setTimeout;
 
 function _plugin(name, context) {
@@ -156,7 +157,7 @@ function _subview(instanceClass, idClasses, bindings) {
 }
 
 Backbone.Cord = {
-	VERSION: '1.0.9',
+	VERSION: '1.0.10',
 	config: {
 		idProperties: true,
 		oncePrefix: '%',
@@ -211,6 +212,14 @@ Backbone.Cord = {
 if(typeof exports === 'object')
 	module.exports = Backbone.Cord;
 
+Backbone.Cord.log = (debug ? function() {
+	var format = [];
+	var args = Array.prototype.slice.call(arguments);
+	for(var i = 0; i < args.length; ++i)
+		format.push((typeof args[i] === 'object') ? '%O' : '%s');
+	args.unshift(format.join(' | '));
+	console.log.apply(console, args);
+} : function(){});
 Backbone.Cord.hasId = function(el) {
 	return !!el.id;
 };
@@ -354,7 +363,7 @@ Backbone.Cord.View.prototype._getObservers = function(newKey, scope) {
 	return observers;
 };
 Backbone.Cord.View.prototype._invokeObservers = function(newKey, value, scope) {
-	console.log(newKey + ' | ' + value + ' | ' + scope);
+	Backbone.Cord.log(newKey, value, scope);
 	var i, observers = this._getObservers(newKey, scope);
 	for(i = 0; i < observers.length; ++i)
 		observers[i].call(this, newKey, value);

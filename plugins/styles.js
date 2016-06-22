@@ -82,7 +82,7 @@ function _addRules(rules, _styles, selector, media, id) {
 					_styles[scope][key] = rules[key];
 				}
 				else {
-					console.log('@' + media + ' ' + selector + '{' + _camelCaseToDash(key) + ':' + rules[key] + ';}');
+					Backbone.Cord.log('@' + media + ' ' + selector + '{' + _camelCaseToDash(key) + ':' + rules[key] + ';}');
 					sheet.insertRule(selector + '{' + _camelCaseToDash(key) + ':' + rules[key] + ';}', 0);
 				}
 			}
@@ -151,7 +151,7 @@ Backbone.Cord.plugins.push({
 	initialize: function(context) {
 		if(this._styles && this._styles[THIS_ID]) {
 			var styles = JSON.parse(JSON.stringify(this._styles[THIS_ID]));
-			console.log(JSON.stringify(styles));
+			Backbone.Cord.log(styles);
 			this._plugin('strings', context, styles);
 			for(var style in styles) {
 				if(styles.hasOwnProperty(style))
@@ -163,7 +163,7 @@ Backbone.Cord.plugins.push({
 		// Apply any dynamic class styles detected from the initial extend
 		if(this._styles && context.id && this._styles[context.id]) {
 			var styles = JSON.parse(JSON.stringify(this._styles[context.id]));
-			console.log(JSON.stringify(styles));
+			Backbone.Cord.log(styles);
 			this._plugin('strings', context, styles);
 			for(var style in styles) {
 				if(styles.hasOwnProperty(style))
