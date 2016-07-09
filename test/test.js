@@ -20,6 +20,63 @@ assert.text = function(e, text) {
 	assert.equal(e.data, text);
 };
 
+describe('copy methods', function() {
+	describe('copyObj({})', function() {
+		var orig = {};
+		var copy = cord.copyObj(orig);
+		it('copy should not be original', function() { assert.notStrictEqual(orig, copy); });
+		it('copy should be equal to original', function() { assert.deepEqual(orig, copy); });
+		it('copy should be empty', function() { assert.ok(!Object.keys(copy).length); });
+	});
+	describe('copyObj({a:123, b: [], c: "string", sub: {}})', function() {
+		var orig = {a:123, b: [], c: "string", sub: {}};
+		var copy = cord.copyObj(orig);
+		it('copy should not be original', function() { assert.notStrictEqual(orig, copy); });
+		it('copy should be equal to original', function() { assert.deepEqual(orig, copy); });
+		it('copy should have the same primitive keys and values', function() {
+			assert.strictEqual(orig.a, copy.a);
+			assert.strictEqual(orig.b, copy.b);
+			assert.strictEqual(orig.c, copy.c);
+		});
+		it('copy sub object should not be the original sub object', function() {
+			assert.notStrictEqual(orig.sub, copy.sub);
+		});
+		it('altering copy primitive should not alter original', function() {
+			copy.a = 'hello';
+			assert.notEqual(orig.a, copy.a);
+		});
+		it('altering copy arrays should alter original', function() {
+			copy.b.push('hello');
+			assert.deepEqual(orig.b, copy.b);
+		});
+	});
+	describe('copyObj({a:{a:123, b:456, c:789}, b:{a:901}})', function() {
+		var orig = {a:{a:123, b:456, c:789}, b:{a:901}};
+		var copy = cord.copyObj(orig);
+		it('copy should not be original', function() { assert.notStrictEqual(orig, copy); });
+		it('copy should be equal to original', function() { assert.deepEqual(orig, copy); });
+		it('copy sub object should not be the original sub object', function() {
+			assert.notStrictEqual(orig.a, copy.a);
+			assert.notStrictEqual(orig.b, copy.b);
+		});
+		it('sub objects should equal the original sub objects', function() {
+			assert.deepEqual(orig.a, copy.a);
+			assert.deepEqual(orig.b, copy.b);
+		});
+	});
+	describe('copyObj({a:subclass})', function() {
+		var Subclass = function() { this.a = 123; this.b = 456; };
+		var orig = {sub:new Subclass()};
+		var copy = cord.copyObj(orig);
+		it('copy should not be original', function() { assert.notStrictEqual(orig, copy); });
+		it('copy should be equal to original', function() { assert.deepEqual(orig, copy); });
+		it('altering copy.sub should alter original.sub', function() {
+			copy.sub.a = 'hello';
+			assert.deepEqual(orig.sub, copy.sub);
+		});
+	});
+});
+
 describe('convert methods', function() {
 	describe('convertToString(5)', function() {
 		var str = cord.convertToString(5);

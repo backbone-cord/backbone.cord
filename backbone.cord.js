@@ -18,6 +18,21 @@ function _plugin(name, context) {
 	return context[name];
 }
 
+// Create a deep copy of plain objects
+// Anything not a plain object (subclass, function, array, etc) will be copied by reference
+function _copyObj(obj) {
+	var key, value, copy = {};
+	for(key in obj) {
+		if(obj.hasOwnProperty(key)) {
+			value = obj[key];
+			if(typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype)
+				value = _copyObj(value);
+			copy[key] = value;
+		}
+	}
+	return copy;
+}
+
 // Generate an arbitrary DOM node given a tag[id][classes] string, [attributes] dictionary, and [child nodes...]
 // If #id is given it must appear before the .classes, e.g. #id.class1.class2 or span#id.class1.class2
 function _el(tagIdClasses, attrs) {
@@ -39,7 +54,7 @@ function _el(tagIdClasses, attrs) {
 		if(!(typeof attrs === 'string' || attrs instanceof Backbone.View || attrs instanceof Node)) {
 			i = 2;
 			// Copy attrs to prevent side-effects
-			attrs = JSON.parse(JSON.stringify(attrs));
+			attrs = _copyObj(attrs);
 			attrs = this._plugin('attrs', context, attrs) || attrs;
 			for(var attr in attrs) {
 				if(attrs.hasOwnProperty(attr))
@@ -111,7 +126,7 @@ function _subview(instanceClass, idClasses, bindings) {
 	}
 	if(bindings) {
 		// Copy bindings to prevent side-effects
-		bindings = JSON.parse(JSON.stringify(bindings));
+		bindings = _copyObj(bindings);
 		bindings = this._plugin('bindings', context, bindings) || bindings;
 		for(var e in bindings) {
 			if(bindings.hasOwnProperty(e))
@@ -172,6 +187,7 @@ Backbone.Cord = {
 	plugins: [],
 	// Filters installed by the app by setting keys on this object
 	filters: {},
+	copyObj: _copyObj,
 	convertToString: function(obj) { if(obj === null || obj === undefined) return ''; return obj.toString(); },
 	convertToBool: function(value) { return !!(value && (value.length === void(0) || value.length)); },
 	// Initialize the Cord View class depending on the compatibility mode

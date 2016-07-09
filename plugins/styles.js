@@ -150,7 +150,7 @@ Backbone.Cord.plugins.push({
 	bindings: _styles,
 	initialize: function(context) {
 		if(this._styles && this._styles[THIS_ID]) {
-			var styles = JSON.parse(JSON.stringify(this._styles[THIS_ID]));
+			var styles = Backbone.Cord.copyObj(this._styles[THIS_ID]);
 			Backbone.Cord.log(styles);
 			this._plugin('strings', context, styles);
 			for(var style in styles) {
@@ -162,7 +162,7 @@ Backbone.Cord.plugins.push({
 	complete: function(context) {
 		// Apply any dynamic class styles detected from the initial extend
 		if(this._styles && context.id && this._styles[context.id]) {
-			var styles = JSON.parse(JSON.stringify(this._styles[context.id]));
+			var styles = Backbone.Cord.copyObj(this._styles[context.id]);
 			Backbone.Cord.log(styles);
 			this._plugin('strings', context, styles);
 			for(var style in styles) {

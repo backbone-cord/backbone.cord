@@ -11,7 +11,7 @@ Backbone.Model.prototype.track = function(model, attrs, transform) {
 	if(!attrs) {
 		this.listenTo(model, 'change', function(model, options) {
 			if(!options._track) {
-				options = JSON.parse(JSON.stringify(options));
+				options = Backbone.Cord.copyObj(options);
 				options._track = true;
 				this.set(transform(model.attributes), options);
 			}
@@ -23,7 +23,7 @@ Backbone.Model.prototype.track = function(model, attrs, transform) {
 				var data = {};
 				data[attr] = value;
 				if(!options._track) {
-					options = JSON.parse(JSON.stringify(options));
+					options = Backbone.Cord.copyObj(options);
 					options._track = true;
 					this.set(transform(data), options);
 				}
