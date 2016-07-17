@@ -25,7 +25,7 @@ Backbone.Cord.addReplacement = function(selector, func) {
 Backbone.Cord.plugins.push({
 	name: 'replacement',
 	config: {
-		noReplaceAttribute: 'data-noreplace'
+		noReplaceAttribute: 'noreplace'
 	},
 	complete: function(context) {
 		var el, i, replacement, replacements;

@@ -44,7 +44,7 @@ describe('replacement plugin', function() {
 	});
 	describe('noreplace attribute', function() {
 		it('.complex.selector[data-test="dog"] should NOT get replaced with h1', function() {
-			var el = Backbone.Cord._el('.complex.selector', {'data-test': 'dog', 'data-pet': 'true', 'data-noreplace': 'true'});
+			var el = Backbone.Cord._el('.complex.selector', {'data-test': 'dog', 'data-pet': 'true', 'noreplace': 'true'});
 			assert.notEqual(el.tagName, 'H1');
 		});
 	});
