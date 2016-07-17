@@ -12,6 +12,11 @@ Backbone.Cord.mediaQueries = {
 	mobile: 'only screen and (max-width: 320px)'
 };
 
+var ua = navigator.userAgent.toLowerCase();
+var browser = (/(chrome|safari)/.exec(ua) || /firefox/.exec(ua) || /msie/.exec(ua) || /opera/.exec(ua) || '')[0];
+var stylePrefix = ({ chrome: 'webkit', firefox: 'Moz', msie: 'ms', opera: 'O', safari: 'webkit' })[browser] || '';
+var cssPrefix = '-' + stylePrefix.toLowerCase() + '-';
+
 function _createStyleSheets() {
 	var el, key;
 	Backbone.Cord._styleSheets = {};
@@ -30,6 +35,12 @@ function _createStyleSheets() {
 			Backbone.Cord._styleSheets[key] = el.sheet;
 		}
 	}
+}
+
+function _getStylePrefix(style, css) {
+	if(document.documentElement.style[style] === void(0))
+		return css ? cssPrefix : stylePrefix;
+	return '';
 }
 
 function _camelCaseToDash(str) {
@@ -82,8 +93,9 @@ function _addRules(rules, _styles, selector, media, id) {
 					_styles[scope][key] = rules[key];
 				}
 				else {
-					Backbone.Cord.log('@' + media + ' ' + selector + '{' + _camelCaseToDash(key) + ':' + rules[key] + ';}');
-					sheet.insertRule(selector + '{' + _camelCaseToDash(key) + ':' + rules[key] + ';}', 0);
+					var rule = selector + '{' + _getStylePrefix(key, true) + _camelCaseToDash(key) + ':' + rules[key] + ';}';
+					Backbone.Cord.log('@' + media,  rule);
+					sheet.insertRule(rule, 0);
 				}
 			}
 		}
@@ -105,6 +117,7 @@ Backbone.Cord.View.extend = function(properties) {
 };
 
 function _createStyleObserver(node, style) {
+	style = _getStylePrefix(style) + style;
 	return function(key, formatted) {
 		node.style[style] = Backbone.Cord.convertToString(formatted);
 	};
@@ -124,7 +137,7 @@ function _styles(context, attrs) {
 					if(styles[style].match(Backbone.Cord.regex.variableSearch) && context.isView)
 						this.observeFormat(styles[style], _createStyleObserver(context.el, style), true);
 					else
-						context.el.style[style] = styles[style];
+						context.el.style[_getStylePrefix(style) + style] = styles[style];
 				}
 			}
 			delete attrs.style;

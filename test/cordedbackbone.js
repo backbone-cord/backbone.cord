@@ -3,6 +3,7 @@ if(!global.window) {
 	var window = jsdom.jsdom().defaultView;
 	global.window = window;
 	global.document = window.document;
+	global.navigator = window.navigator;
 	global.Node = window.Node;
 	var Backbone = require('backbone');
 	// jquery needs to be initialized outside of backbone for some strange reason
