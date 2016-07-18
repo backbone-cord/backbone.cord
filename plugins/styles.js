@@ -86,7 +86,7 @@ function _addRules(rules, _styles, selector, media, id) {
 					_addRules(rules[key], _styles, selector + '>' + Backbone.Cord.regex.replaceIdSelectors(key), media);
 			}
 			else {
-				if(Backbone.Cord.regex.variableSearch.test(rules[key])) {
+				if(rules[key].search(Backbone.Cord.regex.variableSearch) !== -1) {
 					var scope = id || THIS_ID;
 					if(!_styles[scope])
 						_styles[scope] = {};
