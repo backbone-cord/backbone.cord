@@ -57,7 +57,7 @@ Backbone.Cord.plugins.unshift({
 		if(!context.isView)
 			return;
 		for(var attr in attrs) {
-			if(attrs.hasOwnProperty(attr) && typeof attrs[attr] === 'string' && Backbone.Cord.regex.expressionSearch.test(attrs[attr]))
+			if(attrs.hasOwnProperty(attr) && typeof attrs[attr] === 'string' && attrs[attr].search(Backbone.Cord.regex.expressionSearch) !== -1)
 				attrs[attr] = _replaceExpressions.call(this, attrs[attr]);
 		}
 	},
@@ -66,13 +66,13 @@ Backbone.Cord.plugins.unshift({
 		if(!context.isView)
 			return;
 		for(var i = 0; i < children.length; ++i) {
-			if(typeof children[i] === 'string' && Backbone.Cord.regex.expressionSearch.test(children[i]))
+			if(typeof children[i] === 'string' && children[i].search(Backbone.Cord.regex.expressionSearch) !== -1)
 				children[i] = _replaceExpressions.call(this, children[i]);
 		}
 	},
 	strings: function(context, strings) {
 		for(var str in strings) {
-			if(strings.hasOwnProperty(str) && typeof strings[str] === 'string' && Backbone.Cord.regex.expressionSearch.test(strings[str]))
+			if(strings.hasOwnProperty(str) && typeof strings[str] === 'string' && strings[str].search(Backbone.Cord.regex.expressionSearch) !== -1)
 				strings[str] = _replaceExpressions.call(this, strings[str]);
 		}
 	}
