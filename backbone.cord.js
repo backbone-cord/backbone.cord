@@ -179,6 +179,9 @@ Backbone.Cord = {
 		notPrefix: '!',
 		filterSeparator: '|'
 	},
+	// Collection of reusable regular expression objects
+	// NOTE: Do not use the regex functions test/exec when the global flag is set because it is stateful (lastIndex). Instead use string methods search/match
+	// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions#Working_with_regular_expressions
 	regex: {
 		idPropertyTest: /^[a-zA-Z_$][0-9a-zA-Z_$]*$/,
 		idSelectorValues: /#([a-zA-Z_$][0-9a-zA-Z_$]*)/g
