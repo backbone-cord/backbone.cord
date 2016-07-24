@@ -1,21 +1,35 @@
 ;(function(Backbone) {
 'use strict';
 
+var PROPERTIES = ['syncing', 'syncProgress', 'syncError'];
+
+// Default parseError method, Simply read the http status
+Backbone.Cord.parseError = function(response) {
+	return response.status;
+};
+
 // Notes on events:
 // request (when fetch starts)
 // sync (when sync has finished successfully, fetch, save, and destroy)
 // error (when a sync error occurs)
 function _addListeners(modelCollection) {
-	this.listenTo(modelCollection, 'request', function() {
+	this.listenTo(modelCollection, 'request', function(mc, xhr) {
+		this.syncProgress = 0.0;
 		this.syncing = true;
+		xhr.progress(function(evt) {
+			if(evt.lengthComputable)
+				this.syncProgress = evt.loaded / evt.total;
+		}.bind(this));
 	});
 	this.listenTo(modelCollection, 'sync', function() {
+		this.syncProgress = 1.0;
 		this.syncing = false;
-		this.error = null;
+		this.syncError = null;
 	});
 	this.listenTo(modelCollection, 'error', function(collection, response, options) {
+		this.syncProgress = 1.0;
 		this.syncing = false;
-		this.error = Backbone.Cord.parseError(response, options);
+		this.syncError = Backbone.Cord.parseError(response, options);
 	});
 }
 
@@ -40,14 +54,11 @@ Backbone.Collection.prototype.sync = function() {
 
 // Do the listeners for the View to collection or model
 function _setup() {
-	var key = 'syncing';
-	if(this.collection) {
-		this[key] = !!this.collection[key];
-		_addListeners.call(this, this.collection);
-	}
-	else if(this.model) {
-		this[key] = !!this.model[key];
-		_addListeners.call(this, this.model);
+	var i, data = this.collection || this.model;
+	if(data) {
+		for(i = 0; i < PROPERTIES.length; ++i)
+			this[PROPERTIES[i]] = this.model[PROPERTIES[i]];
+		_addListeners.call(this, data);
 	}
 }
 
@@ -65,17 +76,12 @@ Backbone.Cord.View.prototype.setCollection = function(newCollection) {
 	return ret;
 };
 
-// Default parseError method, Simply read the http status
-Backbone.Cord.parseError = function(response) {
-	return response.status;
-};
-
 // Adds a "syncing" boolean property to the View to track when its collection or model is syncing
 Backbone.Cord.plugins.push({
 	name: 'syncing',
 	create: function() {
-		this._synthesizeProperty('syncing');
-		this._synthesizeProperty('error');
+		for(var i = 0; i < PROPERTIES.length; ++i)
+			this._synthesizeProperty(PROPERTIES[i]);
 		_setup.call(this);
 	}
 });

@@ -1,0 +1,36 @@
+<html>
+<body>
+	<script type="text/javascript" src="/underscore/underscore.js"></script>
+	<script type="text/javascript" src="/jquery/dist/jquery.js"></script>
+	<script type="text/javascript" src="/backbone/backbone.js"></script>
+	<script type="text/javascript" src="/backbone.cord.js"></script>
+	<script type="text/javascript">
+	$(function() {
+		var TestModel = Backbone.Model.extend({
+			url: 'http://jsonplaceholder.typicode.com/posts/1'
+		});
+		window.model = new TestModel();
+		var View = Backbone.View.extend({
+			className: 'syncView',
+			styles: {
+				'_status': {
+					backgroundColor: 'lightgreen',
+					border: '3px solid green',
+					fontWeight: 'bold',
+					color: 'green',
+					padding: '10px'
+				}
+			},
+			el: function(h) {
+				return h('',
+						h('p#status', {hidden: '!_syncing'}, 'Syncing started - :={_syncProgress} * 100=:%'),
+						h('p', h('button', {type: 'button', onclick: 'fetch'}, 'Fetch'))
+					);
+			},
+			fetch: function() { this.model.fetch(); }
+		});
+		$(document.body).append((new View({model: window.model})).el);
+	});
+	</script>
+</body>
+</html>

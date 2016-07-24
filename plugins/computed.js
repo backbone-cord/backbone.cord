@@ -45,15 +45,16 @@ function _wrapComputedFunc(func, args) {
 
 // Extend computed attribute capabilities to Backbone models
 Backbone.Model.prototype._addComputed = function(key, func) {
-	var i, arg, args = _getFunctionArgs(func);
+	var __get, i, arg, args = _getFunctionArgs(func);
 	if(!this._computed) {
 		this._computed = {};
 		this._computedArgs = {};
+		__get = this.get;
 		this.get = function(attr) {
 			var compFun = this._computed[attr];
 			if(compFun)
 				return compFun.call(this);
-			return Backbone.Model.prototype.get.call(this, attr);
+			return __get.call(this, attr);
 		};
 		this.listenTo(this, 'change', _detectComputedChanges);
 	}
