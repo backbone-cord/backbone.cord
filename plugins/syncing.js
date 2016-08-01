@@ -16,10 +16,7 @@ function _addListeners(modelCollection) {
 	this.listenTo(modelCollection, 'request', function(mc, xhr) {
 		this.syncProgress = 0.0;
 		this.syncing = true;
-		xhr.progress(function(evt) {
-			if(evt.lengthComputable)
-				this.syncProgress = evt.loaded / evt.total;
-		}.bind(this));
+		this.syncError = null;
 	});
 	this.listenTo(modelCollection, 'sync', function() {
 		this.syncProgress = 1.0;
@@ -33,23 +30,38 @@ function _addListeners(modelCollection) {
 	});
 }
 
+function _onProgress(evt) {
+	if(evt.lengthComputable)
+		this.syncProgress = evt.loaded / evt.total;
+}
+
+function _startSync(method, model, options) {
+	if(!this.__syncListening) {
+		this.__syncListening = true;
+		_addListeners.call(this, this);
+	}
+	// Progress event must be added only through the xhr factory since the jqXHR object after ajax() and beforeSend() etc. doesn't have access to the actual XHR
+	var __xhr = options.xhr || (Backbone.$.ajaxSettings && Backbone.$.ajaxSettings.xhr) || function() { return new window.XMLHttpRequest(); };
+	var onprogress = _onProgress.bind(this);
+	options.xhr = function() {
+		var xhr = __xhr();
+		xhr.addEventListener('progress', onprogress);
+		xhr.upload.addEventListener('progress', onprogress);
+		return xhr;
+	};
+}
+
 // Wrap the sync method to detect when a request is taking place, only done in case a sync starts before being given to a View
 // Apply listeners only once
 var __modelSync = Backbone.Model.prototype.sync;
 Backbone.Model.prototype.sync = function() {
-	if(!this.__syncListening) {
-		this.__syncListening = true;
-		_addListeners.call(this, this);
-	}
-	return __modelSync.apply(this, Array.prototype.slice.call(arguments));
+	_startSync.apply(this, arguments);
+	return __modelSync.apply(this, arguments);
 };
 var __collectionSync = Backbone.Collection.prototype.sync;
 Backbone.Collection.prototype.sync = function() {
-	if(!this.__syncListening) {
-		this.__syncListening = true;
-		_addListeners.call(this, this);
-	}
-	return __collectionSync.apply(this, Array.prototype.slice.call(arguments));
+	_startSync.apply(this, arguments);
+	return __collectionSync.apply(this, arguments);
 };
 
 // Do the listeners for the View to collection or model
