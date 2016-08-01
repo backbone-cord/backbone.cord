@@ -35,7 +35,7 @@ Backbone.Cord.View.extend = function(properties) {
 			}
 		}
 	}
-	return __extend.apply(this, Array.prototype.slice.call(arguments));
+	return __extend.apply(this, arguments);
 };
 
 // Using this plugin is strongly recommended and required if mixing with non-code Backbone views that have their own unique id attributes

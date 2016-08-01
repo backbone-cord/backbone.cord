@@ -111,7 +111,7 @@ Backbone.Cord.View.extend = function(properties) {
 			_createStyleSheets();
 		_addRules(properties.styles, _styles, '.' + properties.className.split(' ').join('.'));
 	}
-	var View = __extend.apply(this, Array.prototype.slice.call(arguments));
+	var View = __extend.apply(this, arguments);
 	View.prototype._styles = _styles;
 	return View;
 };

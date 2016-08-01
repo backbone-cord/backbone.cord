@@ -624,7 +624,7 @@ Backbone.Cord.View.prototype._ensureElement = function() {
 	if(this.model !== Backbone.Cord.EmptyModel)
 		this.listenTo(this.model, 'change', this._modelObserver);
 	// After creating the element add any given className
-	var ret = __ensureElement.apply(this, Array.prototype.slice.call(arguments));
+	var ret = __ensureElement.apply(this, arguments);
 	if(this.className && isFun)
 		this.el.className += (this.el.className.length ? ' ' : '') + this.className;
 	// Run plugin initializers
@@ -655,7 +655,7 @@ Backbone.Cord.View.prototype.remove = function() {
 	this._modelObservers = null;
 	this._sharedObservers = null;
 	this.trigger('remove', this);
-	return __remove.apply(this, Array.prototype.slice.call(arguments));
+	return __remove.apply(this, arguments);
 };
 
 })(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)));

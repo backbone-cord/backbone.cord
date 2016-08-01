@@ -8,7 +8,7 @@ function _getContainer() {
 
 function _subview() {
 	// Just add to a list of subviews for cleanup on next render
-	var subview = this._subview.apply(this, Array.prototype.slice.call(arguments));
+	var subview = this._subview.apply(this, arguments);
 	this._renderedSubviews.push(subview);
 	return subview;
 }

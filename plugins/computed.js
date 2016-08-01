@@ -80,10 +80,10 @@ Backbone.Model.extend = function(properties) {
 						this._addComputed(attr, this.computed[attr]);
 				}
 			}
-			return __initialize.apply(this, Array.prototype.slice.call(arguments));
+			return __initialize.apply(this, arguments);
 		};
 	}
-	return __extend.apply(this, Array.prototype.slice.call(arguments));
+	return __extend.apply(this, arguments);
 };
 
 function _createArgObserver(key, getFunc, args) {

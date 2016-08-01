@@ -50,7 +50,7 @@ Backbone.Model.prototype.subsume = function(cls, attr, transform) {
 	transform = transform || sub.transform || function(data) { return data; };
 	// Proxy communication events
 	sub.listenTo(this, 'request sync error', function() {
-		this.trigger.apply(this, Array.prototype.slice.call(arguments));
+		this.trigger.apply(this, arguments);
 	});
 	// Perform the initial set and setup tracking
 	if(attr) {
