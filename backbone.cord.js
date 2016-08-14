@@ -37,7 +37,7 @@ function _copyObj(obj) {
 // If #id is given it must appear before the .classes, e.g. #id.class1.class2 or span#id.class1.class2
 function _el(tagIdClasses, attrs) {
 	tagIdClasses = tagIdClasses.split('.');
-	var context = { isView: this instanceof Backbone.View };
+	var context = { isView: this instanceof Backbone.Cord.View };
 	var tagId = tagIdClasses[0].split('#');
 	var tag = tagId[0] ? tagId[0] : 'div';
 	var el = context.el = this._plugin('tag', context, tag) || document.createElement(tag);
@@ -106,7 +106,7 @@ function _subview(instanceClass, idClasses, bindings) {
 		delete subview._invokeObservers;
 	}
 	// Create the plugin context - isView should always be true, this method should never be called any other way
-	context = { el: subview.el, isView: this instanceof Backbone.View, subview: subview };
+	context = { el: subview.el, isView: this instanceof Backbone.Cord.View, subview: subview };
 	if(!context.isView)
 		throw new Error('Attempting to create a subview without a parent.');
 	if(typeof idClasses === 'string') {
