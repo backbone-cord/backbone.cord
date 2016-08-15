@@ -177,7 +177,8 @@ Backbone.Cord = {
 		idProperties: true,
 		oncePrefix: '%',
 		notPrefix: '!',
-		filterSeparator: '|'
+		filterSeparator: '|',
+		subkeySeparator: '.'
 	},
 	// Collection of reusable regular expression objects
 	// NOTE: Do not use the regex functions test/exec when the global flag is set because it is stateful (lastIndex). Instead use string methods search/match
@@ -191,8 +192,9 @@ Backbone.Cord = {
 	// Filters installed by the app by setting keys on this object
 	filters: {},
 	copyObj: _copyObj,
-	convertToString: function(obj) { if(obj === null || obj === undefined) return ''; return obj.toString(); },
+	convertToString: function(obj) { if(obj === null || obj === void(0)) return ''; return obj.toString(); },
 	convertToBool: function(value) { return !!(value && (value.length === void(0) || value.length)); },
+	convertToNumber: function(value) { return Number(value) || 0; },
 	// Initialize the Cord View class depending on the compatibility mode
 	View: compatibilityMode ? Backbone.View.extend({}) : Backbone.View,
 	// EmptyModel and EmptyView to use as default model and a subview placeholder
@@ -397,6 +399,17 @@ function _applyFilters(func, filters) {
 	};
 }
 
+function _applySubkeys(func, key) {
+	var keys = key.split(Backbone.Cord.config.subkeySeparator);
+	keys.shift();
+	return function(newKey, val) {
+		val = keys.reduce(function(obj, i) {
+			return (obj && obj[i]);
+		}, val);
+		return func.call(this, newKey, val);
+	};
+};
+
 Backbone.Cord.View.prototype.observe = function(key, observer, immediate) {
 	var name, immediateCallback, newKey, found, scope, scopes, observers;
 	if(typeof observer === 'string')
@@ -411,6 +424,11 @@ Backbone.Cord.View.prototype.observe = function(key, observer, immediate) {
 		for(i = 1; i < names.length; ++i)
 			filters.push(Backbone.Cord.filters[names[i].trim()]);
 		observer = _applyFilters(observer, filters);
+	}
+	// Support any subkeys but only changes to the top-level key are observed
+	if(key.indexOf(Backbone.Cord.config.subkeySeparator) !== -1) {
+		observer = _applySubkeys(observer, key);
+		key = key.split(Backbone.Cord.config.subkeySeparator, 1)[0];
 	}
 	// If key starts with oncePrefix, just do an immediate timeout with the getValue
 	// not compatible with the notPrefix and doesn't include the key on callback
@@ -531,7 +549,6 @@ Backbone.Cord.View.prototype.getSubviewById = function(id) {
 	var node = this.getChildById(id);
 	if(node)
 		return this.subviews[node.getAttribute('data-sid')];
-	return null;
 };
 
 // setModel will change the model a View has and invoke any observers

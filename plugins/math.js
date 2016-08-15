@@ -10,7 +10,7 @@ function _createExpressionProperty(expr, prop) {
 	for(i = 0; i < matches.length; ++i) {
 		code += strings[i];
 		key = matches[i] = Backbone.Cord.regex.variableValue.exec(matches[i])[1];
-		code += 'Number(this.getValueForKey("' + key + '"))';
+		code += '(Number(this.getValueForKey("' + key + '")) || 0)';
 	}
 	code += strings[i] + ';';
 	/* jshint -W054 */
