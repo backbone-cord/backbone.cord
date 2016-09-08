@@ -13,8 +13,8 @@ Backbone.Cord.mediaQueries = {
 };
 
 var ua = navigator.userAgent.toLowerCase();
-var browser = (/(chrome|safari)/.exec(ua) || /firefox/.exec(ua) || /msie/.exec(ua) || /opera/.exec(ua) || '')[0];
-var stylePrefix = ({ chrome: 'webkit', firefox: 'Moz', msie: 'ms', opera: 'O', safari: 'webkit' })[browser] || '';
+var browser = (/(chrome|safari)/.exec(ua) || /firefox/.exec(ua) || /msie/.exec(ua) || /trident/.exec(ua) || /opera/.exec(ua) || '')[0];
+var stylePrefix = ({ chrome: 'webkit', firefox: 'Moz', msie: 'ms', opera: 'O', safari: 'webkit', trident: 'ms' })[browser] || '';
 var cssPrefix = '-' + stylePrefix.toLowerCase() + '-';
 
 function _createStyleSheets() {
