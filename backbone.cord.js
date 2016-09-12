@@ -93,7 +93,7 @@ function _createSetValueCallback(key) {
 
 // id and classes on the subview are maintained, but recommended that id is set by the parent view
 function _subview(instanceClass, idClasses, bindings) {
-	var id, classes, subview, context;
+	var id, classes, subview, context, callback;
 	if(!(instanceClass instanceof Backbone.View))
 		subview = new instanceClass();
 	else
@@ -129,8 +129,11 @@ function _subview(instanceClass, idClasses, bindings) {
 		bindings = _copyObj(bindings);
 		bindings = this._plugin('bindings', context, bindings) || bindings;
 		for(var e in bindings) {
-			if(bindings.hasOwnProperty(e))
-				this.listenTo(subview, e, this[bindings[e]] || _createSetValueCallback(bindings[e]));
+			if(bindings.hasOwnProperty(e)) {
+				callback = (typeof bindings[e] === 'string') ? (this[bindings[e]] || this._createSetValueCallback(bindings[e])) : bindings[e];
+				if(typeof callback === 'function')
+					this.listenTo(subview, e, callback);
+			}
 		}
 	}
 	subview.sid = Backbone.Cord._sid;
@@ -413,8 +416,8 @@ function _applySubkeys(func, key) {
 Backbone.Cord.View.prototype.observe = function(key, observer, immediate) {
 	var name, immediateCallback, newKey, found, scope, scopes, observers;
 	if(typeof observer === 'string')
-		observer = this[observer];
-	if(!observer)
+		observer = this[observer] || this._createSetValueCallback(observer);
+	if(typeof observer !== 'function')
 		return this;
 	scopes = Backbone.Cord._scopes;
 	// Apply any filters to the observer function
@@ -525,7 +528,12 @@ Backbone.Cord.View.prototype.getValueForKey = function(key) {
 	return this.model.get(key);
 };
 Backbone.Cord.View.prototype.setValueForKey = function(key, value) {
-	var newKey, name, scope, scopes = Backbone.Cord._scopes;
+	var names, subview, newKey, name, scope, scopes = Backbone.Cord._scopes;
+	if(key.indexOf(Backbone.Cord.config.subkeySeparator) !== -1) {
+		names = key.split(Backbone.Cord.config.subkeySeparator);
+		subview = this.getValueForKey(names[0]);
+		return subview.setValueForKey(names.slice(1).join(Backbone.Cord.config.subkeySeparator), value);
+	}
 	for(name in scopes) {
 		if(scopes.hasOwnProperty(name)) {
 			scope = scopes[name];
