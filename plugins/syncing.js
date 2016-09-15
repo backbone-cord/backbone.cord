@@ -13,7 +13,7 @@ Backbone.Cord.parseError = function(response) {
 // sync (when sync has finished successfully, fetch, save, and destroy)
 // error (when a sync error occurs)
 function _addListeners(modelCollection) {
-	this.listenTo(modelCollection, 'request', function(mc, xhr) {
+	this.listenTo(modelCollection, 'request', function() {
 		this.syncProgress = 0.0;
 		this.syncing = true;
 		this.syncError = null;

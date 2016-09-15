@@ -77,6 +77,15 @@ describe('copy methods', function() {
 	});
 });
 
+describe('mix methods', function() {
+	describe('mixObj()', function() {
+		var combined = cord.mixObj({a:2, styles: {cursor: 'pointer', div: { display: 'block'}}}, {b:3, styles: {color: 'blue', font: 'times'}}, {c:4, styles: {color: 'red', div: { textAlign: 'center'}}});
+		it('combined should have a, b, c, and styles subobject combined', function() {
+			assert.deepEqual({a: 2, b: 3, c: 4, styles: { cursor: 'pointer', color: 'red', font: 'times', div: {textAlign: 'center', display: 'block'}}}, combined);
+		});
+	})
+});
+
 describe('convert methods', function() {
 	describe('convertToString(5)', function() {
 		var str = cord.convertToString(5);

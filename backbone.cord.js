@@ -33,6 +33,27 @@ function _copyObj(obj) {
 	return copy;
 }
 
+// Create a copy of obj and mixin the other arguments in order
+// Works much like _.extend() but does a recursive merging of plain objects
+// Good for creating and using view mixins
+function _mixObj(obj) {
+	var i, key, other;
+	var _isPlain = function(obj) { return (typeof obj === 'object' && Object.getPrototypeOf(obj) === Object.prototype); };
+	obj = _copyObj(obj);
+	for(i = 1; i < arguments.length; ++i) {
+		other = arguments[i];
+		for(key in other) {
+			if(other.hasOwnProperty(key)) {
+				if(_isPlain(obj[key]) && _isPlain(other[key]))
+					obj[key] = _mixObj(obj[key], other[key]);
+				else
+					obj[key] = other[key];
+			}
+		}
+	}
+	return obj;
+}
+
 // Generate an arbitrary DOM node given a tag[id][classes] string, [attributes] dictionary, and [child nodes...]
 // If #id is given it must appear before the .classes, e.g. #id.class1.class2 or span#id.class1.class2
 function _el(tagIdClasses, attrs) {
@@ -82,13 +103,6 @@ function _el(tagIdClasses, attrs) {
 		});
 	}
 	return this._plugin('complete', context) || el;
-}
-
-// A simple event callback, where the last argument is taken as a value to pass into setValueForKey
-function _createSetValueCallback(key) {
-	return function() {
-		this.setValueForKey(key, arguments[arguments.length - 1]);
-	};
 }
 
 // id and classes on the subview are maintained, but recommended that id is set by the parent view
@@ -195,6 +209,7 @@ Backbone.Cord = {
 	// Filters installed by the app by setting keys on this object
 	filters: {},
 	copyObj: _copyObj,
+	mixObj: _mixObj,
 	convertToString: function(obj) { if(obj === null || obj === void(0)) return ''; return obj.toString(); },
 	convertToBool: function(value) { return !!(value && (value.length === void(0) || value.length)); },
 	convertToNumber: function(value) { return Number(value) || 0; },
@@ -411,7 +426,7 @@ function _applySubkeys(func, key) {
 		}, val);
 		return func.call(this, newKey, val);
 	};
-};
+}
 
 Backbone.Cord.View.prototype.observe = function(key, observer, immediate) {
 	var name, immediateCallback, newKey, found, scope, scopes, observers;
@@ -548,6 +563,12 @@ Backbone.Cord.View.prototype.setValueForKey = function(key, value) {
 		key = this.model.idAttribute;
 	this.model.set(key, value);
 	return this;
+};
+// A simple event callback, where the last argument is taken as a value to pass into setValueForKey
+Backbone.Cord.View.prototype._createSetValueCallback = function(key) {
+	return function() {
+		this.setValueForKey(key, arguments[arguments.length - 1]);
+	};
 };
 
 Backbone.Cord.View.prototype.getChildById = function(id) {
