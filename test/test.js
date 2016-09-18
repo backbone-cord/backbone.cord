@@ -79,11 +79,27 @@ describe('copy methods', function() {
 
 describe('mix methods', function() {
 	describe('mixObj()', function() {
-		var combined = cord.mixObj({a:2, styles: {cursor: 'pointer', div: { display: 'block'}}}, {b:3, styles: {color: 'blue', font: 'times'}}, {c:4, styles: {color: 'red', div: { textAlign: 'center'}}});
+		var combined = cord.mixObj(
+			{a: 2, styles: {cursor: 'pointer', div: { display: 'block'}}},
+			{b: 3, styles: {color: 'blue', font: 'times'}},
+			{c: 4, styles: {color: 'red', div: { textAlign: 'center'}}}
+		);
+		var chained = cord.mixObj(
+			{a: 2, foo: function() { ++this.a; return this.a; }},
+			{b: 3, foo: function() { ++this.b; return this.b; }},
+			{c: 4, foo: function() { ++this.c; return this.c; }}
+		);
 		it('combined should have a, b, c, and styles subobject combined', function() {
 			assert.deepEqual({a: 2, b: 3, c: 4, styles: { cursor: 'pointer', color: 'red', font: 'times', div: {textAlign: 'center', display: 'block'}}}, combined);
 		});
-	})
+		it('chained.foo should increment a, b, and c, and return c', function() {
+			var ret = chained.foo();
+			assert.equal(ret, chained.c);
+			assert.equal(chained.a, 3);
+			assert.equal(chained.b, 4);
+			assert.equal(chained.c, 5);
+		});
+	});
 });
 
 describe('convert methods', function() {

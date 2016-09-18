@@ -5,6 +5,7 @@ var Backbone = root.Backbone || require('backbone');
 var compatibilityMode = root.cordCompatibilityMode;
 var debug = root.cordDebug;
 var requestAnimationFrame = root.requestAnimationFrame || setTimeout;
+var isPlainObj = function(obj) { return (typeof obj === 'object' && Object.getPrototypeOf(obj) === Object.prototype); };
 
 function _plugin(name, context) {
 	// For each callbacks, call and return false if false is returned
@@ -25,7 +26,7 @@ function _copyObj(obj) {
 	for(key in obj) {
 		if(obj.hasOwnProperty(key)) {
 			value = obj[key];
-			if(typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype)
+			if(isPlainObj(value))
 				value = _copyObj(value);
 			copy[key] = value;
 		}
@@ -36,18 +37,27 @@ function _copyObj(obj) {
 // Create a copy of obj and mixin the other arguments in order
 // Works much like _.extend() but does a recursive merging of plain objects
 // Good for creating and using view mixins
+// Register mixins with Backbone.Cord.mixins
 function _mixObj(obj) {
-	var i, key, other;
-	var _isPlain = function(obj) { return (typeof obj === 'object' && Object.getPrototypeOf(obj) === Object.prototype); };
+	var i, key, value, other, otherValue;
+	var _chain = function(f1, f2) { return function() { f1.apply(this, arguments); return f2.apply(this, arguments); }; };
+	if(typeof obj === 'string')
+		obj = Backbone.Cord.mixins[obj] || {};
 	obj = _copyObj(obj);
 	for(i = 1; i < arguments.length; ++i) {
 		other = arguments[i];
+		if(typeof other === 'string')
+			other = Backbone.Cord.mixins[other] || {};
 		for(key in other) {
 			if(other.hasOwnProperty(key)) {
-				if(_isPlain(obj[key]) && _isPlain(other[key]))
-					obj[key] = _mixObj(obj[key], other[key]);
+				value = obj[key];
+				otherValue = other[key];
+				if(isPlainObj(value) && isPlainObj(otherValue))
+					obj[key] = _mixObj(value, otherValue);
+				else if(typeof value === 'function' && typeof otherValue === 'function')
+					obj[key] = _chain(value, otherValue);
 				else
-					obj[key] = other[key];
+					obj[key] = otherValue;
 			}
 		}
 	}
@@ -208,6 +218,7 @@ Backbone.Cord = {
 	plugins: [],
 	// Filters installed by the app by setting keys on this object
 	filters: {},
+	mixins: {},
 	copyObj: _copyObj,
 	mixObj: _mixObj,
 	convertToString: function(obj) { if(obj === null || obj === void(0)) return ''; return obj.toString(); },
