@@ -5,7 +5,11 @@ var Backbone = root.Backbone || require('backbone');
 var compatibilityMode = root.cordCompatibilityMode;
 var debug = root.cordDebug;
 var requestAnimationFrame = root.requestAnimationFrame || setTimeout;
-var isPlainObj = function(obj) { return (typeof obj === 'object' && Object.getPrototypeOf(obj) === Object.prototype); };
+
+// Returns true of the give object is an instance of Object and not a subclass or other type
+function _isPlainObj(obj) {
+	return (typeof obj === 'object' && Object.getPrototypeOf(obj) === Object.prototype);
+}
 
 // Create a deep copy of plain objects
 // Anything not a plain object (subclass, function, array, etc) will be copied by reference
@@ -14,7 +18,7 @@ function _copyObj(obj) {
 	for(key in obj) {
 		if(obj.hasOwnProperty(key)) {
 			value = obj[key];
-			if(isPlainObj(value))
+			if(_isPlainObj(value))
 				value = _copyObj(value);
 			copy[key] = value;
 		}
@@ -40,7 +44,7 @@ function _mixObj(obj) {
 			if(other.hasOwnProperty(key)) {
 				value = obj[key];
 				otherValue = other[key];
-				if(isPlainObj(value) && isPlainObj(otherValue))
+				if(_isPlainObj(value) && _isPlainObj(otherValue))
 					obj[key] = _mixObj(value, otherValue);
 				else if(typeof value === 'function' && typeof otherValue === 'function')
 					obj[key] = _chain(value, otherValue);
@@ -231,6 +235,7 @@ Backbone.Cord = {
 	mixins: {},
 	copyObj: _copyObj,
 	mixObj: _mixObj,
+	isPlainObj: _isPlainObj,
 	getPrototypeValuesForKey: _getPrototypeValuesForKey,
 	convertToString: function(obj) { if(obj === null || obj === void(0)) return ''; return obj.toString(); },
 	convertToBool: function(value) { return !!(value && (value.length === void(0) || value.length)); },
@@ -585,6 +590,18 @@ Backbone.Cord.View.prototype.setValueForKey = function(key, value) {
 		key = this.model.idAttribute;
 	this.model.set(key, value);
 	return this;
+};
+Backbone.Cord.View.prototype.setValuesForKeys = function(values) {
+	var i, key;
+	if(_isPlainObj(values)) {
+		for(key in values) {
+			if(values.hasOwnProperty(key))
+				this.setValueForKey(key, values[key]);
+		}
+	} else {
+		for(i = 0; (i + 1) < arguments.length; i += 2)
+			this.setValueForKey(arguments[i], arguments[i + 1]);
+	}
 };
 // A simple event callback, where the last argument is taken as a value to pass into setValueForKey
 Backbone.Cord.View.prototype._createSetValueCallback = function(key) {
