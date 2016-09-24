@@ -7,18 +7,6 @@ var debug = root.cordDebug;
 var requestAnimationFrame = root.requestAnimationFrame || setTimeout;
 var isPlainObj = function(obj) { return (typeof obj === 'object' && Object.getPrototypeOf(obj) === Object.prototype); };
 
-function _plugin(name, context) {
-	// For each callbacks, call and return false if false is returned
-	// Context object to communicate data between plugins and callbacks
-	var callbacks = Backbone.Cord._callbacks[name];
-	var args = Array.prototype.slice.call(arguments, 1);
-	delete context[name];
-	for(var i = 0; i < callbacks.length; ++i) {
-		context[name] = callbacks[i].apply(this, args) || context[name];
-	}
-	return context[name];
-}
-
 // Create a deep copy of plain objects
 // Anything not a plain object (subclass, function, array, etc) will be copied by reference
 function _copyObj(obj) {
@@ -62,6 +50,28 @@ function _mixObj(obj) {
 		}
 	}
 	return obj;
+}
+
+// Get all values for a key on a prototype chain, ordered by parent values first
+function _getPrototypeValuesForKey(obj, key) {
+	var proto = Object.getPrototypeOf(obj), values = [];
+	for(; proto; proto = Object.getPrototypeOf(proto)) {
+		if(proto.hasOwnProperty(key))
+			values.unshift(proto[key]);
+	}
+	return values;
+}
+
+function _plugin(name, context) {
+	// For each callbacks, call and return false if false is returned
+	// Context object to communicate data between plugins and callbacks
+	var callbacks = Backbone.Cord._callbacks[name];
+	var args = Array.prototype.slice.call(arguments, 1);
+	delete context[name];
+	for(var i = 0; i < callbacks.length; ++i) {
+		context[name] = callbacks[i].apply(this, args) || context[name];
+	}
+	return context[name];
 }
 
 // Generate an arbitrary DOM node given a tag[id][classes] string, [attributes] dictionary, and [child nodes...]
@@ -221,6 +231,7 @@ Backbone.Cord = {
 	mixins: {},
 	copyObj: _copyObj,
 	mixObj: _mixObj,
+	getPrototypeValuesForKey: _getPrototypeValuesForKey,
 	convertToString: function(obj) { if(obj === null || obj === void(0)) return ''; return obj.toString(); },
 	convertToBool: function(value) { return !!(value && (value.length === void(0) || value.length)); },
 	convertToNumber: function(value) { return Number(value) || 0; },
@@ -682,8 +693,12 @@ Backbone.Cord.View.prototype._ensureElement = function() {
 		this.listenTo(this.model, 'change', this._modelObserver);
 	// After creating the element add any given className
 	var ret = __ensureElement.apply(this, arguments);
-	if(this.className && isFun)
-		this.el.className += (this.el.className.length ? ' ' : '') + this.className;
+	// Travel the prototype chain and apply all other classNames found but exclude/pop anything already applied by _createElement
+	var classNames = _getPrototypeValuesForKey(this, 'className');
+	if(!isFun)
+		classNames.pop();
+	if(classNames.length)
+		this.el.className += (this.el.className.length ? ' ' : '') + classNames.join(' ');
 	// Run plugin initializers
 	this._plugin('initialize', {});
 	// Setup any declared observers
