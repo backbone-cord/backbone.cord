@@ -57,8 +57,8 @@ function _mixObj(obj) {
 }
 
 // Get all values for a key on a prototype chain, ordered by parent values first
-function _getPrototypeValuesForKey(obj, key) {
-	var proto = Object.getPrototypeOf(obj), values = [];
+function _getPrototypeValuesForKey(objCls, key, isCls) {
+	var proto = isCls ? objCls.prototype : Object.getPrototypeOf(objCls), values = [];
 	for(; proto; proto = Object.getPrototypeOf(proto)) {
 		if(proto.hasOwnProperty(key))
 			values.unshift(proto[key]);

@@ -105,11 +105,14 @@ function _addRules(rules, _styles, selector, media, id) {
 var __extend = Backbone.Cord.View.extend;
 Backbone.Cord.View.extend = function(properties) {
 	// Look for styles hash
-	var _styles = {};
+	var classNames, _styles = {};
 	if(properties.styles && properties.className) {
 		if(!Backbone.Cord._styleSheets)
 			_createStyleSheets();
-		_addRules(properties.styles, _styles, '.' + properties.className.split(' ').join('.'));
+		classNames = Backbone.Cord.getPrototypeValuesForKey(this, 'className', true);
+		classNames.push(properties.className);
+		classNames = classNames.join(' ');
+		_addRules(properties.styles, _styles, '.' + classNames.split(' ').join('.'));
 	}
 	var View = __extend.apply(this, arguments);
 	View.prototype._styles = _styles;
