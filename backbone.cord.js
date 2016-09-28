@@ -6,9 +6,10 @@ var compatibilityMode = root.cordCompatibilityMode;
 var debug = root.cordDebug;
 var requestAnimationFrame = root.requestAnimationFrame || setTimeout;
 
-// Returns true of the give object is an instance of Object and not a subclass or other type
+// Returns true if the given object is an instance of Object and not of a subclass or other type
 function _isPlainObj(obj) {
-	return (typeof obj === 'object' && Object.getPrototypeOf(obj) === Object.prototype);
+	// First check of just obj is needed because typeof null is object
+	return (obj && typeof obj === 'object' && Object.getPrototypeOf(obj) === Object.prototype);
 }
 
 // Create a deep copy of plain objects
@@ -394,13 +395,13 @@ Backbone.Cord.View.prototype._synthesizeProperty = function(key, definition) {
 	if(typeof definition === 'function') {
 		descriptor.get = definition;
 	}
-	else if(typeof definition !== 'object' || Object.getPrototypeOf(definition) !== Object.prototype) {
-		value = definition;
-	}
-	else {
+	else if(_isPlainObj(definition)) {
 		value = definition.value;
 		descriptor.get = definition.get;
 		descriptor.set = definition.set;
+	}
+	else {
+		value = definition;
 	}
 	descriptor.get = descriptor.get || this._synthesizeGetter(key);
 	descriptor.set = (descriptor.set === null) ? void(0) : descriptor.set || this._synthesizeSetter(key);

@@ -53,7 +53,15 @@
 			}
 		});
 
-		var Square = Backbone.Cord.View.extend({
+		var Parent = Backbone.Cord.View.extend({
+			className: 'parent',
+			styles: {
+				backgroundColor: '#999',
+				color: '#333'
+			}
+		});
+
+		var Square = Parent.extend({
 			className: 'view',
 			styles: {
 				userSelect: 'none',
@@ -69,10 +77,10 @@
 					color: 'olive'
 				},
 				tablet: {
-					backgroundColor: '#AAA',
+					backgroundColor: 'orange',
 				},
 				mobile: {
-					backgroundColor: '#888',
+					backgroundColor: 'green',
 				}
 			},
 			el: function(_L, _V) {
@@ -113,12 +121,14 @@
 				top: 0,
 				left: 10,
 				borderColor: '#CCC',
-				distance: function(_top, _left) { return _top + _left; }
+				distance: function(_top, _left) { return _top + _left; },
+				inherited: null,
+				inheritedLastName: function(_inherited, lastName) { return _inherited || lastName; }
 			},
 			onButtonClick: function() {
 				this.red = !this.red;
 				this.blue = Math.floor(Math.random() * 100);
-				this.el.appendChild(this._el('p', 'Thank you much, blue * 11 is :={_blue} * 11 - 5.6=: {lastName}!'));
+				this.el.appendChild(this._el('p', 'Thank you much, blue * 11 is :={_blue} * 11 - 5.6=: {lastName}! {_inheritedLastName}'));
 			},
 			onCircleTop: function(value) {
 				console.log('onCircleTop ' + value);
