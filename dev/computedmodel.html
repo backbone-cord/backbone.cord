@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
 <body>
 	<script type="text/javascript" src="/underscore/underscore.js"></script>
@@ -18,7 +19,7 @@
 			return nickName + ' ' + lastName;
 		})
 		var View = Backbone.View.extend({
-			el: function(_L) { return _L('p', 'My name is {name} and my nickname is {nick}'); },
+			el: function(h) { return h('p', 'My name is {name} and my nickname is {nick}'); },
 		});
 		$(document.body).append((new View({model: window.model})).el);
 	});

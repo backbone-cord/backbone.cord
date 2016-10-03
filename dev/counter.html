@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
 <body>
 	<script type="text/javascript" src="/underscore/underscore.js"></script>
@@ -7,7 +8,7 @@
 	<script type="text/javascript">
 	$(function() {
 		var Counter = Backbone.View.extend({
-			el: function(_L) { return _L('', 'Seconds Elapsed: {_secondsElapsed}'); },
+			el: function(h) { return h('', 'Seconds Elapsed: {_secondsElapsed}'); },
 			properties: { secondsElapsed: 0 },
 			initialize: function() {
 				this.interval = setInterval(function(){ ++this.secondsElapsed; }.bind(this), 1000);

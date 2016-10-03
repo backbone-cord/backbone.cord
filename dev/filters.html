@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
 <body>
 	<script type="text/javascript" src="/underscore/underscore.js"></script>
@@ -9,9 +10,9 @@
 	$(function() {
 		Backbone.Cord.filters['filesize'] = Humanize.fileSize;
 		var FileSizeView = Backbone.View.extend({
-			el: function(_L) {
-				return _L('p',
-						_L('input', {input: '_bytes'}),
+			el: function(h) {
+				return h('p',
+						h('input', {input: '_bytes'}),
 						' bytes is equal to {_bytes|filesize}.'
 					);
 			},

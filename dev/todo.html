@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
 <body>
 	<script type="text/javascript" src="/underscore/underscore.js"></script>
@@ -7,18 +8,18 @@
 	<script type="text/javascript">
 	$(function() {
 		var TodoItemView = Backbone.View.extend({
-			el: function(_L) {
-				return _L('li', '{value}');
+			el: function(h) {
+				return h('li', '{value}');
 			}
 		});
 		var TodoView = Backbone.View.extend({
-			el: function(_L) {
-				return _L('',
-							_L('h3', 'TODO'),
-							_L('ul#container'),
-							_L('form', {onsubmit: 'handleSubmit'},
-								_L('input#todo', {placeholder: 'Your next todo'}),
-								_L('button', 'Add #:={_length} + 1=:')
+			el: function(h) {
+				return h('',
+							h('h3', 'TODO'),
+							h('ul#container'),
+							h('form', {onsubmit: 'handleSubmit'},
+								h('input#todo', {placeholder: 'Your next todo'}),
+								h('button', 'Add #:={_length} + 1=:')
 							)
 						);
 			},

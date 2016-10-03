@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
 <head>
 	<style type="text/css">
@@ -83,29 +84,29 @@
 					backgroundColor: 'green',
 				}
 			},
-			el: function(_L, _V) {
-				return _L('', {onkeyup: 'alertKey'},
-						_L('select', {change: 'ls_color'},
-							_L('option', {value: 'purple'}, 'Purple'),
-							_L('option', {value: 'grey'}, 'Grey'),
-							_L('option', {value: 'blue'}, 'Blue')
+			el: function(h, s) {
+				return h('', {onkeyup: 'alertKey'},
+						h('select', {change: 'ls_color'},
+							h('option', {value: 'purple'}, 'Purple'),
+							h('option', {value: 'grey'}, 'Grey'),
+							h('option', {value: 'blue'}, 'Blue')
 						),
-						_L('input', {type: 'checkbox', change: '_message'}),
-						_L('input', {type: 'range', min: 0, max: 100, input: '_left', value: '{_left}'}),
-						_L('#container.square.red(_red)', {style: {borderTop: '{_left}px solid {ls_color}', top: '{_top}px', left: '{_left}px'}}),
-						_L('p',
+						h('input', {type: 'checkbox', change: '_message'}),
+						h('input', {type: 'range', min: 0, max: 100, input: '_left', value: '{_left}'}),
+						h('#container.square.red(_red)', {style: {borderTop: '{_left}px solid {ls_color}', top: '{_top}px', left: '{_left}px'}}),
+						h('p',
 							'Click the button below to change the color.', 'Distance is {_distance}.'),
-						_L('button#button', {onclick: 'onButtonClick'}, 'Click Me'),
-						_L('p.red-{_red}',
+						h('button#button', {onclick: 'onButtonClick'}, 'Click Me'),
+						h('p.red-{_red}',
 							'Red is: {_red}'),
-						_L('.hi', {style: {paddingLeft: ':={@cursorX}-200=:', paddingTop: ':={@cursorY}/2=:'}},
+						h('.hi', {style: {paddingLeft: ':={@cursorX}-200=:', paddingTop: ':={@cursorY}/2=:'}},
 							'Hi {firstName}, Blue is: {_blue}'),
-						_L('p#thankyou', {hidden: '_red'},
+						h('p#thankyou', {hidden: '_red'},
 							'Thank you much, {firstName} {lastName} aka {nickName}!'),
-						_L('input', {value: ' this is {$shared} world {_blue} hello {firstName}', change: '_message'}),
-						_V(Circle, '#circle', {style: {marginLeft: '{_left}'}, top: 'onCircleTop'}),
-						_V(Circle, '#circle2', {hidden: '_red', onclick: 'onButtonClick'}),
-						_V(Backbone.Cord.EmptyView, '#emptyView')
+						h('input', {value: ' this is {$shared} world {_blue} hello {firstName}', change: '_message'}),
+						s(Circle, '#circle', {style: {marginLeft: '{_left}'}, top: 'onCircleTop'}),
+						s(Circle, '#circle2', {hidden: '_red', onclick: 'onButtonClick'}),
+						s(Backbone.Cord.EmptyView, '#emptyView')
 					);
 			},
 			properties: {
