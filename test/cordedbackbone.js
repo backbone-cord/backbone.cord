@@ -24,7 +24,6 @@ if(!global.window) {
 	require('../plugins/modeltracking');
 	require('../plugins/replacement');
 	require('../plugins/styles');
-	require('../plugins/syncing');
 	require('../plugins/scopes/shared');
 	require('../plugins/scopes/view');
 }

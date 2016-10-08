@@ -2,6 +2,7 @@ var assert = require('assert');
 var Backbone = require('./cordedbackbone');
 
 describe('replacement plugin', function() {
+	var view;
 	before(function() {
 
 		Backbone.Cord.addReplacement('paragraph', function(el) {
@@ -18,6 +19,17 @@ describe('replacement plugin', function() {
 		Backbone.Cord.addReplacement('div.complex.selector[data-test="dog"]', function() {
 			return this._el('h1');
 		});
+
+		view = new (Backbone.View.extend({
+			el: function(h) {
+				return h('', h('.complex.selector', {'data-test': 'dog'}));
+			},
+			replacements: Backbone.Cord.compileReplacements({
+				'div.complex.selector[data-test="dog"]': function() {
+					return this._el('h5');
+				}
+			})
+		}))();
 	});
 	describe('paragraph', function() {
 		it('paragraph should be p with className "paragraph replaced"', function() {
@@ -46,6 +58,11 @@ describe('replacement plugin', function() {
 		it('.complex.selector[data-test="dog"] should NOT get replaced with h1', function() {
 			var el = Backbone.Cord._el('.complex.selector', {'data-test': 'dog', 'data-pet': 'true', 'noreplace': 'true'});
 			assert.notEqual(el.tagName, 'H1');
+		});
+	});
+	describe('view local replacements', function() {
+		it('.complex.selector[data-test="dog"] should get replaced with h5', function() {
+			assert.equal(view.el.children[0].tagName, 'H5');
 		});
 	});
 });

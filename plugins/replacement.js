@@ -3,6 +3,10 @@
 
 var _replacementTags = {};
 
+function _getSelectorTag(selector) {
+	return selector.split(' ')[0].split('[')[0].split('.')[0].split('#')[0].toLowerCase();
+}
+
 // Each replacement function is function(el, parent), where:
 // * the el is augmented inside the parent (a document fragment)
 // * or a new element is returned, replacing el inside it's parent
@@ -16,10 +20,27 @@ var _replacementTags = {};
 // * DO NOT replace any root elements in a view's el layout
 // * If the element is the root element for a view and the documentfragment is returned, the remove function will not work properly because the view's el becomes an empty documentfragment
 Backbone.Cord.addReplacement = function(selector, func) {
-	var tag = selector.split(' ')[0].split('[')[0].split('.')[0].split('#')[0];
+	var tag = _getSelectorTag(selector);
 	if(!_replacementTags[tag])
 		_replacementTags[tag] = [];
 	_replacementTags[tag].push({selector: selector, func: func});
+};
+
+// Compile replacement functions local to the view only not global
+// Works well for a mixin or parent class that needs to control how the subclass creates elements
+// The compiled replacements cannot be mixed with other compiled replacements if there is a conflict in selector tags
+Backbone.Cord.compileReplacements = function(replacements) {
+	var selector, tag, func, compiled = {};
+	for(selector in replacements) {
+		if(replacements.hasOwnProperty(selector)) {
+			tag = _getSelectorTag(selector);
+			func = replacements[selector];
+			if(!compiled[tag])
+				compiled[tag] = [];
+			compiled[tag].push({selector: selector, func: func});
+		}
+	}
+	return compiled;
 };
 
 Backbone.Cord.plugins.push({
@@ -28,7 +49,7 @@ Backbone.Cord.plugins.push({
 		noReplaceAttribute: 'noreplace'
 	},
 	complete: function(context) {
-		var el, i, replacement, replacements;
+		var el, i, tag, local, replacements, replacement;
 		if(context.subview)
 			return;
 		el = context.el;
@@ -36,7 +57,13 @@ Backbone.Cord.plugins.push({
 			el.removeAttribute(Backbone.Cord.config.noReplaceAttribute);
 			return;
 		}
-		replacements = _replacementTags[el.tagName.toLowerCase()];
+		tag = el.tagName.toLowerCase();
+		replacements = _replacementTags[tag];
+		local = this.replacements && this.replacements[tag];
+		if(local && replacements)
+			replacements = local.concat(replacements);
+		else
+			replacements = replacements || local;
 		if(replacements) {
 			var fragment = document.createDocumentFragment();
 			fragment.appendChild(el);
