@@ -14,6 +14,15 @@ Backbone.Cord.View.prototype.focus = function(id) {
 	el.focus();
 };
 
+function _wrapListener(listener) {
+	return function(e) {
+		if(listener.apply(this, arguments) === false) {
+			e.preventDefault();
+			e.stopPropagation();
+		}
+	};
+}
+
 function _events(context, attrs) {
 	for(var attr in attrs) {
 		if(attr.substr(0, 2) === 'on' && attrs.hasOwnProperty(attr)) {
@@ -21,7 +30,7 @@ function _events(context, attrs) {
 			if(typeof listener === 'function') {
 				if(context.isView)
 					listener = listener.bind(this);
-				context.el.addEventListener(attr.substr(2), listener);
+				context.el.addEventListener(attr.substr(2), _wrapListener(listener));
 			}
 			delete attrs[attr];
 		}
