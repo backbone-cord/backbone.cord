@@ -102,23 +102,6 @@ function _addRules(rules, _styles, selector, media, id) {
 	}
 }
 
-var __extend = Backbone.Cord.View.extend;
-Backbone.Cord.View.extend = function(properties) {
-	// Look for styles hash
-	var classNames, _styles = {};
-	if(properties.styles && properties.className) {
-		if(!Backbone.Cord._styleSheets)
-			_createStyleSheets();
-		classNames = Backbone.Cord.getPrototypeValuesForKey(this, 'className', true);
-		classNames.push(properties.className);
-		classNames = classNames.join(' ');
-		_addRules(properties.styles, _styles, '.' + classNames.split(' ').join('.'));
-	}
-	var View = __extend.apply(this, arguments);
-	View.prototype._styles = _styles;
-	return View;
-};
-
 function _createStyleObserver(node, style) {
 	style = _getStylePrefix(style) + style;
 	return function(key, formatted) {
@@ -164,6 +147,19 @@ Backbone.Cord.plugins.push({
 	},
 	attrs: _styles,
 	bindings: _styles,
+	extend: function(context) {
+		// Look for styles hash
+		var classNames, _styles = {};
+		if(context.protoProps.styles && context.protoProps.className) {
+			if(!Backbone.Cord._styleSheets)
+				_createStyleSheets();
+			classNames = Backbone.Cord.getPrototypeValuesForKey(this, 'className', true);
+			classNames.push(context.protoProps.className);
+			classNames = classNames.join(' ');
+			_addRules(context.protoProps.styles, _styles, '.' + classNames.split(' ').join('.'));
+		}
+		context.protoProps._styles = _styles;
+	},
 	initialize: function(context) {
 		if(this._styles && this._styles[THIS_ID]) {
 			var styles = Backbone.Cord.copyObj(this._styles[THIS_ID]);

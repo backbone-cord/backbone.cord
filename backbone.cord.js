@@ -270,6 +270,8 @@ Backbone.Cord = {
 		bindings: [],
 		// (el and subview) when creation and setup is complete, right before el and subview return, returning a different element can replace an el
 		complete: [],
+		// View Class extending only, where this is the parent class and context has protoProps and staticProps arguments
+		extend: [],
 		// (new View) create, initialize, and remove apply to all views
 		create: [],
 		initialize: [],
@@ -687,6 +689,21 @@ Backbone.Cord.View.prototype.setCollection = function(newCollection) {
 	this.stopListening(this.collection);
 	this.collection = newCollection;
 	return this;
+};
+
+var __extend = Backbone.Cord.View.extend;
+Backbone.Cord.View.extend = function(protoProps, staticProps) {
+	protoProps = protoProps || {};
+	staticProps = staticProps || {};
+	_plugin.call(this, 'extend', {protoProps: protoProps, staticProps: staticProps});
+	// Inherit parent events, properties, and observers - only need to worry about direct inheritance as inheritance builds on itself
+	if(this.prototype.events && protoProps.events)
+		protoProps.events = _mixObj(this.prototype.events, protoProps.events);
+	if(this.prototype.properties && protoProps.properties)
+		protoProps.properties = _mixObj(this.prototype.properties, protoProps.properties);
+	if(this.prototype.observers && protoProps.observers)
+		protoProps.observers = _mixObj(this.prototype.observers, protoProps.observers);
+	return __extend.call(this, protoProps, staticProps);
 };
 
 // Wrap _ensureElement to add a subviews array
