@@ -241,6 +241,8 @@ Backbone.Cord = {
 	convertToString: function(obj) { if(obj === null || obj === void(0)) return ''; return obj.toString(); },
 	convertToBool: function(value) { return !!(value && (value.length === void(0) || value.length)); },
 	convertToNumber: function(value) { return Number(value) || 0; },
+	// Internally set readonly properties with the ForceValue object
+	ForceValue: function(value) { this.value = value; },
 	// Initialize the Cord View class depending on the compatibility mode
 	View: compatibilityMode ? Backbone.View.extend({}) : Backbone.View,
 	// EmptyModel and EmptyView to use as default model and a subview placeholder
@@ -385,18 +387,31 @@ Backbone.Cord.View.prototype._synthesizeSetter = function(key) {
 	key = '_' + key;
 	return function(value) { this[key] = value; };
 };
-// Synthesize and define a property using a simple definition, which is one more of (get, set, value), set: null creates a readonly property
-// When definition is a function it implies {get: definition, set: null}
+Backbone.Cord.View.prototype._synthesizeReadonlySetter = function(key) {
+	key = '_' + key;
+	return function(value) {
+		if(typeof value === 'object' && Object.getPrototypeOf(value) === Backbone.Cord.ForceValue.prototype)
+			this[key] = value.value;
+		else
+			throw new Error('Attempting to assign a readonly property.');
+	};
+};
+// Synthesize and define a property using a simple definition, which is one or more of (get, set, value, readonly)
+// When definition is a function it implies {get: definition}
 // When definition is just a value it implies {value: definition} - plain objects need to be explicity set under the value key
 // When get or set is missing default accessors that read/write the backing _key are used
+// When set is null or readonly is true - a readonly property is created that throws an exception when trying to assign
+// Readonly properties are publicly readonly but privately writeable by assigning values with the Backbone.Cord.ForceValue object
 Backbone.Cord.View.prototype._synthesizeProperty = function(key, definition) {
 	var value = null;
+	var readonly = false;
 	var descriptor = { configurable: true, enumerable: true };
 	if(typeof definition === 'function') {
 		descriptor.get = definition;
 	}
 	else if(_isPlainObj(definition)) {
 		value = definition.value;
+		readonly = definition.readonly;
 		descriptor.get = definition.get;
 		descriptor.set = definition.set;
 	}
@@ -404,7 +419,7 @@ Backbone.Cord.View.prototype._synthesizeProperty = function(key, definition) {
 		value = definition;
 	}
 	descriptor.get = descriptor.get || this._synthesizeGetter(key);
-	descriptor.set = (descriptor.set === null) ? void(0) : descriptor.set || this._synthesizeSetter(key);
+	descriptor.set = (descriptor.set === null || readonly) ? this._synthesizeReadonlySetter(key) : descriptor.set || this._synthesizeSetter(key);
 	Object.defineProperty(this, key, descriptor);
 	this._setProperty(key, value);
 };
