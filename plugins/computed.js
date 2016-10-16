@@ -91,12 +91,30 @@ function _createArgObserver(key, getFunc, args) {
 		var i, values = [];
 		for(i = 0; i < args.length; ++i)
 			values.push(this.getValueForKey(args[i]));
-		this[key] = getFunc.apply(this, values);
+		this[key] = new Backbone.Cord.ForceValue(getFunc.apply(this, values));
 	};
 }
 
 Backbone.Cord.plugins.push({
 	name: 'computed',
+	extend: function(context) {
+		// Set all computed properties to be readonly
+		var properties, key, definition;
+		properties = context.protoProps.properties;
+		if(properties) {
+			for(key in properties) {
+				if(properties.hasOwnProperty(key)) {
+					definition = properties[key];
+					if(typeof definition === 'function' && _getFunctionArgs(definition).length) {
+						properties[key] = {get: definition, readonly: true};
+					}
+					else if(Backbone.Cord.isPlainObj(definition) && definition.get && _getFunctionArgs(definition.get).length) {
+						definition.readonly = true;
+					}
+				}
+			}
+		}
+	},
 	initialize: function() {
 		// Enumerate all of the get properties to determine which has a get method with arguments
 		if(this.properties) {
