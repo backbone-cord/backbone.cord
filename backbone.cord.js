@@ -27,13 +27,16 @@ function _copyObj(obj) {
 	return copy;
 }
 
+// Helper functions for mixing objects and prototypes
+function _chain(f1, f2) { return function() { f1.apply(this, arguments); return f2.apply(this, arguments); }; }
+function _terminate(f, key) { return function() { f.apply(this, arguments); var parent = Object.getPrototypeOf(Object.getPrototypeOf(this)); return (parent && parent[key]) ? parent[key].apply(this, arguments) : this; }; }
+
 // Create a copy of obj and mixin the other arguments in order
 // Works much like _.extend() but does a recursive merging of plain objects
 // Good for creating and using view mixins
 // Register mixins with Backbone.Cord.mixins
 function _mixObj(obj) {
 	var i, key, value, other, otherValue;
-	var _chain = function(f1, f2) { return function() { f1.apply(this, arguments); return f2.apply(this, arguments); }; };
 	if(typeof obj === 'string')
 		obj = Backbone.Cord.mixins[obj] || {};
 	obj = _copyObj(obj);
@@ -52,6 +55,22 @@ function _mixObj(obj) {
 				else
 					obj[key] = otherValue;
 			}
+		}
+	}
+	return obj;
+}
+
+// Same as _mixObj, but will terminate (call parent) any function chains if the last (terminal) obj did not implement the function
+function _mixProto() {
+	var key, value, obj = _mixObj.apply(this, arguments);
+	var terminal = arguments[arguments.length - 1];
+	if(typeof terminal === 'string')
+		terminal = Backbone.Cord.mixins[terminal] || {};
+	for(key in obj) {
+		if(obj.hasOwnProperty(key)) {
+			value = obj[key];
+			if(typeof value === 'function' && typeof terminal[key] !== 'function')
+				obj[key] = _terminate(value, key);
 		}
 	}
 	return obj;
@@ -236,6 +255,7 @@ Backbone.Cord = {
 	mixins: {},
 	copyObj: _copyObj,
 	mixObj: _mixObj,
+	mixProto: _mixProto,
 	isPlainObj: _isPlainObj,
 	getPrototypeValuesForKey: _getPrototypeValuesForKey,
 	convertToString: function(obj) { if(obj === null || obj === void(0)) return ''; return obj.toString(); },
