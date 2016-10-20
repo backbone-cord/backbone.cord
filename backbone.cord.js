@@ -312,16 +312,16 @@ Backbone.Cord.log = (debug ? function() {
 	console.log.apply(console, args);
 } : function(){});
 Backbone.Cord.hasId = function(el) {
-	return !!el.id;
+	return !!el.getAttribute('data-id');
 };
 Backbone.Cord.getId = function(el) {
-	return el.id;
+	return el.getAttribute('data-id');
 };
 Backbone.Cord.setId = function(el, id) {
-	el.id = id;
+	el.setAttribute('data-id', id);
 };
 Backbone.Cord.regex.replaceIdSelectors = function(query) {
-	return query;
+	return query.replace(this.idSelectorValues, '[data-id="$1"]');
 };
 Backbone.Cord.regex.testIdProperty = function(id, noThrow) {
 	var result = this.idPropertyTest.test(id);
@@ -649,7 +649,7 @@ Backbone.Cord.View.prototype._createSetValueCallback = function(key) {
 };
 
 Backbone.Cord.View.prototype.getChildById = function(id) {
-	return document.getElementById(id);
+	return this.el.querySelector('[data-id="' + id +  '"]');
 };
 Backbone.Cord.View.prototype.getSubviewById = function(id) {
 	var node = this.getChildById(id);
@@ -716,6 +716,18 @@ Backbone.Cord.View.extend = function(protoProps, staticProps) {
 	protoProps = protoProps || {};
 	staticProps = staticProps || {};
 	_plugin.call(this, 'extend', {protoProps: protoProps, staticProps: staticProps});
+	// Replace all of the id selectors in the event delegation
+	var key, value, events = protoProps.events;
+	if(events) {
+		for(key in events) {
+			if(events.hasOwnProperty(key) && key.indexOf('#') !== -1) {
+				value = events[key];
+				delete events[key];
+				key = Backbone.Cord.regex.replaceIdSelectors(key);
+				events[key] = value;
+			}
+		}
+	}
 	// Inherit parent events, properties, and observers - only need to worry about direct inheritance as inheritance builds on itself
 	if(this.prototype.events && protoProps.events)
 		protoProps.events = _mixObj(this.prototype.events, protoProps.events);

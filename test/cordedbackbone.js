@@ -15,7 +15,6 @@ if(!global.window) {
 	require('../plugins/collection');
 	require('../plugins/computed');
 	require('../plugins/conditionalclasses');
-	require('../plugins/dataid');
 	require('../plugins/dynamicclasses');
 	require('../plugins/events');
 	require('../plugins/hidden');

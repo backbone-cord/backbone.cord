@@ -147,6 +147,20 @@ describe('EmptyModel', function() {
 	});
 });
 
+describe('events', function() {
+	var View;
+	before(function() {
+		View = cord.View.extend({
+			events: {
+				'click #element': true
+			}
+		});
+	});
+	it('should replace id selectors on extend', function() {
+		assert.equal(View.prototype.events['click [data-id="element"]'], true);
+	});
+});
+
 describe('_el', function() {
 	before(function(done) {
 		// Run the tests with a document
