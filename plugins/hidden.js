@@ -12,12 +12,22 @@ function _createObserver(el) {
 	};
 }
 
+function _createInvisibleObserver(el) {
+	return function(key, value) {
+		el.style.visibility = Backbone.Cord.convertToBool(value) ? 'hidden' : 'visible';
+	};
+}
+
 function _hidden(context, attrs) {
 	if(!context.isView)
 		return;
 	if(attrs.hidden) {
 		this.observe(attrs.hidden, _createObserver(context.el), true);
 		delete attrs.hidden;
+	}
+	if(attrs.invisible) {
+		this.observe(attrs.invisible, _createInvisibleObserver(context.el), true);
+		delete attrs.invisible;
 	}
 }
 
