@@ -58,32 +58,40 @@ function _camelCaseToDash(str) {
 }
 
 function _addRules(rules, _styles, selector, media, id) {
-	var key, sheet, mediaQuery, idQuery;
+	var key, sheet, query, mediaQuery, idQuery, separator;
 	media = media || 'all';
 	sheet = Backbone.Cord._styleSheets[media];
 	for(key in rules) {
 		if(rules.hasOwnProperty(key)) {
 			if(typeof rules[key] === 'object') {
 				mediaQuery = idQuery = null;
-				if(key.indexOf(Backbone.Cord.config.mediaPrefix) === 0) {
-					mediaQuery = key.substr(Backbone.Cord.config.mediaPrefix.length);
+				separator = '>';
+				query = key;
+				if(query.indexOf(Backbone.Cord.config.mediaPrefix) === 0) {
+					mediaQuery = query.substr(Backbone.Cord.config.mediaPrefix.length);
 					if(!Backbone.Cord.mediaQueries[mediaQuery])
 						return;
 				}
-				if(!mediaQuery && Backbone.Cord.mediaQueries[key])
-					mediaQuery = key;
 				if(!mediaQuery) {
-					if(key[0] === '_' || key[0] === '#')
-						idQuery = key.substr(1);
+					if(':+~>'.indexOf(query[0]) !== -1) {
+						separator = query[0];
+						query = query.substr(1);
+					}
+					else if(query.indexOf(Backbone.Cord.config.allPrefix) === 0) {
+						separator = ' ';
+						query = query.substr(Backbone.Cord.config.allPrefix.length);
+					}
+					if('_#'.indexOf(query[0]) !== -1)
+						idQuery = query.substr(1);
 					if(idQuery && !Backbone.Cord.regex.testIdProperty(idQuery, true))
 						idQuery = null;
 				}
 				if(mediaQuery)
 					_addRules(rules[key], _styles, selector, mediaQuery);
 				else if(idQuery)
-					_addRules(rules[key], _styles, selector + '>' + Backbone.Cord.regex.replaceIdSelectors('#' + idQuery), media, idQuery);
+					_addRules(rules[key], _styles, selector + separator + Backbone.Cord.regex.replaceIdSelectors('#' + idQuery), media, idQuery);
 				else
-					_addRules(rules[key], _styles, selector + '>' + Backbone.Cord.regex.replaceIdSelectors(key), media);
+					_addRules(rules[key], _styles, selector + separator + Backbone.Cord.regex.replaceIdSelectors(query), media);
 			}
 			else {
 				if(rules[key].search(Backbone.Cord.regex.variableSearch) !== -1) {
@@ -143,7 +151,8 @@ Backbone.Cord.plugins.push({
 	name: 'styles',
 	requirements: ['interpolation'],
 	config: {
-		mediaPrefix: '@'
+		mediaPrefix: '@',
+		allPrefix: '$'
 	},
 	attrs: _styles,
 	bindings: _styles,

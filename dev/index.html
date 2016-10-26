@@ -70,17 +70,17 @@
 				paddingLeft: '50px',
 				border: '2px dotted {_borderColor}',
 				boxShadow: '1px 2px 2px black',
-				_container: {
+				$_container: {
 					borderLeft: '10px solid black',
 					borderBottom: ':={_left}*1.5=:px solid purple'
 				},
 				p: {
 					color: 'olive'
 				},
-				tablet: {
+				'@tablet': {
 					backgroundColor: 'orange',
 				},
-				mobile: {
+				'@mobile': {
 					backgroundColor: 'green',
 				}
 			},
@@ -101,12 +101,12 @@
 							'Red is: {_red}'),
 						h('.hi', {style: {paddingLeft: ':={@cursorX}-200=:', paddingTop: ':={@cursorY}/2=:'}},
 							'Hi {firstName}, Blue is: {_blue}'),
-						h('p#thankyou', {hidden: '_red'},
+						h('p#thankyou', {invisible: '_red'},
 							'Thank you much, {firstName} {lastName} aka {nickName}!'),
 						h('input', {value: ' this is {$shared} world {_blue} hello {firstName}', change: '_message'}),
 						h('a', {href: 'http://backbonejs.org', target: '_blank', onclick: function() { return false; } }, 'backbonejs.org'),
 						s(Circle, '#circle', {style: {marginLeft: '{_left}'}, top: 'onCircleTop'}),
-						s(Circle, '#circle2', {hidden: '_red', onclick: 'onButtonClick'}),
+						s(Circle, '#circle2', {invisible: '_red', onclick: 'onButtonClick'}),
 						s(Backbone.Cord.EmptyView, '#emptyView')
 					);
 			},
