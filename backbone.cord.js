@@ -29,7 +29,7 @@ function _copyObj(obj) {
 
 // Helper functions for mixing objects and prototypes
 function _chain(f1, f2) { return function() { f1.apply(this, arguments); return f2.apply(this, arguments); }; }
-function _terminate(f, key) { return function() { f.apply(this, arguments); var parent = Object.getPrototypeOf(Object.getPrototypeOf(this)); return (parent && parent[key]) ? parent[key].apply(this, arguments) : this; }; }
+function _terminate(f, key) { return function() { var ret = f.apply(this, arguments); var parent = Object.getPrototypeOf(Object.getPrototypeOf(this)); return (parent && parent[key]) ? parent[key].apply(this, arguments) : ret || this; }; }
 
 // Create a copy of obj and mixin the other arguments in order
 // Works much like _.extend() but does a recursive merging of plain objects
