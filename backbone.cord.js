@@ -251,7 +251,11 @@ Backbone.Cord = {
 	// Plugins install themselves by pushing to this array
 	plugins: [],
 	// Filters installed by the app by setting keys on this object
-	filters: {},
+	filters: {
+		lower: function(str) { return str.toLowerCase(); },
+		upper: function(str) { return str.toUpperCase(); },
+		title: function(str) { return str.replace(/\b[^\s-]*/g, function(s) { return s.charAt(0).toUpperCase() + s.substr(1).toLowerCase(); }); }
+	},
 	mixins: {},
 	copyObj: _copyObj,
 	mixObj: _mixObj,
@@ -505,7 +509,7 @@ Backbone.Cord.View.prototype.observe = function(key, observer, immediate) {
 		var i, filters = [], names = key.split(Backbone.Cord.config.filterSeparator);
 		key = names[0].trim();
 		for(i = 1; i < names.length; ++i)
-			filters.push(Backbone.Cord.filters[names[i].trim()]);
+			filters.push(Backbone.Cord.filters[names[i].trim()] || Math[names[i].trim()]);
 		observer = _applyFilters(observer, filters);
 	}
 	// Support any subkeys but only changes to the top-level key are observed
