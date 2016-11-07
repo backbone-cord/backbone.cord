@@ -94,14 +94,15 @@ function _addRules(rules, _styles, selector, media, id) {
 					_addRules(rules[key], _styles, selector + separator + Backbone.Cord.regex.replaceIdSelectors(query), media);
 			}
 			else {
-				if(rules[key].search(Backbone.Cord.regex.variableSearch) !== -1) {
+				var value = rules[key].toString();
+				if(value.search(Backbone.Cord.regex.variableSearch) !== -1) {
 					var scope = id || THIS_ID;
 					if(!_styles[scope])
 						_styles[scope] = {};
-					_styles[scope][key] = rules[key];
+					_styles[scope][key] = value;
 				}
 				else {
-					var rule = selector + '{' + _getStylePrefix(key, true) + _camelCaseToDash(key) + ':' + rules[key] + ';}';
+					var rule = selector + '{' + _getStylePrefix(key, true) + _camelCaseToDash(key) + ':' + value + ';}';
 					Backbone.Cord.log('@' + media,  rule);
 					sheet.insertRule(rule, 0);
 				}
