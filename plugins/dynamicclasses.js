@@ -4,7 +4,7 @@
 function _createObserver(el) {
 	var indicator = 'dynamic-class-' + Math.floor(Math.random() * 9999999);
 	return function(key, formatted) {
-		var classes = el.className.length ? el.className.split(' ') : [];
+		var classes = el.className.split(' ');
 		var index = classes.indexOf(indicator);
 		if(index !== -1) {
 			classes[index + 1] = Backbone.Cord.convertToString(formatted);
