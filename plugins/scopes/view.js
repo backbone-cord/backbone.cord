@@ -8,7 +8,7 @@ function _propertyObserver(key, prevSet) {
 		if(prevSet)
 			prevSet.call(this, value);
 		else
-			this._setProperty(key, value);
+			this['_' + key] = value;
 		this._invokeObservers(key, this[key], SCOPE_NAME);
 	};
 	newSet._cordWrapped = true;
@@ -40,7 +40,7 @@ Backbone.Cord.plugins.push({
 				}
 				else {
 					// Define a new property without an existing defined setter
-					this._setProperty(key, this[key]);
+					this['_' + key] = this[key];
 					if(delete this[key]) {
 						Object.defineProperty(this, key, {
 							get: this._synthesizeGetter(key),

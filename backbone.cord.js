@@ -399,12 +399,7 @@ Backbone.Cord.plugins.push = function(plugin) {
 Backbone.Cord.View.prototype._el = _el;
 Backbone.Cord.View.prototype._subview = _subview;
 Backbone.Cord.View.prototype._plugin = _plugin;
-Backbone.Cord.View.prototype._getProperty = function(key) {
-	return this['_' + key];
-};
-Backbone.Cord.View.prototype._setProperty = function(key, value) {
-	this['_' + key] = value;
-};
+
 Backbone.Cord.View.prototype._synthesizeGetter = function(key) {
 	key = '_' + key;
 	return function() { return this[key]; };
