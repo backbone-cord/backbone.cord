@@ -447,8 +447,9 @@ Backbone.Cord.View.prototype._synthesizeProperty = function(key, definition) {
 	descriptor.get = descriptor.get || this._synthesizeGetter(key);
 	descriptor.set = (descriptor.set === null || readonly) ? this._synthesizeReadonlySetter(key) : descriptor.set || this._synthesizeSetter(key);
 	Object.defineProperty(this, key, descriptor);
-	this._setProperty(key, value);
+	Object.defineProperty(this, '_' + key, {configurable: false, enumerable: false, value: value, writable: true});
 };
+
 Backbone.Cord.View.prototype._modelObserver = function(model, options) {
 	var key, changed = options._changed || model.changedAttributes();
 	if(!changed)
@@ -458,7 +459,6 @@ Backbone.Cord.View.prototype._modelObserver = function(model, options) {
 			this._invokeObservers(key, changed[key]);
 	}
 };
-
 // Do not modify the array or dictionary returned from this method, they may sometimes simply be an empty return value
 Backbone.Cord.View.prototype._getObservers = function(newKey, scope) {
 	var observers;
@@ -644,6 +644,7 @@ Backbone.Cord.View.prototype.setValuesForKeys = function(values) {
 		for(i = 0; (i + 1) < arguments.length; i += 2)
 			this.setValueForKey(arguments[i], arguments[i + 1]);
 	}
+	return this;
 };
 // A simple event callback, where the last argument is taken as a value to pass into setValueForKey
 Backbone.Cord.View.prototype._createSetValueCallback = function(key) {
