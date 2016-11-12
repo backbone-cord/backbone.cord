@@ -641,6 +641,19 @@ Backbone.Cord.View.prototype.setValuesForKeys = function(values) {
 	}
 	return this;
 };
+Backbone.Cord.View.prototype.setProperties = function(values) {
+	var i, key;
+	if(_isPlainObj(values)) {
+		for(key in values) {
+			if(values.hasOwnProperty(key))
+				this[key] = values[key];
+		}
+	} else {
+		for(i = 0; (i + 1) < arguments.length; i += 2)
+			this[arguments[i]] = arguments[i + 1];
+	}
+	return this;
+};
 // A simple event callback, where the last argument is taken as a value to pass into setValueForKey
 Backbone.Cord.View.prototype._createSetValueCallback = function(key) {
 	return function() {
