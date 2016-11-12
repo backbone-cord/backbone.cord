@@ -29,16 +29,16 @@
 	$(function() {
 		var ItemView = Backbone.View.extend({
 			el: function(h) {
-				return h('tr.is-selected(_selected)', {onclick: 'onClick'},
+				return h('tr.is-selected(_selected)', {onclick: '_onClick'},
 							h('td', '{firstName}'),
 							h('td', '{lastName}'),
 							h('td', '{version}')
 						);
 			},
-			onClick: function() { this.trigger('select', this.model); },
 			properties: {
 				'selected': false
-			}
+			},
+			_onClick: function() { this.trigger('select', this.model); }
 		});
 		var DetailsView = Backbone.View.extend({
 			el: function(h) {
@@ -51,9 +51,9 @@
 							h('table',
 								h('thead',
 									h('tr',
-										h('th', {'data-sort': 'firstName', onclick: 'onSort'}, 'First Name'),
-										h('th', {'data-sort': 'lastName', onclick: 'onSort'}, 'Last Name'),
-										h('th', {'data-sort': 'version', onclick: 'onSort'}, 'Version')
+										h('th', {'data-sort': 'firstName', onclick: '_onSort'}, 'First Name'),
+										h('th', {'data-sort': 'lastName', onclick: '_onSort'}, 'Last Name'),
+										h('th', {'data-sort': 'version', onclick: '_onSort'}, 'Version')
 									)
 								),
 								h('tbody#container')
@@ -63,7 +63,7 @@
 						);
 			},
 			itemView: ItemView,
-			onSort: function(e) {
+			_onSort: function(e) {
 				var comparator = e.currentTarget.getAttribute('data-sort');
 				this.collection.comparator = comparator;
 				this.collection.sort();

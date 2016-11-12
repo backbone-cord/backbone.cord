@@ -17,14 +17,14 @@
 				return h('',
 							h('h3', 'TODO'),
 							h('ul#container'),
-							h('form', {onsubmit: 'handleSubmit'},
+							h('form', {onsubmit: '_onSubmit'},
 								h('input#todo', {placeholder: 'Your next todo'}),
 								h('button', 'Add #:={_length} + 1=:')
 							)
 						);
 			},
 			itemView: TodoItemView,
-			handleSubmit: function(e) {
+			_onSubmit: function(e) {
 				e.preventDefault();
 				this.collection.add({value: this.todo.value});
 				this.todo.value = '';

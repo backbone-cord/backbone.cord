@@ -15,13 +15,18 @@
 			var picker = new Pikaday({ field: el });
 			this.once('remove', function() { picker.destroy(); });
 		});
+		Backbone.Cord.addReplacement('animal', function(el) {
+			return this._el('img', {src: 'http://lorempixel.com/400/200/animals'});
+		});
 		var SamplesView = Backbone.View.extend({
 			el: function(h) {
 				return h('',
 						'Choose a date: ', h('input', {type: 'date', change: '_value'}),
 						h('br'),
-						'And another date: ', h('input', {type: 'date'})
-				);
+						'And another date: ', h('input', {type: 'date'}),
+						h('br'),
+						h('animal#animal')
+					);
 			},
 			properties: { value: 0 }
 		});
