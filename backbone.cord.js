@@ -801,7 +801,7 @@ Backbone.Cord.View.prototype._ensureElement = function() {
 		var observers = this.observers;
 		for(key in observers)
 			if(observers.hasOwnProperty(key))
-				this.observe(key, observers[key]);
+				this.observe(key, observers[key], true);
 	}
 	return ret;
 };
