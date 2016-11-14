@@ -5,6 +5,7 @@ var THIS_ID = '(this)';
 
 Backbone.Cord.mediaQueries = {
 	all: '',
+	animations: '',
 	hd: 'only screen and (max-width: 1200px)',
 	desktop: 'only screen and (max-width: 992px)',
 	tablet: 'only screen and (max-width: 768px)',
@@ -111,6 +112,45 @@ function _addRules(rules, _styles, selector, media, id) {
 	}
 }
 
+function _addAnimations(animations) {
+	var sheet = Backbone.Cord._styleSheets.animations;
+	var key, animation, keyframe, temp, step, i, rule, style, keystyles;
+	for(key in animations) {
+		if(animations.hasOwnProperty(key)) {
+			animation = animations[key];
+			if(Object.getPrototypeOf(animation) === Array.prototype) {
+				temp = animation;
+				animation = {};
+				step = (100/(temp.length - 1));
+				for(i = 0; i < temp.length; ++i)
+					animation[Math.ceil(step * i) + '%'] = temp[i];
+				animations[key] = animation;
+			}
+			if(Backbone.Cord.isPlainObj(animation)) {
+				// Skip already processed animations, from mixins etc
+				if(animation.name)
+					continue;
+				rule = '';
+				for(keyframe in animation) {
+					if(animation.hasOwnProperty(keyframe)) {
+						rule += keyframe + '{';
+						keystyles = animation[keyframe];
+						for(style in keystyles) {
+							if(keystyles.hasOwnProperty(style))
+								rule += _getStylePrefix(style, true) + _camelCaseToDash(style) + ':' + keystyles[style] + ';';
+						}
+						rule += '}';
+					}
+				}
+				animation.name = key + Backbone.Cord.randomCode();
+				rule = '@keyframes ' + animation.name + '{' + rule + '}';
+				Backbone.Cord.log(rule);
+				sheet.insertRule(rule, 0);
+			}
+		}
+	}
+}
+
 function _createStyleObserver(node, style) {
 	style = _getStylePrefix(style) + style;
 	return function(key, formatted) {
@@ -160,13 +200,16 @@ Backbone.Cord.plugins.push({
 	extend: function(context) {
 		// Look for styles hash
 		var classNames, _styles = {};
-		if(context.protoProps.styles && context.protoProps.className) {
+		if((context.protoProps.styles || context.protoProps.animations) && context.protoProps.className) {
 			if(!Backbone.Cord._styleSheets)
 				_createStyleSheets();
 			classNames = Backbone.Cord.getPrototypeValuesForKey(this, 'className', true);
 			classNames.push(context.protoProps.className);
 			classNames = classNames.join(' ');
-			_addRules(context.protoProps.styles, _styles, '.' + classNames.split(' ').join('.'));
+			if(context.protoProps.styles)
+				_addRules(context.protoProps.styles, _styles, '.' + classNames.split(' ').join('.'));
+			if(context.protoProps.animations)
+				_addAnimations(context.protoProps.animations);
 		}
 		context.protoProps._styles = _styles;
 	},
