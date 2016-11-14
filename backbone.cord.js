@@ -265,6 +265,7 @@ Backbone.Cord = {
 	convertToString: function(obj) { if(obj === null || obj === void(0)) return ''; return obj.toString(); },
 	convertToBool: function(value) { return !!(value && (value.length === void(0) || value.length)); },
 	convertToNumber: function(value) { return Number(value) || 0; },
+	randomCode: function() { var c = ''; for(var i = 0 ; i < 12; ++i) c += Math.floor(Math.random() * 16).toString(16); return c; },
 	// Internally set readonly properties with the ForceValue object
 	ForceValue: function(value) { this.value = value; },
 	// Initialize the Cord View class depending on the compatibility mode

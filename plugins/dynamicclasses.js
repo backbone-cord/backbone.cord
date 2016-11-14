@@ -2,7 +2,7 @@
 'use strict';
 
 function _createObserver(el) {
-	var indicator = 'dynamic-class-' + Math.floor(Math.random() * 9999999);
+	var indicator = 'dynamic-class-' + Backbone.Cord.randomCode();
 	return function(key, formatted) {
 		var classes = el.className.split(' ');
 		var index = classes.indexOf(indicator);

@@ -34,7 +34,7 @@ function _replaceExpressions(str) {
 
 	for(i = 0; i < matches.length; ++i) {
 		expr = Backbone.Cord.regex.expressionValue.exec(matches[i])[1];
-		prop = 'expr' + Math.floor(Math.random() * 9999999);
+		prop = 'expr' + Backbone.Cord.randomCode();
 		matches[i] = Backbone.Cord.regex.variable.prefix + Backbone.Cord.config.viewPrefix + prop + Backbone.Cord.regex.variable.suffix;
 		_createExpressionProperty.call(this, expr, prop);
 	}
