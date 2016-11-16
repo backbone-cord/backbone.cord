@@ -29,7 +29,7 @@ function _copyObj(obj) {
 
 // Helper functions for mixing objects and prototypes
 function _chain(f1, f2) { return function() { f1.apply(this, arguments); return f2.apply(this, arguments); }; }
-function _terminate(f, key) { return function() { f.apply(this, arguments); var parent = Object.getPrototypeOf(Object.getPrototypeOf(this)); return (parent && parent[key]) ? parent[key].apply(this, arguments) : this; }; }
+function _terminate(f, key) { return function() { var ret = f.apply(this, arguments); var parent = Object.getPrototypeOf(Object.getPrototypeOf(this)); return (parent && parent[key]) ? parent[key].apply(this, arguments) : ret || this; }; }
 
 // Create a copy of obj and mixin the other arguments in order
 // Works much like _.extend() but does a recursive merging of plain objects
@@ -251,7 +251,11 @@ Backbone.Cord = {
 	// Plugins install themselves by pushing to this array
 	plugins: [],
 	// Filters installed by the app by setting keys on this object
-	filters: {},
+	filters: {
+		lower: function(str) { return str.toLowerCase(); },
+		upper: function(str) { return str.toUpperCase(); },
+		title: function(str) { return str.replace(/\b[^\s-]*/g, function(s) { return s.charAt(0).toUpperCase() + s.substr(1).toLowerCase(); }); }
+	},
 	mixins: {},
 	copyObj: _copyObj,
 	mixObj: _mixObj,
@@ -261,6 +265,7 @@ Backbone.Cord = {
 	convertToString: function(obj) { if(obj === null || obj === void(0)) return ''; return obj.toString(); },
 	convertToBool: function(value) { return !!(value && (value.length === void(0) || value.length)); },
 	convertToNumber: function(value) { return Number(value) || 0; },
+	randomCode: function() { var c = ''; for(var i = 0 ; i < 12; ++i) c += Math.floor(Math.random() * 16).toString(16); return c; },
 	// Internally set readonly properties with the ForceValue object
 	ForceValue: function(value) { this.value = value; },
 	// Initialize the Cord View class depending on the compatibility mode
@@ -395,12 +400,7 @@ Backbone.Cord.plugins.push = function(plugin) {
 Backbone.Cord.View.prototype._el = _el;
 Backbone.Cord.View.prototype._subview = _subview;
 Backbone.Cord.View.prototype._plugin = _plugin;
-Backbone.Cord.View.prototype._getProperty = function(key) {
-	return this['_' + key];
-};
-Backbone.Cord.View.prototype._setProperty = function(key, value) {
-	this['_' + key] = value;
-};
+
 Backbone.Cord.View.prototype._synthesizeGetter = function(key) {
 	key = '_' + key;
 	return function() { return this[key]; };
@@ -443,8 +443,9 @@ Backbone.Cord.View.prototype._synthesizeProperty = function(key, definition) {
 	descriptor.get = descriptor.get || this._synthesizeGetter(key);
 	descriptor.set = (descriptor.set === null || readonly) ? this._synthesizeReadonlySetter(key) : descriptor.set || this._synthesizeSetter(key);
 	Object.defineProperty(this, key, descriptor);
-	this._setProperty(key, value);
+	Object.defineProperty(this, '_' + key, {configurable: false, enumerable: false, value: value, writable: true});
 };
+
 Backbone.Cord.View.prototype._modelObserver = function(model, options) {
 	var key, changed = options._changed || model.changedAttributes();
 	if(!changed)
@@ -454,7 +455,6 @@ Backbone.Cord.View.prototype._modelObserver = function(model, options) {
 			this._invokeObservers(key, changed[key]);
 	}
 };
-
 // Do not modify the array or dictionary returned from this method, they may sometimes simply be an empty return value
 Backbone.Cord.View.prototype._getObservers = function(newKey, scope) {
 	var observers;
@@ -505,7 +505,7 @@ Backbone.Cord.View.prototype.observe = function(key, observer, immediate) {
 		var i, filters = [], names = key.split(Backbone.Cord.config.filterSeparator);
 		key = names[0].trim();
 		for(i = 1; i < names.length; ++i)
-			filters.push(Backbone.Cord.filters[names[i].trim()]);
+			filters.push(Backbone.Cord.filters[names[i].trim()] || Math[names[i].trim()]);
 		observer = _applyFilters(observer, filters);
 	}
 	// Support any subkeys but only changes to the top-level key are observed
@@ -640,6 +640,20 @@ Backbone.Cord.View.prototype.setValuesForKeys = function(values) {
 		for(i = 0; (i + 1) < arguments.length; i += 2)
 			this.setValueForKey(arguments[i], arguments[i + 1]);
 	}
+	return this;
+};
+Backbone.Cord.View.prototype.setProperties = function(values) {
+	var i, key;
+	if(_isPlainObj(values)) {
+		for(key in values) {
+			if(values.hasOwnProperty(key))
+				this[key] = values[key];
+		}
+	} else {
+		for(i = 0; (i + 1) < arguments.length; i += 2)
+			this[arguments[i]] = arguments[i + 1];
+	}
+	return this;
 };
 // A simple event callback, where the last argument is taken as a value to pass into setValueForKey
 Backbone.Cord.View.prototype._createSetValueCallback = function(key) {
@@ -788,7 +802,7 @@ Backbone.Cord.View.prototype._ensureElement = function() {
 		var observers = this.observers;
 		for(key in observers)
 			if(observers.hasOwnProperty(key))
-				this.observe(key, observers[key]);
+				this.observe(key, observers[key], true);
 	}
 	return ret;
 };
@@ -1455,9 +1469,9 @@ Backbone.Cord.plugins.push({
 'use strict';
 
 function _createObserver(el) {
-	var indicator = 'dynamic-class-' + Math.floor(Math.random() * 9999999);
+	var indicator = 'dynamic-class-' + Backbone.Cord.randomCode();
 	return function(key, formatted) {
-		var classes = el.className.length ? el.className.split(' ') : [];
+		var classes = el.className.split(' ');
 		var index = classes.indexOf(indicator);
 		if(index !== -1) {
 			classes[index + 1] = Backbone.Cord.convertToString(formatted);
@@ -1549,12 +1563,22 @@ function _createObserver(el) {
 	};
 }
 
+function _createInvisibleObserver(el) {
+	return function(key, value) {
+		el.style.visibility = Backbone.Cord.convertToBool(value) ? 'hidden' : 'visible';
+	};
+}
+
 function _hidden(context, attrs) {
 	if(!context.isView)
 		return;
 	if(attrs.hidden) {
 		this.observe(attrs.hidden, _createObserver(context.el), true);
 		delete attrs.hidden;
+	}
+	if(attrs.invisible) {
+		this.observe(attrs.invisible, _createInvisibleObserver(context.el), true);
+		delete attrs.invisible;
 	}
 }
 
@@ -1637,6 +1661,7 @@ function _createExpressionProperty(expr, prop) {
 		this.observe(key, fnc, !i);
 	}
 	// Define the expression property and set enumarable to false
+	// move this before the function? what about the computed properties? same risk if immediate observer stops using setTimeout?
 	this._synthesizeProperty(prop);
 	Object.defineProperty(this, prop, {enumerable: false});
 }
@@ -1650,7 +1675,7 @@ function _replaceExpressions(str) {
 
 	for(i = 0; i < matches.length; ++i) {
 		expr = Backbone.Cord.regex.expressionValue.exec(matches[i])[1];
-		prop = 'expr' + Math.floor(Math.random() * 9999999);
+		prop = 'expr' + Backbone.Cord.randomCode();
 		matches[i] = Backbone.Cord.regex.variable.prefix + Backbone.Cord.config.viewPrefix + prop + Backbone.Cord.regex.variable.suffix;
 		_createExpressionProperty.call(this, expr, prop);
 	}
@@ -1961,6 +1986,7 @@ var THIS_ID = '(this)';
 
 Backbone.Cord.mediaQueries = {
 	all: '',
+	animations: '',
 	hd: 'only screen and (max-width: 1200px)',
 	desktop: 'only screen and (max-width: 992px)',
 	tablet: 'only screen and (max-width: 768px)',
@@ -2014,45 +2040,93 @@ function _camelCaseToDash(str) {
 }
 
 function _addRules(rules, _styles, selector, media, id) {
-	var key, sheet, mediaQuery, idQuery;
+	var key, sheet, query, mediaQuery, idQuery, separator;
 	media = media || 'all';
 	sheet = Backbone.Cord._styleSheets[media];
 	for(key in rules) {
 		if(rules.hasOwnProperty(key)) {
 			if(typeof rules[key] === 'object') {
 				mediaQuery = idQuery = null;
-				if(key.indexOf(Backbone.Cord.config.mediaPrefix) === 0) {
-					mediaQuery = key.substr(Backbone.Cord.config.mediaPrefix.length);
+				separator = '>';
+				query = key;
+				if(query.indexOf(Backbone.Cord.config.mediaPrefix) === 0) {
+					mediaQuery = query.substr(Backbone.Cord.config.mediaPrefix.length);
 					if(!Backbone.Cord.mediaQueries[mediaQuery])
 						return;
 				}
-				if(!mediaQuery && Backbone.Cord.mediaQueries[key])
-					mediaQuery = key;
 				if(!mediaQuery) {
-					if(key[0] === '_' || key[0] === '#')
-						idQuery = key.substr(1);
+					if(':+~>'.indexOf(query[0]) !== -1) {
+						separator = query[0];
+						query = query.substr(1);
+					}
+					else if(query.indexOf(Backbone.Cord.config.allPrefix) === 0) {
+						separator = ' ';
+						query = query.substr(Backbone.Cord.config.allPrefix.length);
+					}
+					if('_#'.indexOf(query[0]) !== -1)
+						idQuery = query.substr(1);
 					if(idQuery && !Backbone.Cord.regex.testIdProperty(idQuery, true))
 						idQuery = null;
 				}
 				if(mediaQuery)
 					_addRules(rules[key], _styles, selector, mediaQuery);
 				else if(idQuery)
-					_addRules(rules[key], _styles, selector + '>' + Backbone.Cord.regex.replaceIdSelectors('#' + idQuery), media, idQuery);
+					_addRules(rules[key], _styles, selector + separator + Backbone.Cord.regex.replaceIdSelectors('#' + idQuery), media, idQuery);
 				else
-					_addRules(rules[key], _styles, selector + '>' + Backbone.Cord.regex.replaceIdSelectors(key), media);
+					_addRules(rules[key], _styles, selector + separator + Backbone.Cord.regex.replaceIdSelectors(query), media);
 			}
 			else {
-				if(rules[key].search(Backbone.Cord.regex.variableSearch) !== -1) {
+				var value = rules[key].toString();
+				if(value.search(Backbone.Cord.regex.variableSearch) !== -1) {
 					var scope = id || THIS_ID;
 					if(!_styles[scope])
 						_styles[scope] = {};
-					_styles[scope][key] = rules[key];
+					_styles[scope][key] = value;
 				}
 				else {
-					var rule = selector + '{' + _getStylePrefix(key, true) + _camelCaseToDash(key) + ':' + rules[key] + ';}';
+					var rule = selector + '{' + _getStylePrefix(key, true) + _camelCaseToDash(key) + ':' + value + ';}';
 					Backbone.Cord.log('@' + media,  rule);
 					sheet.insertRule(rule, 0);
 				}
+			}
+		}
+	}
+}
+
+function _addAnimations(animations) {
+	var sheet = Backbone.Cord._styleSheets.animations;
+	var key, animation, keyframe, temp, step, i, rule, style, keystyles;
+	for(key in animations) {
+		if(animations.hasOwnProperty(key)) {
+			animation = animations[key];
+			if(Object.getPrototypeOf(animation) === Array.prototype) {
+				temp = animation;
+				animation = {};
+				step = (100/(temp.length - 1));
+				for(i = 0; i < temp.length; ++i)
+					animation[Math.ceil(step * i) + '%'] = temp[i];
+				animations[key] = animation;
+			}
+			if(Backbone.Cord.isPlainObj(animation)) {
+				// Skip already processed animations, from mixins etc
+				if(animation.name)
+					continue;
+				rule = '';
+				for(keyframe in animation) {
+					if(animation.hasOwnProperty(keyframe)) {
+						rule += keyframe + '{';
+						keystyles = animation[keyframe];
+						for(style in keystyles) {
+							if(keystyles.hasOwnProperty(style))
+								rule += _getStylePrefix(style, true) + _camelCaseToDash(style) + ':' + keystyles[style] + ';';
+						}
+						rule += '}';
+					}
+				}
+				animation.name = key + Backbone.Cord.randomCode();
+				rule = '@keyframes ' + animation.name + '{' + rule + '}';
+				Backbone.Cord.log(rule);
+				sheet.insertRule(rule, 0);
 			}
 		}
 	}
@@ -2087,6 +2161,99 @@ function _styles(context, attrs) {
 	}
 }
 
+var DEFAULT_ANIMATION_OPTIONS = {
+	duration: '250ms',
+	delay: '0',
+	timing: 'ease',
+	count: '1',
+	direction: 'normal',
+	fill: 'none',
+	interaction: false
+};
+
+// animationSelector is a selector: animation names string or array of strings e.g. 'p: one, two'
+// TODO: make a better scoped selector syntax like the styles dictionary has
+Backbone.Cord.View.prototype.beginAnimation = function(animationSelector, options, callback) {
+	var components, animations, separator, elements, el, i, j;
+	if(!options || typeof options === 'function') {
+		callback = options;
+		options = {};
+	}
+	if(Object.getPrototypeOf(animationSelector) === Array.prototype) {
+		for(i = 1; i < animationSelector; ++i)
+			this.beginAnimation(animationSelector[i], options);
+		animationSelector = animationSelector[0];
+	}
+	options = Backbone.Cord.mixObj(DEFAULT_ANIMATION_OPTIONS, options);
+	components = animationSelector.split(':');
+	if(components.length > 1) {
+		animations = components[1].split(',');
+		elements = this.el.querySelectorAll(Backbone.Cord.regex.replaceIdSelectors(components[0].trim()));
+	}
+	else {
+		animations = components[0].split(',');
+		elements = [this.el];
+	}
+	for(i = 0; i < elements.length; ++i) {
+		el = elements[i];
+		separator = !!el.style.animationName ? ',' : '';
+		for(j = 0; j < animations.length; ++j) {
+			el.style.animationDelay += separator + options.delay;
+			el.style.animationDirection += separator + options.direction;
+			el.style.animationDuration += separator + options.duration;
+			el.style.animationIterationCount += separator + options.count;
+			el.style.animationTimingFunction += separator + options.timing;
+			el.style.animationFillMode += separator + options.fill;
+			el.style.animationName += separator + this.animations[animations[j].trim()].name;
+			separator = ',';
+		}
+	}
+	// If options.count is not infinite and fill is none call cancelAnimation at the end
+	var cancelable = (options.count !== 'infinite' && options.fill === 'none');
+	var listener = function(e) {
+		e.target.removeEventListener('animationend', listener);
+		if(cancelable)
+			this.cancelAnimation(animationSelector);
+		if(callback)
+			callback.call(this);
+	}.bind(this);
+	elements[0].addEventListener('animationend', listener);
+	return this;
+};
+
+Backbone.Cord.View.prototype.cancelAnimation = function(animationSelector) {
+	var components, animations, elements, el, i, elAnimations;
+	components = animationSelector.split(':');
+	return;
+	if(components.length > 1) {
+		animations = components[1].split(',');
+		elements = this.el.querySelectorAll(Backbone.Cord.regex.replaceIdSelectors(components[0].trim()));
+	}
+	else {
+		animations = components[0].split(',');
+		elements = [this.el];
+	}
+	// indices = [];
+	for(i = 0; i < elements.length; ++i) {
+		el = elements[i];
+		elAnimations = el.animationName.split(',');
+		// WIP
+	}
+	return this;
+};
+
+// Run a fill mode animation in reverse and then cancel
+Backbone.Cord.View.prototype.reverseAnimation = function(animationSelector) {
+	// WIP - find the index of the animation, change fill mode to none and direction to reverse
+	return this;
+};
+
+// Same arguments as beginAnimation but only used for permanent transitions of styles and apply to a single selector only
+Backbone.Cord.View.prototype.beginTransition = function(selector, styles, options, callback) {
+	// WIP
+	return this;
+};
+
 // Accept a style that is either an object or a key to a style object on this (non-binding!)
 // e.g. {style: 'mystyle'}, where this.mystyle is an object
 // To create an inline style bound to a property, use the binding plugin
@@ -2099,20 +2266,24 @@ Backbone.Cord.plugins.push({
 	name: 'styles',
 	requirements: ['interpolation'],
 	config: {
-		mediaPrefix: '@'
+		mediaPrefix: '@',
+		allPrefix: '$'
 	},
 	attrs: _styles,
 	bindings: _styles,
 	extend: function(context) {
 		// Look for styles hash
 		var classNames, _styles = {};
-		if(context.protoProps.styles && context.protoProps.className) {
+		if((context.protoProps.styles || context.protoProps.animations) && context.protoProps.className) {
 			if(!Backbone.Cord._styleSheets)
 				_createStyleSheets();
 			classNames = Backbone.Cord.getPrototypeValuesForKey(this, 'className', true);
 			classNames.push(context.protoProps.className);
 			classNames = classNames.join(' ');
-			_addRules(context.protoProps.styles, _styles, '.' + classNames.split(' ').join('.'));
+			if(context.protoProps.styles)
+				_addRules(context.protoProps.styles, _styles, '.' + classNames.split(' ').join('.'));
+			if(context.protoProps.animations)
+				_addAnimations(context.protoProps.animations);
 		}
 		context.protoProps._styles = _styles;
 	},
@@ -2202,7 +2373,7 @@ function _propertyObserver(key, prevSet) {
 		if(prevSet)
 			prevSet.call(this, value);
 		else
-			this._setProperty(key, value);
+			this['_' + key] = value;
 		this._invokeObservers(key, this[key], SCOPE_NAME);
 	};
 	newSet._cordWrapped = true;
@@ -2234,7 +2405,7 @@ Backbone.Cord.plugins.push({
 				}
 				else {
 					// Define a new property without an existing defined setter
-					this._setProperty(key, this[key]);
+					this['_' + key] = this[key];
 					if(delete this[key]) {
 						Object.defineProperty(this, key, {
 							get: this._synthesizeGetter(key),
