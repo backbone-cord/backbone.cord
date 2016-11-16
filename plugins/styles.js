@@ -192,7 +192,7 @@ var DEFAULT_ANIMATION_OPTIONS = {
 
 // animationSelector is a selector: animation names string or array of strings e.g. 'p: one, two'
 // TODO: make a better scoped selector syntax like the styles dictionary has
-Backbone.Cord.View.beginAnimation = function(animationSelector, options, callback) {
+Backbone.Cord.View.prototype.beginAnimation = function(animationSelector, options, callback) {
 	var components, animations, separator, elements, el, i, j;
 	if(!options || typeof options === 'function') {
 		callback = options;
@@ -207,7 +207,7 @@ Backbone.Cord.View.beginAnimation = function(animationSelector, options, callbac
 	components = animationSelector.split(':');
 	if(components.length > 1) {
 		animations = components[1].split(',');
-		elements = this.querySelectorAll(Backbone.Cord.regex.replaceIdSelectors(components[0].trim()));
+		elements = this.el.querySelectorAll(Backbone.Cord.regex.replaceIdSelectors(components[0].trim()));
 	}
 	else {
 		animations = components[0].split(',');
@@ -215,15 +215,15 @@ Backbone.Cord.View.beginAnimation = function(animationSelector, options, callbac
 	}
 	for(i = 0; i < elements.length; ++i) {
 		el = elements[i];
-		separator = !!el.animationName ? ',' : '';
+		separator = !!el.style.animationName ? ',' : '';
 		for(j = 0; j < animations.length; ++j) {
-			el.animationDelay += separator + options.delay;
-			el.animationDirection += separator + options.direction;
-			el.animationDuration += separator + options.duration;
-			el.animationIterationCount += separator + options.count;
-			el.animationTimingFunction += separator + options.timing;
-			el.animationFillMode += separator + options.fill;
-			el.animationName += separator + animations[j].trim();
+			el.style.animationDelay += separator + options.delay;
+			el.style.animationDirection += separator + options.direction;
+			el.style.animationDuration += separator + options.duration;
+			el.style.animationIterationCount += separator + options.count;
+			el.style.animationTimingFunction += separator + options.timing;
+			el.style.animationFillMode += separator + options.fill;
+			el.style.animationName += separator + this.animations[animations[j].trim()].name;
 			separator = ',';
 		}
 	}
@@ -240,12 +240,13 @@ Backbone.Cord.View.beginAnimation = function(animationSelector, options, callbac
 	return this;
 };
 
-Backbone.Cord.View.cancelAnimation = function(animationSelector) {
+Backbone.Cord.View.prototype.cancelAnimation = function(animationSelector) {
 	var components, animations, elements, el, i, elAnimations;
 	components = animationSelector.split(':');
+	return;
 	if(components.length > 1) {
 		animations = components[1].split(',');
-		elements = this.querySelectorAll(Backbone.Cord.regex.replaceIdSelectors(components[0].trim()));
+		elements = this.el.querySelectorAll(Backbone.Cord.regex.replaceIdSelectors(components[0].trim()));
 	}
 	else {
 		animations = components[0].split(',');
@@ -261,13 +262,13 @@ Backbone.Cord.View.cancelAnimation = function(animationSelector) {
 };
 
 // Run a fill mode animation in reverse and then cancel
-Backbone.Cord.View.reverseAnimation = function(animationSelector) {
+Backbone.Cord.View.prototype.reverseAnimation = function(animationSelector) {
 	// WIP - find the index of the animation, change fill mode to none and direction to reverse
 	return this;
 };
 
 // Same arguments as beginAnimation but only used for permanent transitions of styles and apply to a single selector only
-Backbone.Cord.View.beginTransition = function(selector, styles, options, callback) {
+Backbone.Cord.View.prototype.beginTransition = function(selector, styles, options, callback) {
 	// WIP
 	return this;
 };
