@@ -189,7 +189,8 @@ var DEFAULT_ANIMATION_OPTIONS = {
 	count: '1',
 	direction: 'normal',
 	fill: 'none',
-	interaction: false
+	state: 'running',
+	interactive: true
 };
 
 function _parseAnimationSelector(animationSelector) {
@@ -207,10 +208,44 @@ function _parseAnimationSelector(animationSelector) {
 	return {animations: animations, elements: elements};
 }
 
+function _getStyleListIndices(list, names) {
+	var listValues = list.split(/, */);
+	var indices = [];
+	for(var i = 0; i < listValues.length; ++i) {
+		if(names.indexOf(listValues[i]) !== -1)
+			indices.push(i);
+	}
+	return (indices.length === listValues.length) ? true : indices;
+}
+
+function _filterStyleList(list, indices) {
+	// remove all specified indices from list
+	// true indicates all values are to be filtered out
+	if(indices === true)
+		return '';
+	return list.split(/, */).filter(function(el, i) {
+		return (indices.indexOf(i) === -1);
+	}).join(',');
+}
+
+function _alterStyleList(list, indices, value) {
+	var i, listValues = list.split(/, */);
+	if(indices === true) {
+		for(i = 0; i < listValues.length; ++i)
+			listValues[i] = value;
+	}
+	else {
+		for(i = 0; i < indices.length; ++i)
+			listValues[indices[i]] = value;
+	}
+	return listValues.join(',');
+}
+
 // animationSelector is a selector: animation names string or array of strings e.g. 'p: one, two'
 // TODO: make a better scoped selector syntax like the styles dictionary has
 Backbone.Cord.View.prototype.beginAnimation = function(animationSelector, options, callback) {
 	var parsed, animations, separator, pointerEvents, elements, el, i, j;
+	var iteration, iterationListener, cancelable, endListener;
 	if(!options || typeof options === 'function') {
 		callback = options;
 		options = {};
@@ -221,10 +256,12 @@ Backbone.Cord.View.prototype.beginAnimation = function(animationSelector, option
 		animationSelector = animationSelector[0];
 	}
 	options = Backbone.Cord.mixObj(DEFAULT_ANIMATION_OPTIONS, options);
-	pointerEvents = options.interaction ? '' : 'none';
+	pointerEvents = options.interactive ? '' : 'none';
 	parsed = _parseAnimationSelector.call(this, animationSelector);
 	animations = parsed.animations;
 	elements = parsed.elements;
+	if(!elements.length)
+		return this;
 	for(i = 0; i < elements.length; ++i) {
 		el = elements[i];
 		separator = !!el.style.animationName ? ',' : '';
@@ -235,84 +272,92 @@ Backbone.Cord.View.prototype.beginAnimation = function(animationSelector, option
 			el.style.animationIterationCount += separator + options.count;
 			el.style.animationTimingFunction += separator + options.timing;
 			el.style.animationFillMode += separator + options.fill;
+			el.style.animationPlayState += separator + options.state;
 			el.style.animationName += separator + animations[j];
 			el.style.pointerEvents = pointerEvents;
 			separator = ',';
 		}
 	}
+	if(parseInt(options.count) > 1 && callback) {
+		iteration = 0;
+		iterationListener = function() {
+			iteration += 1;
+			if(callback.call(this, iteration, animationSelector, options) === false)
+				this.pauseAnimation(animationSelector);
+		}.bind(this);
+		elements[0].addEventListener('animationiteration', iterationListener);
+	}
 	// If options.count is not infinite and fill is none call cancelAnimation at the end
-	var cancelable = (options.count !== 'infinite' && options.fill === 'none');
-	var listener = function(e) {
-		e.target.removeEventListener('animationend', listener);
+	cancelable = (options.count !== 'infinite' && options.fill === 'none');
+	endListener = function(e) {
+		if(iterationListener)
+			e.target.removeEventListener('animationiteration', iterationListener);
+		e.target.removeEventListener('animationend', endListener);
 		if(cancelable)
 			this.cancelAnimation(animationSelector);
 		if(callback)
-			callback.call(this);
+			callback.call(this, -1, animationSelector, options);
 	}.bind(this);
-	elements[0].addEventListener('animationend', listener);
+	elements[0].addEventListener('animationend', endListener);
 	return this;
 };
 
-function _getAnimationListIndices(list, names) {
-	var listValues = list.split(/, */);
-	var indices = [];
-	for(var i = 0; i < listValues.length; ++i) {
-		if(names.indexOf(listValues[i]) !== -1)
-			indices.push(i);
+// Use with caution, updating running animations can be strange
+Backbone.Cord.View.prototype._updateAnimation = function(animationSelector, property, value) {
+	var parsed, animations, elements, el, i, prevAnimations, indices;
+	parsed = _parseAnimationSelector.call(this, animationSelector);
+	animations = parsed.animations;
+	elements = parsed.elements;
+	if(!elements.length)
+		return this;
+	for(i = 0; i < elements.length; ++i) {
+		el = elements[i];
+		if(el.style.animationName !== prevAnimations) {
+			prevAnimations = el.style.animationName;
+			indices = _getStyleListIndices(el.style.animationName, animations);
+		}
+		el.style[property] = _alterStyleList(el.style[property], indices, value);
 	}
-	return (indices.length === listValues.length) ? true : indices;
-}
+	return this;
+};
 
-function _filterAnimationList(list, indices) {
-	// true indicates all values are to be filtered out
-	if(indices === true)
-		return '';
-	return list.split(/, */).filter(function(el, i) {
-		return (indices.indexOf(i) === -1);
-	}).join(',');
-}
+Backbone.Cord.View.prototype.pauseAnimation = function(animationSelector) {
+	return this._updateAnimation(animationSelector, 'animationPlayState', 'paused');
+};
+
+Backbone.Cord.View.prototype.resumeAnimation = function(animationSelector) {
+	return this._updateAnimation(animationSelector, 'animationPlayState', 'running');
+};
 
 Backbone.Cord.View.prototype.cancelAnimation = function(animationSelector) {
 	var parsed, animations, elements, el, i, prevAnimations, indices;
 	parsed = _parseAnimationSelector.call(this, animationSelector);
 	animations = parsed.animations;
 	elements = parsed.elements;
+	if(!elements.length)
+		return this;
 	for(i = 0; i < elements.length; ++i) {
 		el = elements[i];
 		if(el.style.animationName !== prevAnimations) {
 			prevAnimations = el.style.animationName;
-			indices = _getAnimationListIndices(el.style.animationName, animations);
+			indices = _getStyleListIndices(el.style.animationName, animations);
 		}
-		for(i = 0; i < elements.length; ++i) {
-			el = elements[i];
-			el.style.animationDelay = _filterAnimationList(el.style.animationDelay, indices);
-			el.style.animationDirection = _filterAnimationList(el.style.animationDirection, indices);
-			el.style.animationDuration = _filterAnimationList(el.style.animationDuration, indices);
-			el.style.animationIterationCount = _filterAnimationList(el.style.animationIterationCount, indices);
-			el.style.animationTimingFunction = _filterAnimationList(el.style.animationTimingFunction, indices);
-			el.style.animationFillMode = _filterAnimationList(el.style.animationFillMode, indices);
-			el.style.animationName = _filterAnimationList(el.style.animationName, indices);
-			el.style.pointerEvents = '';
-		}
+		el.style.animationDelay = _filterStyleList(el.style.animationDelay, indices);
+		el.style.animationDirection = _filterStyleList(el.style.animationDirection, indices);
+		el.style.animationDuration = _filterStyleList(el.style.animationDuration, indices);
+		el.style.animationIterationCount = _filterStyleList(el.style.animationIterationCount, indices);
+		el.style.animationTimingFunction = _filterStyleList(el.style.animationTimingFunction, indices);
+		el.style.animationFillMode = _filterStyleList(el.style.animationFillMode, indices);
+		el.style.animationPlayState = _filterStyleList(el.style.animationPlayState, indices);
+		el.style.animationName = _filterStyleList(el.style.animationName, indices);
+		el.style.pointerEvents = '';
 	}
 	return this;
 };
 
-// Run a fill mode animation in reverse and then cancel
-Backbone.Cord.View.prototype.reverseAnimation = function(animationSelector) {
-	animationSelector = animationSelector;
-	// WIP - find the index of the animation, change fill mode to none and direction to reverse
-	// or simply set direction to reverse if infinite
-	return this;
-};
-
-function _parseDuration(str) {
-	return str;
-}
-
 // Same arguments as beginAnimation but only used for permanent transitions of styles and apply to a single selector only
 Backbone.Cord.View.prototype.beginTransition = function(selector, styles, options, callback) {
-	var elements, i, el;
+	var elements, i, el, separator, style, property, listener;
 	if(Backbone.Cord.isPlainObj(selector)) {
 		callback = options;
 		options = styles;
@@ -325,17 +370,48 @@ Backbone.Cord.View.prototype.beginTransition = function(selector, styles, option
 	}
 	options = Backbone.Cord.mixObj(DEFAULT_ANIMATION_OPTIONS, options);
 	if(selector)
-		elements = this.el.querySelectorAll(selector);
+		elements = this.el.querySelectorAll(Backbone.Cord.regex.replaceIdSelectors(selector));
 	else
 		elements = [this.el];
+	if(!elements.length)
+		return this;
 	for(i = 0; i < elements.length; ++i) {
 		el = elements[i];
-		// WIP
+		separator = !!el.style.transitionProperty ? ',' : '';
+		for(style in styles) {
+			if(styles.hasOwnProperty(style)) {
+				property = _getStylePrefix(style) + style;
+				el.style[property] = styles[style];
+				el.style.transitionDelay += separator + options.delay;
+				el.style.transitionDuration += separator + options.duration;
+				el.style.transitionProperty += separator + _getStylePrefix(property, true) + _camelCaseToDash(property);
+				el.style.transitionTimingFunction += separator + options.timing;
+				separator = ',';
+			}
+		}
 	}
-	setTimeout(function() {
+	listener = function(e) {
+		var i, el, properties, prevTransitions, indices;
+		e.target.removeEventListener('transitionend', listener);
+		properties = Object.keys(styles).map(function(property) {
+			return _getStylePrefix(property, true) + _camelCaseToDash(property);
+		});
+		// Remove the transition properties
+		for(i = 0; i < elements.length; ++i) {
+			el = elements[i];
+			if(el.style.transitionProperty !== prevTransitions) {
+				prevTransitions = el.style.transitionProperty;
+				indices = _getStyleListIndices(el.style.transitionProperty, properties);
+			}
+			el.style.transitionDelay = _filterStyleList(el.style.transitionDelay, indices);
+			el.style.transitionDuration = _filterStyleList(el.style.transitionDuration, indices);
+			el.style.transitionProperty = _filterStyleList(el.style.transitionProperty, indices);
+			el.style.transitionTimingFunction = _filterStyleList(el.style.transitionTimingFunction, indices);
+		}
 		if(callback)
-			callback().call(this);
-	}.bind(this), _parseDuration(options.duration));
+			callback.call(this, selector, styles, options);
+	}.bind(this);
+	elements[0].addEventListener('transitionend', listener);
 	return this;
 };
 
