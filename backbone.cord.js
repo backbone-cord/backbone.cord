@@ -110,9 +110,7 @@ function _el(tagIdClasses, attrs) {
 	if(id)
 		Backbone.Cord.setId(el, id);
 	var classes = tagIdClasses.slice(1);
-	classes = this._plugin('classes', context, classes) || classes;
-	if(classes.length)
-		el.className = classes.join(' ');
+	Backbone.Cord.addClass(el, this._plugin('classes', context, classes) || classes);
 	if(arguments.length > 1) {
 		// If attrs is not the start of children, then apply the dictionary as attributes
 		var i = 1;
@@ -173,11 +171,7 @@ function _subview(instanceClass, idClasses, bindings) {
 		if(id && !Backbone.Cord.hasId(subview.el))
 			Backbone.Cord.setId(subview.el, id);
 		classes = idClasses.slice(1);
-		classes = this._plugin('classes', context, classes) || classes;
-		if(classes.length) {
-			classes.unshift(subview.el.className);
-			subview.el.className = classes.join(' ');
-		}
+		Backbone.Cord.addClass(subview.el, this._plugin('classes', context, classes) || classes);
 	}
 	else {
 		bindings = idClasses;
@@ -316,6 +310,7 @@ Backbone.Cord.log = (debug ? function() {
 	args.unshift(format.join(' | '));
 	console.log.apply(console, args);
 } : function(){});
+
 Backbone.Cord.hasId = function(el) {
 	return !!el.getAttribute('data-id');
 };
@@ -325,6 +320,31 @@ Backbone.Cord.getId = function(el) {
 Backbone.Cord.setId = function(el, id) {
 	el.setAttribute('data-id', id);
 };
+
+// Use get/set attribute because className doesn't work with svg elements
+// cls argument for add/remove can be a space separated string or an array of single class strings
+Backbone.Cord.hasClass = function(el, cls) {
+	return (el.getAttribute('class') || '').split(' ').indexOf(cls) !== -1;
+};
+Backbone.Cord.addClass = function(el, cls) {
+	if(Object.getPrototypeOf(cls) !== Array.prototype)
+		cls = cls.split(' ');
+	for(var i = 0; i < cls.length; ++i) {
+		if(!Backbone.Cord.hasClass(el, cls[i]))
+			el.setAttribute('class', ((el.getAttribute('class') || '') + ' ' + cls[i]).trim());
+	}
+};
+Backbone.Cord.removeClass = function(el, cls) {
+	var i, clss = (el.getAttribute('class') || '').split(' ');
+	if(Object.getPrototypeOf(cls) !== Array.prototype)
+		cls = cls.split(' ');
+	for(i = clss.length - 1; i >= 0; --i) {
+		if(cls.indexOf(clss[i]) !== -1)
+			clss.splice(i, 1);
+	}
+	el.setAttribute('class', clss.join(' '));
+};
+
 Backbone.Cord.regex.replaceIdSelectors = function(query) {
 	return query.replace(this.idSelectorValues, '[data-id="$1"]');
 };
@@ -787,14 +807,10 @@ Backbone.Cord.View.prototype._ensureElement = function() {
 	// Start listening to the model
 	if(this.model !== Backbone.Cord.EmptyModel)
 		this.listenTo(this.model, 'change', this._modelObserver);
-	// After creating the element add any given className
+	// Use backbone to actually create the element
 	var ret = __ensureElement.apply(this, arguments);
-	// Travel the prototype chain and apply all other classNames found but exclude/pop anything already applied by _createElement
-	var classNames = _getPrototypeValuesForKey(this, 'className');
-	if(!isFun)
-		classNames.pop();
-	if(classNames.length)
-		this.el.className += (this.el.className.length ? ' ' : '') + classNames.join(' ');
+	// Travel the prototype chain and apply all the classNames found, join into a single space separated string because some values might be space separated
+	Backbone.Cord.addClass(this.el, _getPrototypeValuesForKey(this, 'className').join(' '));
 	// Run plugin initializers
 	this._plugin('initialize', {});
 	// Setup any declared observers

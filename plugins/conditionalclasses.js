@@ -3,15 +3,12 @@
 
 function _createObserver(el, cls) {
 	return function(key, value) {
+		// Add or remove the class based on the value
 		var enabled = Backbone.Cord.convertToBool(value);
-		var currentClasses = el.className.split(' ');
-		var index = currentClasses.indexOf(cls);
-		// Add or remove the classes
-		if(enabled && index === -1)
-			currentClasses.push(cls);
-		else if(!enabled && index !== -1)
-			currentClasses.splice(index, 1);
-		el.className = currentClasses.join(' ');
+		if(enabled)
+			Backbone.Cord.addClass(el, cls);
+		else
+			Backbone.Cord.removeClass(el, cls);
 	};
 }
 

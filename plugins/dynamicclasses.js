@@ -2,18 +2,11 @@
 'use strict';
 
 function _createObserver(el) {
-	var indicator = 'dynamic-class-' + Backbone.Cord.randomCode();
+	var prev = '';
 	return function(key, formatted) {
-		var classes = el.className.split(' ');
-		var index = classes.indexOf(indicator);
-		if(index !== -1) {
-			classes[index + 1] = Backbone.Cord.convertToString(formatted);
-		}
-		else {
-			classes.push(indicator);
-			classes.push(Backbone.Cord.convertToString(formatted));
-		}
-		el.className = classes.join(' ');
+		Backbone.Cord.removeClass(el, prev);
+		prev = Backbone.Cord.convertToString(formatted);
+		Backbone.Cord.addClass(el, prev);
 	};
 }
 
