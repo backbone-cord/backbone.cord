@@ -112,7 +112,7 @@ function _addRules(rules, _styles, selector, media, id) {
 	}
 }
 
-function _addAnimations(animations) {
+function _addAnimations(animations, vuid) {
 	var sheet = Backbone.Cord._styleSheets.animations;
 	var key, animation, keyframe, temp, step, i, rule, style, keystyles;
 	for(key in animations) {
@@ -144,7 +144,7 @@ function _addAnimations(animations) {
 						rule += '}';
 					}
 				}
-				animation.name = key + Backbone.Cord.randomCode();
+				animation.name = key + vuid;
 				rule = '@keyframes ' + animation.name + '{' + rule + '}';
 				Backbone.Cord.log(rule);
 				sheet.insertRule(rule, 0);
@@ -441,7 +441,9 @@ Backbone.Cord.plugins.push({
 	extend: function(context) {
 		// Look for styles hash
 		var classNames, _styles = {};
-		if((context.protoProps.styles || context.protoProps.animations) && context.protoProps.className) {
+		if(context.protoProps.styles || context.protoProps.animations) {
+			if(!context.protoProps.className)
+				context.protoProps.className = context.protoProps.vuid;
 			if(!Backbone.Cord._styleSheets)
 				_createStyleSheets();
 			classNames = Backbone.Cord.getPrototypeValuesForKey(this, 'className', true);
@@ -450,7 +452,7 @@ Backbone.Cord.plugins.push({
 			if(context.protoProps.styles)
 				_addRules(context.protoProps.styles, _styles, '.' + classNames.split(' ').join('.'));
 			if(context.protoProps.animations)
-				_addAnimations(context.protoProps.animations);
+				_addAnimations(context.protoProps.animations, context.protoProps.vuid);
 		}
 		context.protoProps._styles = _styles;
 	},
