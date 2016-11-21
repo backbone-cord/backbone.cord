@@ -280,7 +280,9 @@ Backbone.Cord.View.prototype.beginAnimation = function(animationSelector, option
 	}
 	if(parseInt(options.count) > 1 && callback) {
 		iteration = 0;
-		iterationListener = function() {
+		iterationListener = function(e) {
+			if(e.target !== e.currentTarget)
+				return;
 			iteration += 1;
 			if(callback.call(this, iteration, animationSelector, options) === false)
 				this.pauseAnimation(animationSelector);
@@ -290,6 +292,8 @@ Backbone.Cord.View.prototype.beginAnimation = function(animationSelector, option
 	// If options.count is not infinite and fill is none call cancelAnimation at the end
 	cancelable = (options.count !== 'infinite' && options.fill === 'none');
 	endListener = function(e) {
+		if(e.target !== e.currentTarget)
+			return;
 		if(iterationListener)
 			e.target.removeEventListener('animationiteration', iterationListener);
 		e.target.removeEventListener('animationend', endListener);
@@ -392,6 +396,8 @@ Backbone.Cord.View.prototype.beginTransition = function(selector, styles, option
 	}
 	listener = function(e) {
 		var i, el, properties, prevTransitions, indices;
+		if(e.target !== e.currentTarget)
+			return;
 		e.target.removeEventListener('transitionend', listener);
 		properties = Object.keys(styles).map(function(property) {
 			return _getStylePrefix(property, true) + _camelCaseToDash(property);

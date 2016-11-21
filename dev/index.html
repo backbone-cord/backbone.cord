@@ -84,6 +84,10 @@
 					backgroundColor: 'green',
 				}
 			},
+			animations: {
+				test: [{width: 100}, {width: 200}, {width: 500}],
+				bg: [{backgroundColor: '#333', transform: 'scale(0.5,1)'}]
+			},
 			el: function(h, s) {
 				return h('', {onkeyup: 'alertKey'},
 						h('select', {change: 'ls_color'},
