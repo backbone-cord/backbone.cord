@@ -6,9 +6,9 @@ function _getContainer() {
 	return this.getChildById(Backbone.Cord.config.containerId) || this.el;
 }
 
-function _subview() {
+function _createSubview() {
 	// Just add to a list of subviews for cleanup on next render
-	var subview = this._subview.apply(this, arguments);
+	var subview = this.createSubview.apply(this, arguments);
 	this._renderedSubviews.push(subview);
 	return subview;
 }
@@ -23,7 +23,7 @@ function _once(func) {
 }
 
 // Plugin to detect and wrap a render function if defined on a Cord View
-// The render function, like the el function will have the _el and _subview method always given as the first two arguments
+// The render function, like the el function will have the createElement and createSubview method always given as the first two arguments
 // The different is though that additional arguments can be given to the render function and they will be reused when automatic rerenders happen
 // The render method must return a single element or subview or an array of mixed elements and subviews
 // The returned value from render will then be placed into a documentFragment to be added to the DOM appended to the view's root el or a #container element if specified
@@ -38,7 +38,7 @@ Backbone.Cord.plugins.push({
 	},
 	initialize: function() {
 		if(this.render !== Backbone.View.prototype.render) {
-			var __render = this.render.bind(this, this._el.bind(this), _subview.bind(this));
+			var __render = this.render.bind(this, this.createElement.bind(this), _createSubview.bind(this));
 			this.render = function() {
 				var i, key, rendered, renderedObserver, fragment, container = _getContainer.call(this);
 				// Cleanup from last render, elements, subviews, and observers

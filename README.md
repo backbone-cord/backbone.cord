@@ -18,14 +18,14 @@ Additions to Backbone
 
 #### el
 
-Implement el as a function and it will be passed and _el and _subview methods as arguments. Name these however you want.
+Implement el as a function and it will be passed createElement and createSubview methods as arguments. Name these however you want.
 
 ```javascript
 var MyView = Backbone.View.extend({
-	el: function(_el, _subview) {
-		return _el('', {},
+	el: function(h, s) {
+		return h('', {},
 			'Text node child',
-			_el('p', 'A paragraph child. I have {_x} pet {_animal}s.')
+			h('p', 'A paragraph child. I have {_x} pet {_animal}s.')
 		);
 	}
 	properties: {
@@ -51,11 +51,11 @@ The render method will typically go unused, but it could be used for rendering v
 Methods
 -------------------------------
 
-`_el(tagIdClasses[, attrs][, children])`
+`createElement(tagIdClasses[, attrs][, children])`
 
 **NOTE:** To insert text that doesn't process bindings and other special synax, simply directly create a text node with document.createTextNode()
 
-`_subview(instanceClass[, idClasses][, events])`
+`createSubview(instanceClass[, idClasses][, events])`
 
 Observing
 -------------------------------
@@ -102,7 +102,7 @@ Plugin Examples
 Binds element attributes and text-based children to variables.
 
 ```javascript
-_el('div', {data-name: '{name}'}, 'Example with name bound here: {name}.');
+createElement('div', {data-name: '{name}'}, 'Example with name bound here: {name}.');
 ```
 
 *NOTE:* Any DOM attribute can be bound to a variable or a formatted string, however it is recommended to NOT use the style attribute in this way because any styles applied with javascript, like with the hidden plugin will get lost when the style attribute is set on a value getting updated.
@@ -112,13 +112,13 @@ _el('div', {data-name: '{name}'}, 'Example with name bound here: {name}.');
 Reverse binding can be done with special `input` or `change` attributes, each corresponding to those triggered events.
 
 ```javascript
-_el('input', {change:'varName'});
+createElement('input', {change:'varName'});
 ```
 
 #### hidden
 
 ```javascript
-_el('input', {hidden:'!varName'});
+createElement('input', {hidden:'!varName'});
 ```
 
 #### events
@@ -126,8 +126,8 @@ _el('input', {hidden:'!varName'});
 The events plugin allows for easier mapping of all DOM events to a View function. The attributes simply need to be specified as onX, where is X is any event name that can be passed to addEventListener().  Backbone's events hash may also be used not all event listeners need to be created this way.
 
 ```javascript
-_el('button', {onclick: 'viewMethod'});
-_subview(Subview, {onclick: 'parentViewMethod'});
+createElement('button', {onclick: 'viewMethod'});
+createSubview(Subview, {onclick: 'parentViewMethod'});
 ```
 
 #### conditionalclasses
@@ -135,7 +135,7 @@ _subview(Subview, {onclick: 'parentViewMethod'});
 A CSS can be conditionally applied using the following syntax.
 
 ```javascript
-_el('button.myclass(varName)');
+createElement('button.myclass(varName)');
 ```
 
 #### dynamicclasses
@@ -143,7 +143,7 @@ _el('button.myclass(varName)');
 A CSS class may be changed dyanmically using the value of a variable. For example, the following may set the class of button to any value of varName with the myclass- prefix, e.g. myclass-red, myclass-blue
 
 ```javascript
-_el('button.myclass-{varName}');
+createElement('button.myclass-{varName}');
 ```
 
 #### styles
@@ -153,7 +153,7 @@ The styles plugin can apply styling to a whole view (non-subview) DOM heirarchy 
 Single element styling is done using the special style attribute and is applied directly to the elements style javascript object. The example below creates a green button 100px wide. 
 
 ```javascript
-_el('button', {style: {color: 'white', width: '100px', backgroundColor: 'green'}});
+createElement('button', {style: {color: 'white', width: '100px', backgroundColor: 'green'}});
 ```
 
 Styling the entire layout can be accomplished with a style object on the view.
@@ -187,7 +187,7 @@ The following top-level dictionaries can be used to create media queries:
 The math plugin creates a special binding syntax :=expression=:, that can bind to all the variables provided in the expression and update through a single expression property on the View.
 
 ```javascript
-_el('', 'The variable x is :=100 - {x}=: less than one hundred.');
+createElement('', 'The variable x is :=100 - {x}=: less than one hundred.');
 ```
 
 #### syncing

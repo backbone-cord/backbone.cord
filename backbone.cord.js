@@ -86,7 +86,7 @@ function _getPrototypeValuesForKey(objCls, key, isCls) {
 	return values;
 }
 
-function _plugin(name, context) {
+function _callPlugins(name, context) {
 	// For each callbacks, call and return false if false is returned
 	// Context object to communicate data between plugins and callbacks
 	var callbacks = Backbone.Cord._callbacks[name];
@@ -100,17 +100,17 @@ function _plugin(name, context) {
 
 // Generate an arbitrary DOM node given a tag[id][classes] string, [attributes] dictionary, and [child nodes...]
 // If #id is given it must appear before the .classes, e.g. #id.class1.class2 or span#id.class1.class2
-function _el(tagIdClasses, attrs) {
+function _createElement(tagIdClasses, attrs) {
 	tagIdClasses = tagIdClasses.split('.');
 	var context = { isView: this instanceof Backbone.Cord.View };
 	var tagId = tagIdClasses[0].split('#');
 	var tag = tagId[0] ? tagId[0] : 'div';
-	var el = context.el = this._plugin('tag', context, tag) || document.createElement(tag);
+	var el = context.el = this._callPlugins('tag', context, tag) || document.createElement(tag);
 	var id = context.id = tagId[1];
 	if(id)
 		Backbone.Cord.setId(el, id);
 	var classes = tagIdClasses.slice(1);
-	Backbone.Cord.addClass(el, this._plugin('classes', context, classes) || classes);
+	Backbone.Cord.addClass(el, this._callPlugins('classes', context, classes) || classes);
 	if(arguments.length > 1) {
 		// If attrs is not the start of children, then apply the dictionary as attributes
 		var i = 1;
@@ -118,7 +118,7 @@ function _el(tagIdClasses, attrs) {
 			i = 2;
 			// Copy attrs to prevent side-effects
 			attrs = _copyObj(attrs);
-			attrs = this._plugin('attrs', context, attrs) || attrs;
+			attrs = this._callPlugins('attrs', context, attrs) || attrs;
 			for(var attr in attrs) {
 				if(attrs.hasOwnProperty(attr))
 					el.setAttribute(attr, attrs[attr]);
@@ -126,7 +126,7 @@ function _el(tagIdClasses, attrs) {
 		}
 		// Copy arguments to prevent side-effects
 		var child, children = Array.prototype.slice.call(arguments, i);
-		children = this._plugin('children', context, children) || children;
+		children = this._callPlugins('children', context, children) || children;
 		for(i = 0; i < children.length; ++i) {
 			child = children[i];
 			if(typeof child === 'string')
@@ -144,11 +144,11 @@ function _el(tagIdClasses, attrs) {
 			configurable: false
 		});
 	}
-	return this._plugin('complete', context) || el;
+	return this._callPlugins('complete', context) || el;
 }
 
 // id and classes on the subview are maintained, but recommended that id is set by the parent view
-function _subview(instanceClass, idClasses, bindings) {
+function _createSubview(instanceClass, idClasses, bindings) {
 	var id, classes, subview, context, callback;
 	if(!(instanceClass instanceof Backbone.View))
 		subview = new instanceClass();
@@ -171,7 +171,7 @@ function _subview(instanceClass, idClasses, bindings) {
 		if(id && !Backbone.Cord.hasId(subview.el))
 			Backbone.Cord.setId(subview.el, id);
 		classes = idClasses.slice(1);
-		Backbone.Cord.addClass(subview.el, this._plugin('classes', context, classes) || classes);
+		Backbone.Cord.addClass(subview.el, this._callPlugins('classes', context, classes) || classes);
 	}
 	else {
 		bindings = idClasses;
@@ -179,7 +179,7 @@ function _subview(instanceClass, idClasses, bindings) {
 	if(bindings) {
 		// Copy bindings to prevent side-effects
 		bindings = _copyObj(bindings);
-		bindings = this._plugin('bindings', context, bindings) || bindings;
+		bindings = this._callPlugins('bindings', context, bindings) || bindings;
 		for(var e in bindings) {
 			if(bindings.hasOwnProperty(e)) {
 				callback = (typeof bindings[e] === 'string') ? (this[bindings[e]] || this._createSetValueCallback(bindings[e])) : bindings[e];
@@ -211,7 +211,7 @@ function _subview(instanceClass, idClasses, bindings) {
 				current.remove();
 				// If the new subview doesn't have an sid it needs to get setup, but without idClasses or bindings
 				if(!value.sid)
-					this._subview(value);
+					this._createSubview(value);
 				// Reapply the id or remove the old property if a different id is used
 				if(!Backbone.Cord.hasId(el))
 					Backbone.Cord.setId(el, id);
@@ -222,7 +222,7 @@ function _subview(instanceClass, idClasses, bindings) {
 			configurable: true
 		});
 	}
-	this._plugin('complete', context);
+	this._callPlugins('complete', context);
 	return subview;
 }
 
@@ -267,12 +267,13 @@ Backbone.Cord = {
 	// EmptyModel and EmptyView to use as default model and a subview placeholder
 	EmptyModel: new (Backbone.Model.extend({set: function() { return this; }, toString: function() { return ''; }}))(),
 	EmptyView: Backbone.View.extend({ tagName: 'meta' }),
+	// Layout creation methods
+	createElement: _createElement,
+	createSubview: _createSubview,
 	// Unique internal subview id, this unifies how subviews with and without ids are stored
 	_sid: 1,
 	_pluginsChecked: false,
-	_el: _el,
-	_subview: _subview,
-	_plugin: _plugin,
+	_callPlugins: _callPlugins,
 	_scopes: {},
 	// NOTE: classes, attrs, children, and bindings are all copies and may be modified by plugins without side-effects
 	// modifications will be recognized by the default behavior and returning the copy is not necessary
@@ -327,7 +328,7 @@ Backbone.Cord.hasClass = function(el, cls) {
 	return (el.getAttribute('class') || '').split(' ').indexOf(cls) !== -1;
 };
 Backbone.Cord.addClass = function(el, cls) {
-	if(Object.getPrototypeOf(cls) !== Array.prototype)
+	if(!Array.isArray(cls))
 		cls = cls.split(' ');
 	for(var i = 0; i < cls.length; ++i) {
 		if(!Backbone.Cord.hasClass(el, cls[i]))
@@ -336,7 +337,7 @@ Backbone.Cord.addClass = function(el, cls) {
 };
 Backbone.Cord.removeClass = function(el, cls) {
 	var i, clss = (el.getAttribute('class') || '').split(' ');
-	if(Object.getPrototypeOf(cls) !== Array.prototype)
+	if(!Array.isArray(cls))
 		cls = cls.split(' ');
 	for(i = clss.length - 1; i >= 0; --i) {
 		if(cls.indexOf(clss[i]) !== -1)
@@ -415,11 +416,13 @@ Backbone.Cord.plugins.push = function(plugin) {
 	return this._register(plugin, Array.prototype.push);
 };
 
-// Expose _el on the View object as well
-// _plugin is added because this._plugin is used for callbacks
-Backbone.Cord.View.prototype._el = _el;
-Backbone.Cord.View.prototype._subview = _subview;
-Backbone.Cord.View.prototype._plugin = _plugin;
+// Expose createElement and createSubview on the View object as well
+// _callPlugins is added because this._callPlugins is used for callbacks
+// _createElement is added to override Backbone's _createElement when el is not a function
+Backbone.Cord.View.prototype.createElement = _createElement;
+Backbone.Cord.View.prototype.createSubview = _createSubview;
+Backbone.Cord.View.prototype._callPlugins = _callPlugins;
+Backbone.Cord.View.prototype._createElement = _createElement;
 
 Backbone.Cord.View.prototype._synthesizeGetter = function(key) {
 	key = '_' + key;
@@ -749,7 +752,7 @@ var __extend = Backbone.Cord.View.extend;
 Backbone.Cord.View.extend = function(protoProps, staticProps) {
 	protoProps = protoProps || {};
 	staticProps = staticProps || {};
-	_plugin.call(this, 'extend', {protoProps: protoProps, staticProps: staticProps});
+	_callPlugins.call(this, 'extend', {protoProps: protoProps, staticProps: staticProps});
 	// Replace all of the id selectors in the event delegation
 	var key, value, events = protoProps.events;
 	if(events) {
@@ -791,7 +794,7 @@ Backbone.Cord.View.prototype._ensureElement = function() {
 	this._modelObservers = {};
 	this._sharedObservers = {};
 	// Run plugin create hooks
-	this._plugin('create', {});
+	this._callPlugins('create', {});
 	// Synthesize any declared properties
 	var key;
 	if(this.properties) {
@@ -803,7 +806,7 @@ Backbone.Cord.View.prototype._ensureElement = function() {
 	// Bind the el method with prefixed args
 	var isFun = (typeof this.el === 'function');
 	if(isFun)
-		this.el = this.el.bind(this, this._el.bind(this), this._subview.bind(this));
+		this.el = this.el.bind(this, this.createElement.bind(this), this.createSubview.bind(this));
 	// Start listening to the model
 	if(this.model !== Backbone.Cord.EmptyModel)
 		this.listenTo(this.model, 'change', this._modelObserver);
@@ -812,7 +815,7 @@ Backbone.Cord.View.prototype._ensureElement = function() {
 	// Travel the prototype chain and apply all the classNames found, join into a single space separated string because some values might be space separated
 	Backbone.Cord.addClass(this.el, _getPrototypeValuesForKey(this, 'className').join(' '));
 	// Run plugin initializers
-	this._plugin('initialize', {});
+	this._callPlugins('initialize', {});
 	// Setup any declared observers
 	if(this.observers) {
 		var observers = this.observers;
@@ -827,7 +830,7 @@ Backbone.Cord.View.prototype._ensureElement = function() {
 var __remove = Backbone.Cord.View.prototype.remove;
 Backbone.Cord.View.prototype.remove = function() {
 	var key;
-	this._plugin('remove', {});
+	this._callPlugins('remove', {});
 	for(key in this.subviews) {
 		if(this.subviews.hasOwnProperty(key))
 			this.subviews[key].remove();

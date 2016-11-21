@@ -118,7 +118,7 @@ function _addAnimations(animations) {
 	for(key in animations) {
 		if(animations.hasOwnProperty(key)) {
 			animation = animations[key];
-			if(Object.getPrototypeOf(animation) === Array.prototype) {
+			if(Array.isArray(animation)) {
 				if(animation.length === 1)
 					animation.unshift({});
 				temp = animation;
@@ -168,7 +168,7 @@ function _styles(context, attrs) {
 		}
 		if(typeof styles === 'object') {
 			// The math plugin doesn't do a deep process of the attributes so invoke string processing here
-			this._plugin('strings', context, styles);
+			this._callPlugins('strings', context, styles);
 			for(var style in styles) {
 				if(styles.hasOwnProperty(style)) {
 					if(styles[style].match(Backbone.Cord.regex.variableSearch) && context.isView)
@@ -250,7 +250,7 @@ Backbone.Cord.View.prototype.beginAnimation = function(animationSelector, option
 		callback = options;
 		options = {};
 	}
-	if(Object.getPrototypeOf(animationSelector) === Array.prototype) {
+	if(Array.isArray(animationSelector)) {
 		for(i = 1; i < animationSelector; ++i)
 			this.beginAnimation(animationSelector[i], options);
 		animationSelector = animationSelector[0];
@@ -452,7 +452,7 @@ Backbone.Cord.plugins.push({
 		if(this._styles && this._styles[THIS_ID]) {
 			var styles = Backbone.Cord.copyObj(this._styles[THIS_ID]);
 			Backbone.Cord.log(styles);
-			this._plugin('strings', context, styles);
+			this._callPlugins('strings', context, styles);
 			for(var style in styles) {
 				if(styles.hasOwnProperty(style))
 					this.observeFormat(styles[style], _createStyleObserver(this.el, style), true);
@@ -464,7 +464,7 @@ Backbone.Cord.plugins.push({
 		if(this._styles && context.id && this._styles[context.id]) {
 			var styles = Backbone.Cord.copyObj(this._styles[context.id]);
 			Backbone.Cord.log(styles);
-			this._plugin('strings', context, styles);
+			this._callPlugins('strings', context, styles);
 			for(var style in styles) {
 				if(styles.hasOwnProperty(style))
 					this.observeFormat(styles[style], _createStyleObserver(context.el, style), true);

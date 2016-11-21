@@ -16,7 +16,7 @@
 			this.once('remove', function() { picker.destroy(); });
 		});
 		Backbone.Cord.addReplacement('animal', function(el) {
-			return this._el('img', {src: 'http://lorempixel.com/400/200/animals'});
+			return this.createElement('img', {src: 'http://lorempixel.com/400/200/animals'});
 		});
 		var SamplesView = Backbone.View.extend({
 			el: function(h) {

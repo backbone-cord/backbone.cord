@@ -161,7 +161,7 @@ describe('events', function() {
 	});
 });
 
-describe('_el', function() {
+describe('createElement', function() {
 	before(function(done) {
 		// Run the tests with a document
 		jsdom.env('', function (err, window) {
@@ -169,12 +169,12 @@ describe('_el', function() {
 			done(err);
 		});
 	});
-	describe('_el(tag#id.classes)', function() {
-		it('should return <div></div>', function() { assert.element(cord._el(''), 'div'); });
-		it('should return <div id="dog"></div>', function() { assert.element(cord._el('#dog'), 'div', 'dog'); });
-		it('should return <input id="dog" class="black fluffy"></div>', function() { assert.element(cord._el('input#dog.black.fluffy'), 'input', 'dog', ['black', 'fluffy']); });
+	describe('createElement(tag#id.classes)', function() {
+		it('should return <div></div>', function() { assert.element(cord.createElement(''), 'div'); });
+		it('should return <div id="dog"></div>', function() { assert.element(cord.createElement('#dog'), 'div', 'dog'); });
+		it('should return <input id="dog" class="black fluffy"></div>', function() { assert.element(cord.createElement('input#dog.black.fluffy'), 'input', 'dog', ['black', 'fluffy']); });
 		it('should return <div id="dog">jumped over the fence</div>', function() {
-			var el = cord._el('#dog', 'jumped over the fence');
+			var el = cord.createElement('#dog', 'jumped over the fence');
 			assert.equal(el.outerHTML, '<div data-id="dog">jumped over the fence</div>');
 			assert.element(el, 'div', 'dog');
 			assert.text(el.childNodes[0], 'jumped over the fence');
@@ -182,5 +182,5 @@ describe('_el', function() {
 	});
 });
 
-// TODO: maybe prevent the subview method from being called outside of a View
-describe('_subview', function() {});
+// TODO: maybe prevent the createSubview method from being called outside of a View
+describe('createSubview', function() {});

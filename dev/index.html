@@ -130,7 +130,7 @@
 			onButtonClick: function() {
 				this.red = !this.red;
 				this.blue = Math.floor(Math.random() * 100);
-				this.el.appendChild(this._el('p', 'Thank you much, blue * 11 is :={_blue} * 11 - 5.6=: {lastName}! {_inheritedLastName}'));
+				this.el.appendChild(this.createElement('p', 'Thank you much, blue * 11 is :={_blue} * 11 - 5.6=: {lastName}! {_inheritedLastName}'));
 			},
 			onCircleTop: function(value) {
 				console.log('onCircleTop ' + value);
