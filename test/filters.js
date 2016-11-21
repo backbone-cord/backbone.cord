@@ -12,7 +12,7 @@ describe('filters', function() {
 		};
 		view = new (Backbone.View.extend({
 			el: function(h) {
-				return h('', {'data-name': '{_name|reverse}'}, '{_value} {_value|plus100}');
+				return h('', {'data-reverse': '{_name|reverse}', 'data-lower': '{_name|lower}', 'data-upper': '{_name|upper}', 'data-title': '{_name|title}'}, '{_value|abs} {_value|plus100}');
 			},
 			properties: {
 				value: 1,
@@ -27,11 +27,21 @@ describe('filters', function() {
 		before(function() { view.value = 2; });
 		it('textContent should be "2 102"', function() { assert.equal(view.el.textContent, '2 102'); });
 	});
-	describe('name is test', function() {
-		it('data-name should be "tset"', function() { assert.equal(view.el.getAttribute('data-name'), 'tset'); });
+	describe('value is -22', function() {
+		before(function() { view.value = -22; });
+		it('textContent should be "22 78"', function() { assert.equal(view.el.textContent, '22 78'); });
 	});
-	describe('name is computer', function() {
-		before(function() { view.name = 'computer'; });
-		it('data-name should be "retupmoc"', function() { assert.equal(view.el.getAttribute('data-name'), 'retupmoc'); });
+	describe('name is test', function() {
+		it('data-reverse should be "tset"', function() { assert.equal(view.el.getAttribute('data-reverse'), 'tset'); });
+		it('data-lower should be "test"', function() { assert.equal(view.el.getAttribute('data-lower'), 'test'); });
+		it('data-upper should be "TEST"', function() { assert.equal(view.el.getAttribute('data-upper'), 'TEST'); });
+		it('data-title should be "Test"', function() { assert.equal(view.el.getAttribute('data-title'), 'Test'); });
+	});
+	describe('name is Jim-Bob computer repair', function() {
+		before(function() { view.name = 'Jim-bob computer repair'; });
+		it('data-reverse should be "riaper retupmoc bob-miJ"', function() { assert.equal(view.el.getAttribute('data-reverse'), 'riaper retupmoc bob-miJ'); });
+		it('data-lower should be "jim-bob computer repair"', function() { assert.equal(view.el.getAttribute('data-lower'), 'jim-bob computer repair'); });
+		it('data-upper should be "JIM-BOB COMPUTER REPAIR"', function() { assert.equal(view.el.getAttribute('data-upper'), 'JIM-BOB COMPUTER REPAIR'); });
+		it('data-title should be "Jim-Bob Computer Repair"', function() { assert.equal(view.el.getAttribute('data-title'), 'Jim-Bob Computer Repair'); });
 	});
 });
