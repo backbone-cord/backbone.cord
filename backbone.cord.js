@@ -250,6 +250,7 @@ Backbone.Cord = {
 		upper: function(str) { return str.toUpperCase(); },
 		title: function(str) { return str.replace(/\b[^\s-]*/g, function(s) { return s.charAt(0).toUpperCase() + s.substr(1).toLowerCase(); }); }
 	},
+	// Mixins installed by the app by setting keys on this object
 	mixins: {},
 	copyObj: _copyObj,
 	mixObj: _mixObj,
@@ -377,6 +378,7 @@ Object.defineProperties(Backbone.Cord.regex, {
 	conditional: _regexPropertyDescriptor('conditional'),
 	expression: _regexPropertyDescriptor('expression')
 });
+// Regex patterns can be configured by setting prefix/suffix values through these properties
 Backbone.Cord.regex.variable = {prefix: '{', suffix: '}'};
 Backbone.Cord.regex.conditional = {prefix: '(', suffix: ')'};
 Backbone.Cord.regex.expression = {prefix: ':=', suffix: '=:'};
