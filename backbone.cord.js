@@ -259,7 +259,10 @@ Backbone.Cord = {
 	convertToString: function(obj) { if(obj === null || obj === void(0)) return ''; return obj.toString(); },
 	convertToBool: function(value) { return !!(value && (value.length === void(0) || value.length)); },
 	convertToNumber: function(value) { return Number(value) || 0; },
-	randomCode: function(l) { var c = ''; l = l || 12; for(var i = 0 ; i < l; ++i) c += Math.floor(Math.random() * 16).toString(16); return c; },
+	// Generate a 2-byte time-secured random uid by taking the last 4 characters of a number between 0x10000 and 0x20000
+	randomUID: function() { return (Math.floor((1 + Math.random()) * 0x10000) ^ (Date.now() % 0x10000)).toString(16).substr(1); }, // jshint ignore:line
+	randomGUID: function() { var c4 = this.randomUID; return c4() + c4() + '-' + c4() + '-' + c4() + '-' + c4() + '-' + c4() + c4() + c4(); },
+	randomCode: function(len) { var c = ''; len = len || 12; while(c.length < len) c += this.randomUID(); return c.substr(0, len); },
 	// Internally set readonly properties with the ForceValue object
 	ForceValue: function(value) { this.value = value; },
 	// Initialize the Cord View class depending on the compatibility mode
@@ -753,7 +756,7 @@ Backbone.Cord.View.extend = function(protoProps, staticProps) {
 	protoProps = protoProps || {};
 	staticProps = staticProps || {};
 	// Create a unique view id for this view class. Can set a static vuid for debugging
-	protoProps.vuid = protoProps.vuid || 'v' + Backbone.Cord.randomCode(6);
+	protoProps.vuid = protoProps.vuid || 'v' + Backbone.Cord.randomUID();
 	// Call all of the plugins
 	_callPlugins.call(this, 'extend', {protoProps: protoProps, staticProps: staticProps});
 	// Replace all of the id selectors in the event delegation
