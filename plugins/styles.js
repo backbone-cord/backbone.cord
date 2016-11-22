@@ -2,17 +2,6 @@
 'use strict';
 
 var THIS_ID = '(this)';
-
-Backbone.Cord.mediaQueries = {
-	all: '',
-	animations: '',
-	hd: 'only screen and (max-width: 1200px)',
-	desktop: 'only screen and (max-width: 992px)',
-	tablet: 'only screen and (max-width: 768px)',
-	phablet: 'only screen and (max-width: 480px)',
-	mobile: 'only screen and (max-width: 320px)'
-};
-
 var ua = navigator.userAgent.toLowerCase();
 var browser = (/(chrome|safari)/.exec(ua) || /firefox/.exec(ua) || /msie/.exec(ua) || /trident/.exec(ua) || /opera/.exec(ua) || '')[0];
 var stylePrefix = ({ chrome: 'webkit', firefox: 'Moz', msie: 'ms', opera: 'O', safari: 'webkit', trident: 'ms' })[browser] || '';
@@ -20,16 +9,17 @@ var cssPrefix = '-' + stylePrefix.toLowerCase() + '-';
 
 function _createStyleSheets() {
 	var el, key;
+	var mediaQueries = Backbone.Cord.Styles.mediaQueries;
 	Backbone.Cord._styleSheets = {};
-	for(key in Backbone.Cord.mediaQueries) {
-		if(Backbone.Cord.mediaQueries.hasOwnProperty(key)) {
+	for(key in mediaQueries) {
+		if(mediaQueries.hasOwnProperty(key)) {
 			// Note: cannot use id on stlye tags, but could add a data attribute for identifying
 			// https://developer.mozilla.org/en-US/docs/Web/HTML/Element/style
 			// https://davidwalsh.name/add-rules-stylesheets
 			el = document.createElement('style');
 			el.type = 'text/css';
-			if(Backbone.Cord.mediaQueries[key])
-				el.media = Backbone.Cord.mediaQueries[key];
+			if(mediaQueries[key])
+				el.media = mediaQueries[key];
 			// Webkit hack
 			el.appendChild(document.createTextNode(''));
 			document.head.appendChild(el);
@@ -42,6 +32,13 @@ function _getStylePrefix(style, css) {
 	if(document.documentElement.style[style] === void(0))
 		return css ? cssPrefix : stylePrefix;
 	return '';
+}
+
+function _addStylePrefix(style) {
+	var prefix = _getStylePrefix(style);
+	if(prefix)
+		return prefix + style[0].toUpperCase() + style.substr(1);
+	return style;
 }
 
 function _camelCaseToDash(str) {
@@ -70,7 +67,7 @@ function _addRules(vuid, rules, _styles, selector, media, id) {
 				query = key;
 				if(query.indexOf(Backbone.Cord.config.mediaPrefix) === 0) {
 					mediaQuery = query.substr(Backbone.Cord.config.mediaPrefix.length);
-					if(!Backbone.Cord.mediaQueries[mediaQuery])
+					if(!Backbone.Cord.Styles.mediaQueries[mediaQuery])
 						return;
 				}
 				if(!mediaQuery) {
@@ -154,7 +151,7 @@ function _addAnimations(vuid, animations) {
 }
 
 function _createStyleObserver(node, style) {
-	style = _getStylePrefix(style) + style;
+	style = _addStylePrefix(style);
 	return function(key, formatted) {
 		node.style[style] = Backbone.Cord.convertToString(formatted);
 	};
@@ -174,7 +171,7 @@ function _styles(context, attrs) {
 					if(styles[style].match(Backbone.Cord.regex.variableSearch) && context.isView)
 						this.observeFormat(styles[style], _createStyleObserver(context.el, style), true);
 					else
-						context.el.style[_getStylePrefix(style) + style] = styles[style];
+						context.el.style[_addStylePrefix(style)] = styles[style];
 				}
 			}
 			delete attrs.style;
@@ -361,7 +358,7 @@ Backbone.Cord.View.prototype.cancelAnimation = function(animationSelector) {
 
 // Same arguments as beginAnimation but only used for permanent transitions of styles and apply to a single selector only
 Backbone.Cord.View.prototype.beginTransition = function(selector, styles, options, callback) {
-	var elements, i, el, separator, style, property, listener;
+	var elements, i, el, separator, style, listener;
 	if(Backbone.Cord.isPlainObj(selector)) {
 		callback = options;
 		options = styles;
@@ -384,12 +381,11 @@ Backbone.Cord.View.prototype.beginTransition = function(selector, styles, option
 		separator = !!el.style.transitionProperty ? ',' : '';
 		for(style in styles) {
 			if(styles.hasOwnProperty(style)) {
-				property = _getStylePrefix(style) + style;
-				el.style[property] = styles[style];
 				el.style.transitionDelay += separator + options.delay;
 				el.style.transitionDuration += separator + options.duration;
-				el.style.transitionProperty += separator + _getStylePrefix(property, true) + _camelCaseToDash(property);
+				el.style.transitionProperty += separator + _getStylePrefix(style, true) + _camelCaseToDash(style);
 				el.style.transitionTimingFunction += separator + options.timing;
+				el.style[_addStylePrefix(style)] = styles[style];
 				separator = ',';
 			}
 		}
@@ -419,6 +415,24 @@ Backbone.Cord.View.prototype.beginTransition = function(selector, styles, option
 	}.bind(this);
 	elements[0].addEventListener('transitionend', listener);
 	return this;
+};
+
+// Expose useful functions, media queries which can be modified, and some browser info
+Backbone.Cord.Styles = {
+	userAgent: ua,
+	browser: browser,
+	addStylePrefix: _addStylePrefix,
+	getCSSPrefix: function(style) { return _getStylePrefix(style, true); },
+	camelCaseToDash: _camelCaseToDash,
+	mediaQueries: {
+		all: '',
+		animations: '',
+		hd: 'only screen and (max-width: 1200px)',
+		desktop: 'only screen and (max-width: 992px)',
+		tablet: 'only screen and (max-width: 768px)',
+		phablet: 'only screen and (max-width: 480px)',
+		mobile: 'only screen and (max-width: 320px)'
+	}
 };
 
 // Accept a style that is either an object or a key to a style object on this (non-binding!)

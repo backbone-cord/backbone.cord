@@ -13,7 +13,9 @@ function _modelObserver(model) {
 	}
 }
 
-Backbone.Cord.shared = new Backbone.Model();
+Backbone.Cord.Shared = {
+	model: new Backbone.Model()
+};
 
 // Scope for a single globally shared Backbone model
 // Listeners on the model are automatically added and removed
@@ -30,17 +32,17 @@ Backbone.Cord.plugins.push({
 		},
 		observe: function() {
 			if(!Object.keys(this._getObservers(null, SCOPE_NAME)).length)
-				this.listenTo(Backbone.Cord.shared, 'change', _modelObserver);
+				this.listenTo(Backbone.Cord.Shared.model, 'change', _modelObserver);
 		},
 		unobserve: function() {
 			if(!Object.keys(this._getObservers(null, SCOPE_NAME)).length)
-				this.stopListening(Backbone.Cord.shared, 'change', _modelObserver);
+				this.stopListening(Backbone.Cord.Shared.model, 'change', _modelObserver);
 		},
 		getValue: function(key) {
-			return Backbone.Cord.shared.get(key);
+			return Backbone.Cord.Shared.model.get(key);
 		},
 		setValue: function(key, value) {
-			Backbone.Cord.shared.set(key, value);
+			Backbone.Cord.Shared.model.set(key, value);
 		}
 	}
 });
