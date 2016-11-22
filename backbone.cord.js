@@ -108,7 +108,7 @@ function _createElement(tagIdClasses, attrs) {
 	var el = context.el = this._callPlugins('tag', context, tag) || document.createElement(tag);
 	var id = context.id = tagId[1];
 	if(id)
-		Backbone.Cord.setId(el, id);
+		Backbone.Cord.setId(el, id, this.vuid);
 	var classes = tagIdClasses.slice(1);
 	Backbone.Cord.addClass(el, this._callPlugins('classes', context, classes) || classes);
 	if(arguments.length > 1) {
@@ -169,7 +169,7 @@ function _createSubview(instanceClass, idClasses, bindings) {
 		idClasses = idClasses.split('.');
 		id = context.id = idClasses[0].substr(1);
 		if(id && !Backbone.Cord.hasId(subview.el))
-			Backbone.Cord.setId(subview.el, id);
+			Backbone.Cord.setId(subview.el, id, this.vuid);
 		classes = idClasses.slice(1);
 		Backbone.Cord.addClass(subview.el, this._callPlugins('classes', context, classes) || classes);
 	}
@@ -214,7 +214,7 @@ function _createSubview(instanceClass, idClasses, bindings) {
 					this._createSubview(value);
 				// Reapply the id or remove the old property if a different id is used
 				if(!Backbone.Cord.hasId(el))
-					Backbone.Cord.setId(el, id);
+					Backbone.Cord.setId(el, id, this.vuid);
 				else if(id !== Backbone.Cord.getId(el))
 					delete this[id];
 			},
@@ -319,10 +319,10 @@ Backbone.Cord.hasId = function(el) {
 	return !!el.getAttribute('data-id');
 };
 Backbone.Cord.getId = function(el) {
-	return el.getAttribute('data-id');
+	return el.getAttribute('data-id').split('-')[0];
 };
-Backbone.Cord.setId = function(el, id) {
-	el.setAttribute('data-id', id);
+Backbone.Cord.setId = function(el, id, vuid) {
+	el.setAttribute('data-id', id + (vuid ? ('-' + vuid) : ''));
 };
 
 // Use get/set attribute because className doesn't work with svg elements
@@ -349,8 +349,8 @@ Backbone.Cord.removeClass = function(el, cls) {
 	el.setAttribute('class', clss.join(' '));
 };
 
-Backbone.Cord.regex.replaceIdSelectors = function(query) {
-	return query.replace(this.idSelectorValues, '[data-id="$1"]');
+Backbone.Cord.regex.replaceIdSelectors = function(query, vuid) {
+	return query.replace(this.idSelectorValues, '[data-id="$1' + (vuid ? ('-' + vuid) : '') + '"]');
 };
 Backbone.Cord.regex.testIdProperty = function(id, noThrow) {
 	var result = this.idPropertyTest.test(id);
@@ -689,7 +689,7 @@ Backbone.Cord.View.prototype._createSetValueCallback = function(key) {
 };
 
 Backbone.Cord.View.prototype.getChildById = function(id) {
-	return this.el.querySelector('[data-id="' + id +  '"]');
+	return this.el.querySelector('[data-id="' + id + '-' + this.vuid + '"]');
 };
 Backbone.Cord.View.prototype.getSubviewById = function(id) {
 	var node = this.getChildById(id);
@@ -756,7 +756,7 @@ Backbone.Cord.View.extend = function(protoProps, staticProps) {
 	protoProps = protoProps || {};
 	staticProps = staticProps || {};
 	// Create a unique view id for this view class. Can set a static vuid for debugging
-	protoProps.vuid = protoProps.vuid || 'v' + Backbone.Cord.randomUID();
+	protoProps.vuid = protoProps.vuid || Backbone.Cord.randomUID();
 	// Call all of the plugins
 	_callPlugins.call(this, 'extend', {protoProps: protoProps, staticProps: staticProps});
 	// Replace all of the id selectors in the event delegation
@@ -766,7 +766,7 @@ Backbone.Cord.View.extend = function(protoProps, staticProps) {
 			if(events.hasOwnProperty(key) && key.indexOf('#') !== -1) {
 				value = events[key];
 				delete events[key];
-				key = Backbone.Cord.regex.replaceIdSelectors(key);
+				key = Backbone.Cord.regex.replaceIdSelectors(key, protoProps.vuid);
 				events[key] = value;
 			}
 		}
@@ -820,6 +820,7 @@ Backbone.Cord.View.prototype._ensureElement = function() {
 	var ret = __ensureElement.apply(this, arguments);
 	// Travel the prototype chain and apply all the classNames found, join into a single space separated string because some values might be space separated
 	Backbone.Cord.addClass(this.el, _getPrototypeValuesForKey(this, 'className').join(' '));
+	this.el.setAttribute('data-vuid', this.vuid);
 	// Run plugin initializers
 	this._callPlugins('initialize', {});
 	// Setup any declared observers

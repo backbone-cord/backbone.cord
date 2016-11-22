@@ -58,7 +58,7 @@ function _camelCaseToDash(str) {
 	return words.join('-');
 }
 
-function _addRules(rules, _styles, selector, media, id) {
+function _addRules(vuid, rules, _styles, selector, media, id) {
 	var key, sheet, query, mediaQuery, idQuery, separator;
 	media = media || 'all';
 	sheet = Backbone.Cord._styleSheets[media];
@@ -88,11 +88,11 @@ function _addRules(rules, _styles, selector, media, id) {
 						idQuery = null;
 				}
 				if(mediaQuery)
-					_addRules(rules[key], _styles, selector, mediaQuery);
+					_addRules(vuid, rules[key], _styles, selector, mediaQuery);
 				else if(idQuery)
-					_addRules(rules[key], _styles, selector + separator + Backbone.Cord.regex.replaceIdSelectors('#' + idQuery), media, idQuery);
+					_addRules(vuid, rules[key], _styles, selector + separator + Backbone.Cord.regex.replaceIdSelectors('#' + idQuery, vuid), media, idQuery);
 				else
-					_addRules(rules[key], _styles, selector + separator + Backbone.Cord.regex.replaceIdSelectors(query), media);
+					_addRules(vuid, rules[key], _styles, selector + separator + Backbone.Cord.regex.replaceIdSelectors(query, vuid), media);
 			}
 			else {
 				var value = rules[key].toString();
@@ -112,7 +112,7 @@ function _addRules(rules, _styles, selector, media, id) {
 	}
 }
 
-function _addAnimations(animations, vuid) {
+function _addAnimations(vuid, animations) {
 	var sheet = Backbone.Cord._styleSheets.animations;
 	var key, animation, keyframe, temp, step, i, rule, style, keystyles;
 	for(key in animations) {
@@ -144,7 +144,7 @@ function _addAnimations(animations, vuid) {
 						rule += '}';
 					}
 				}
-				animation.name = key + vuid;
+				animation.name = key + '-' + vuid;
 				rule = '@keyframes ' + animation.name + '{' + rule + '}';
 				Backbone.Cord.log(rule);
 				sheet.insertRule(rule, 0);
@@ -198,7 +198,7 @@ function _parseAnimationSelector(animationSelector) {
 	var animations, elements;
 	if(components.length > 1) {
 		animations = components[1].split(/, */);
-		elements = this.el.querySelectorAll(Backbone.Cord.regex.replaceIdSelectors(components[0].trim()));
+		elements = this.el.querySelectorAll(Backbone.Cord.regex.replaceIdSelectors(components[0].trim(), this.vuid));
 	}
 	else {
 		animations = components[0].split(/, */);
@@ -374,7 +374,7 @@ Backbone.Cord.View.prototype.beginTransition = function(selector, styles, option
 	}
 	options = Backbone.Cord.mixObj(DEFAULT_ANIMATION_OPTIONS, options);
 	if(selector)
-		elements = this.el.querySelectorAll(Backbone.Cord.regex.replaceIdSelectors(selector));
+		elements = this.el.querySelectorAll(Backbone.Cord.regex.replaceIdSelectors(selector, this.vuid));
 	else
 		elements = [this.el];
 	if(!elements.length)
@@ -443,16 +443,16 @@ Backbone.Cord.plugins.push({
 		var classNames, _styles = {};
 		if(context.protoProps.styles || context.protoProps.animations) {
 			if(!context.protoProps.className)
-				context.protoProps.className = context.protoProps.vuid;
+				context.protoProps.className = 'view-' + context.protoProps.vuid;
 			if(!Backbone.Cord._styleSheets)
 				_createStyleSheets();
 			classNames = Backbone.Cord.getPrototypeValuesForKey(this, 'className', true);
 			classNames.push(context.protoProps.className);
 			classNames = classNames.join(' ');
 			if(context.protoProps.styles)
-				_addRules(context.protoProps.styles, _styles, '.' + classNames.split(' ').join('.'));
+				_addRules(context.protoProps.vuid, context.protoProps.styles, _styles, '.' + classNames.split(' ').join('.'));
 			if(context.protoProps.animations)
-				_addAnimations(context.protoProps.animations, context.protoProps.vuid);
+				_addAnimations(context.protoProps.vuid, context.protoProps.animations);
 		}
 		context.protoProps._styles = _styles;
 	},
