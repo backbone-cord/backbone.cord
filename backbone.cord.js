@@ -226,6 +226,10 @@ function _createSubview(instanceClass, idClasses, bindings) {
 	return subview;
 }
 
+function _createText(str) {
+	return document.createTextNode(str);
+}
+
 Backbone.Cord = {
 	VERSION: '1.0.10',
 	config: {
@@ -274,6 +278,7 @@ Backbone.Cord = {
 	// Layout creation methods
 	createElement: _createElement,
 	createSubview: _createSubview,
+	createText: _createText,
 	// Unique internal subview id, this unifies how subviews with and without ids are stored
 	_sid: 1,
 	_pluginsChecked: false,
@@ -426,6 +431,7 @@ Backbone.Cord.plugins.push = function(plugin) {
 // _createElement is added to override Backbone's _createElement when el is not a function
 Backbone.Cord.View.prototype.createElement = _createElement;
 Backbone.Cord.View.prototype.createSubview = _createSubview;
+Backbone.Cord.View.prototype.createText = _createText;
 Backbone.Cord.View.prototype._callPlugins = _callPlugins;
 Backbone.Cord.View.prototype._createElement = _createElement;
 
