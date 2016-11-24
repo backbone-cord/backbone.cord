@@ -642,6 +642,8 @@ Backbone.Cord.View.prototype.unobserve = function(key, observer) {
 };
 Backbone.Cord.View.prototype.getValueForKey = function(key) {
 	var newKey, name, scope, scopes = Backbone.Cord._scopes;
+	if(key.indexOf(Backbone.Cord.config.subkeySeparator) !== -1)
+		return _getObjValue(this, key);
 	for(name in scopes) {
 		if(scopes.hasOwnProperty(name)) {
 			scope = scopes[name];
