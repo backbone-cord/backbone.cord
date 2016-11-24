@@ -36,11 +36,23 @@ function _getObjValue(obj, keys) {
 		if(obj instanceof Backbone.Cord.View)
 			obj = obj.getValueForKey(key);
 		else if(obj instanceof Backbone.Model)
-			obj = obj.get(key);
+			obj = (key === 'id' ? obj.id : obj.get(key));
 		else if(obj)
 			obj = obj[key];
 	}
 	return obj;
+}
+function _setObjValue(obj, keys, value) {
+	var key;
+	keys = Array.isArray(keys) ? keys : keys.split(Backbone.Cord.config.subkeySeparator);
+	obj = _getObjValue(obj, keys.slice(0, -1));
+	key = keys[keys.length - 1];
+	if(obj instanceof Backbone.Cord.View)
+		obj.setValueForKey(key, value);
+	else if(obj instanceof Backbone.Model)
+		obj.set((key === 'id' ? obj.idAttribute : key), value);
+	else if(obj)
+		obj[key] = value;
 }
 
 // Helper functions for mixing objects and prototypes
@@ -657,11 +669,10 @@ Backbone.Cord.View.prototype.getValueForKey = function(key) {
 	return this.model.get(key);
 };
 Backbone.Cord.View.prototype.setValueForKey = function(key, value) {
-	var names, subview, newKey, name, scope, scopes = Backbone.Cord._scopes;
+	var newKey, name, scope, scopes = Backbone.Cord._scopes;
 	if(key.indexOf(Backbone.Cord.config.subkeySeparator) !== -1) {
-		names = key.split(Backbone.Cord.config.subkeySeparator);
-		subview = this.getValueForKey(names[0]);
-		return subview.setValueForKey(names.slice(1).join(Backbone.Cord.config.subkeySeparator), value);
+		_setObjValue(this, key, value);
+		return this;
 	}
 	for(name in scopes) {
 		if(scopes.hasOwnProperty(name)) {
