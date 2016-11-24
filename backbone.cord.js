@@ -210,7 +210,7 @@ function _createSubview(instanceClass, idClasses, bindings) {
 		bindings = this._callPlugins('bindings', context, bindings) || bindings;
 		for(var e in bindings) {
 			if(bindings.hasOwnProperty(e)) {
-				callback = (typeof bindings[e] === 'string') ? (this[bindings[e]] || this._createSetValueCallback(bindings[e])) : bindings[e];
+				callback = (typeof bindings[e] === 'string') ? (this[bindings[e]] || _createSetValueCallback(bindings[e])) : bindings[e];
 				if(typeof callback === 'function')
 					this.listenTo(subview, e, callback);
 			}
@@ -535,7 +535,6 @@ Backbone.Cord.View.prototype._invokeObservers = function(newKey, value, scope) {
 		observers[i].call(this, newKey, value);
 	return this;
 };
-
 function _applyFilters(func, filters) {
 	return function(newKey, val) {
 		for(var i = 0; i < filters.length; ++i)
@@ -543,7 +542,6 @@ function _applyFilters(func, filters) {
 		return func.call(this, newKey, val);
 	};
 }
-
 function _applySubkeys(func, key) {
 	var keys = key.split(Backbone.Cord.config.subkeySeparator);
 	keys.shift();
@@ -551,11 +549,10 @@ function _applySubkeys(func, key) {
 		return func.call(this, newKey, _getObjValue(val, keys));
 	};
 }
-
 Backbone.Cord.View.prototype.observe = function(key, observer, immediate) {
 	var name, immediateCallback, newKey, found, scope, scopes, observers;
 	if(typeof observer === 'string')
-		observer = this[observer] || this._createSetValueCallback(observer);
+		observer = this[observer] || _createSetValueCallback(observer);
 	if(typeof observer !== 'function')
 		return this;
 	scopes = Backbone.Cord._scopes;
@@ -652,6 +649,13 @@ Backbone.Cord.View.prototype.unobserve = function(key, observer) {
 		scope.unobserve.call(this, key, observer);
 	return this;
 };
+
+// A simple event callback, where the last argument is taken as a value to pass into setValueForKey
+function _createSetValueCallback(key) {
+	return function() {
+		this.setValueForKey(key, arguments[arguments.length - 1]);
+	};
+}
 Backbone.Cord.View.prototype.getValueForKey = function(key) {
 	var newKey, name, scope, scopes = Backbone.Cord._scopes;
 	if(key.indexOf(Backbone.Cord.config.subkeySeparator) !== -1)
@@ -714,12 +718,6 @@ Backbone.Cord.View.prototype.setProperties = function(values) {
 			this[arguments[i]] = arguments[i + 1];
 	}
 	return this;
-};
-// A simple event callback, where the last argument is taken as a value to pass into setValueForKey
-Backbone.Cord.View.prototype._createSetValueCallback = function(key) {
-	return function() {
-		this.setValueForKey(key, arguments[arguments.length - 1]);
-	};
 };
 
 Backbone.Cord.View.prototype.getChildById = function(id) {
