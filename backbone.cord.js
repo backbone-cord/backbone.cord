@@ -27,6 +27,22 @@ function _copyObj(obj) {
 	return copy;
 }
 
+// Internal use only for when there are one or more subkeys to resolve on an object, view, or model
+function _getObjValue(obj, keys) {
+	var i, key;
+	keys = Array.isArray(keys) ? keys : keys.split(Backbone.Cord.config.subkeySeparator);
+	for(i = 0; i < keys.length; ++i) {
+		key = keys[i];
+		if(obj instanceof Backbone.Cord.View)
+			obj = obj.getValueForKey(key);
+		else if(obj instanceof Backbone.Model)
+			obj = obj.get(key);
+		else if(obj)
+			obj = obj[key];
+	}
+	return obj;
+}
+
 // Helper functions for mixing objects and prototypes
 function _chain(f1, f2) { return function() { f1.apply(this, arguments); return f2.apply(this, arguments); }; }
 function _terminate(f, key) { return function() { var ret = f.apply(this, arguments); var parent = Object.getPrototypeOf(Object.getPrototypeOf(this)); return (parent && parent[key]) ? parent[key].apply(this, arguments) : ret || this; }; }
@@ -520,10 +536,7 @@ function _applySubkeys(func, key) {
 	var keys = key.split(Backbone.Cord.config.subkeySeparator);
 	keys.shift();
 	return function(newKey, val) {
-		val = keys.reduce(function(obj, i) {
-			return (obj && obj[i]);
-		}, val);
-		return func.call(this, newKey, val);
+		return func.call(this, newKey, _getObjValue(val, keys));
 	};
 }
 
