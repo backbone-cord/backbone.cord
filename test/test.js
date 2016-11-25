@@ -157,7 +157,7 @@ describe('events', function() {
 		});
 	});
 	it('should replace id selectors on extend', function() {
-		assert.equal(View.prototype.events['click [data-id="element"]'], true);
+		assert.equal(View.prototype.events['click [data-id="element-' + View.prototype.vuid + '"]'], true);
 	});
 });
 
