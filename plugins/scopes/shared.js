@@ -32,11 +32,11 @@ Backbone.Cord.plugins.push({
 				return key.substr(Backbone.Cord.config.sharedPrefix.length);
 		},
 		observe: function() {
-			if(!Object.keys(this._getObservers(null, NAMESPACE)).length)
+			if(!this._hasObservers(null, NAMESPACE))
 				this.listenTo(Backbone.Cord.Shared.model, 'change', _modelObserver);
 		},
 		unobserve: function() {
-			if(!Object.keys(this._getObservers(null, NAMESPACE)).length)
+			if(!this._hasObservers(null, NAMESPACE))
 				this.stopListening(Backbone.Cord.Shared.model, 'change', _modelObserver);
 		},
 		getValue: function(key) {

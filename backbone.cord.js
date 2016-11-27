@@ -528,6 +528,12 @@ Backbone.Cord.View.prototype._getObservers = function(newKey, namespace) {
 		observers = observers[newKey] || [];
 	return observers;
 };
+Backbone.Cord.View.prototype._hasObservers = function(newKey, namespace) {
+	var observers = this._getObservers(newKey, namespace);
+	if(Array.isArray(observers))
+		return !!observers.length;
+	return !!Object.keys(observers).length;
+};
 Backbone.Cord.View.prototype._invokeObservers = function(newKey, value, namespace) {
 	Backbone.Cord.log(newKey, value, namespace);
 	var i, observers = this._getObservers(newKey, namespace);
@@ -642,7 +648,7 @@ Backbone.Cord.View.prototype.unobserve = function(key, observer) {
 	index = observers[key].indexOf(observer);
 	if(index !== -1)
 		observers[key].splice(index, 1);
-	if(!observers.length)
+	if(!observers[key].length)
 		delete observers[key];
 	// Do the unobserve callback after removing the observer
 	if(found)

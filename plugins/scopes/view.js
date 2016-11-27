@@ -54,7 +54,7 @@ Backbone.Cord.plugins.push({
 			}
 		},
 		unobserve: function(key) {
-			if(!this._getObservers(key, NAMESPACE).length) {
+			if(!this._hasObservers(key, NAMESPACE)) {
 				var prop = Object.getOwnPropertyDescriptor(this, key);
 				if(prop.set._prevSet) {
 					// Unwrap the previous set method
