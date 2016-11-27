@@ -30,7 +30,7 @@ function _copyObj(obj) {
 // Internal use only for when there are one or more subkeys to resolve on an object, view, or model
 function _getObjValue(obj, keys) {
 	var i, key;
-	keys = Array.isArray(keys) ? keys : keys.split(Backbone.Cord.config.subkeySeparator);
+	keys = Array.isArray(keys) ? keys : keys.split('.');
 	for(i = 0; i < keys.length; ++i) {
 		key = keys[i];
 		if(obj instanceof Backbone.Cord.View)
@@ -44,7 +44,7 @@ function _getObjValue(obj, keys) {
 }
 function _setObjValue(obj, keys, value) {
 	var key;
-	keys = Array.isArray(keys) ? keys : keys.split(Backbone.Cord.config.subkeySeparator);
+	keys = Array.isArray(keys) ? keys : keys.split('.');
 	obj = _getObjValue(obj, keys.slice(0, -1));
 	key = keys[keys.length - 1];
 	if(obj instanceof Backbone.Cord.View)
@@ -262,10 +262,7 @@ Backbone.Cord = {
 	VERSION: '1.0.10',
 	config: {
 		idProperties: true,
-		oncePrefix: '%',
-		notPrefix: '!',
-		filterSeparator: '|',
-		subkeySeparator: '.'
+		oncePrefix: '%'
 	},
 	// Collection of reusable regular expression objects
 	// NOTE: Do not use the regex functions test/exec when the global flag is set because it is stateful (lastIndex). Instead use string methods search/match
@@ -547,7 +544,7 @@ function _applyFilters(func, filters) {
 	};
 }
 function _applySubkeys(func, key) {
-	var keys = key.split(Backbone.Cord.config.subkeySeparator);
+	var keys = key.split('.');
 	keys.shift();
 	return function(newKey, val) {
 		return func.call(this, newKey, _getObjValue(val, keys));
@@ -561,29 +558,29 @@ Backbone.Cord.View.prototype.observe = function(key, observer, immediate) {
 		return this;
 	scopes = Backbone.Cord._scopes;
 	// Apply any filters to the observer function
-	if(key.indexOf(Backbone.Cord.config.filterSeparator) !== -1) {
-		var i, filters = [], names = key.split(Backbone.Cord.config.filterSeparator);
+	if(key.indexOf('|') !== -1) {
+		var i, filters = [], names = key.split('|');
 		key = names[0].trim();
 		for(i = 1; i < names.length; ++i)
 			filters.push(Backbone.Cord.filters[names[i].trim()] || Math[names[i].trim()]);
 		observer = _applyFilters(observer, filters);
 	}
 	// Support any subkeys but only changes to the top-level key are observed
-	if(key.indexOf(Backbone.Cord.config.subkeySeparator) !== -1) {
+	if(key.indexOf('.') !== -1) {
 		observer = _applySubkeys(observer, key);
-		key = key.split(Backbone.Cord.config.subkeySeparator, 1)[0];
+		key = key.split('.', 1)[0];
 	}
 	// If key starts with oncePrefix, just do an immediate timeout with the getValue
-	// not compatible with the notPrefix and doesn't include the key on callback
+	// not compatible with ! and doesn't include the key on callback
 	if(key.indexOf(Backbone.Cord.config.oncePrefix) === 0) {
 		key = key.substr(Backbone.Cord.config.oncePrefix.length);
 		requestAnimationFrame(function() { observer.call(this, null, this.getValueForKey.call(this, key)); }.bind(this));
 		return this;
 	}
-	// If key starts with notPrefix, apply a not wrapper to the observer function
-	if(key.indexOf(Backbone.Cord.config.notPrefix) === 0) {
+	// If key starts with ! then apply a not wrapper to the observer function
+	if(key[0] === '!') {
 		var prevObserver = observer;
-		key = key.substr(Backbone.Cord.config.notPrefix.length);
+		key = key.substr(1);
 		observer = function(key, value) { prevObserver.call(this, key, !Backbone.Cord.convertToBool(value)); };
 	}
 	// For each scope plugin, stop and observe when an observe method callback returns a string
@@ -664,7 +661,7 @@ function _createSetValueCallback(key) {
 }
 Backbone.Cord.View.prototype.getValueForKey = function(key) {
 	var newKey, namespace, scope, scopes = Backbone.Cord._scopes;
-	if(key.indexOf(Backbone.Cord.config.subkeySeparator) !== -1)
+	if(key.indexOf('.') !== -1)
 		return _getObjValue(this, key);
 	for(namespace in scopes) {
 		if(scopes.hasOwnProperty(namespace)) {
@@ -680,7 +677,7 @@ Backbone.Cord.View.prototype.getValueForKey = function(key) {
 };
 Backbone.Cord.View.prototype.setValueForKey = function(key, value) {
 	var newKey, namespace, scope, scopes = Backbone.Cord._scopes;
-	if(key.indexOf(Backbone.Cord.config.subkeySeparator) !== -1) {
+	if(key.indexOf('.') !== -1) {
 		_setObjValue(this, key, value);
 		return this;
 	}
