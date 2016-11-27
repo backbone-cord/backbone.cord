@@ -520,10 +520,8 @@ Backbone.Cord.View.prototype._modelObserver = function(model, options) {
 // Do not modify the array or dictionary returned from this method, they may sometimes simply be an empty return value
 Backbone.Cord.View.prototype._getObservers = function(newKey, namespace) {
 	var observers;
-	if(namespace)
-		observers = this._observers[namespace.toLowerCase()] || {};
-	else
-		observers = this._modelObservers;
+	namespace = namespace || 'model';
+	observers = this._observers[namespace.toLowerCase()] || {};
 	if(newKey)
 		observers = observers[newKey] || [];
 	return observers;
@@ -609,7 +607,9 @@ Backbone.Cord.View.prototype.observe = function(key, observer, immediate) {
 	// If no observers entry set, do model binding
 	if(!found) {
 		namespace = null;
-		observers = this._modelObservers;
+		if(!this._observers.model)
+			this._observers.model = {};
+		observers = this._observers.model;
 		if(key === 'id')
 			key = this.model.idAttribute;
 	}
@@ -641,7 +641,7 @@ Backbone.Cord.View.prototype.unobserve = function(key, observer) {
 	}
 	// If no observers entry set, do model unbinding
 	if(!found) {
-		observers = this._modelObservers;
+		observers = this._observers.model;
 		if(key === 'id')
 			key = this.model.idAttribute;
 	}
@@ -753,11 +753,11 @@ Backbone.Cord.View.prototype.setModel = function(newModel, noCascade) {
 	this.stopListening(current);
 	this.listenTo(this.model, 'change', this._modelObserver);
 	// Detect the changes and invoke observers
-	if(Object.keys(this._modelObservers).length) {
+	if(Object.keys(this._observers.model).length) {
 		// Invoke all observers if the model is the empty model
 		if(this.model === Backbone.Cord.EmptyModel) {
-			for(key in this._modelObservers) {
-				if(this._modelObservers.hasOwnProperty(key))
+			for(key in this._observers.model) {
+				if(this._observers.model.hasOwnProperty(key))
 					this._invokeObservers(key);
 			}
 		}
@@ -835,8 +835,6 @@ Backbone.Cord.View.prototype._ensureElement = function() {
 		this.model = new proto.model();
 	this.subviews = {};
 	this._observers = {};
-	this._modelObservers = {};
-	this._sharedObservers = {};
 	// Run plugin create hooks
 	this._callPlugins('create', {});
 	// Synthesize any declared properties
@@ -884,8 +882,6 @@ Backbone.Cord.View.prototype.remove = function() {
 	// Previously, a backwards loop called unobserve for each observer, but unobserve does not do any extra needed cleanup, so just set null
 	// e.g. for(i = this._observers[key].length - 1; i >= 0; --i) this.unobserve(...);
 	this._observers = null;
-	this._modelObservers = null;
-	this._sharedObservers = null;
 	this.trigger('remove', this);
 	return __remove.apply(this, arguments);
 };
