@@ -444,7 +444,7 @@ Backbone.Cord.plugins._register = function(plugin, fnc) {
 	}
 	// Register a variable scope
 	if(plugin.scope)
-		Backbone.Cord._scopes[plugin.name] = plugin.scope;
+		Backbone.Cord._scopes[plugin.scope.namespace.toLowerCase()] = plugin.scope;
 	return fnc.call(this, plugin);
 };
 Backbone.Cord.plugins.unshift = function(plugin) {
@@ -518,19 +518,19 @@ Backbone.Cord.View.prototype._modelObserver = function(model, options) {
 	}
 };
 // Do not modify the array or dictionary returned from this method, they may sometimes simply be an empty return value
-Backbone.Cord.View.prototype._getObservers = function(newKey, scope) {
+Backbone.Cord.View.prototype._getObservers = function(newKey, namespace) {
 	var observers;
-	if(scope)
-		observers = this._observers[scope] || {};
+	if(namespace)
+		observers = this._observers[namespace.toLowerCase()] || {};
 	else
 		observers = this._modelObservers;
 	if(newKey)
 		observers = observers[newKey] || [];
 	return observers;
 };
-Backbone.Cord.View.prototype._invokeObservers = function(newKey, value, scope) {
-	Backbone.Cord.log(newKey, value, scope);
-	var i, observers = this._getObservers(newKey, scope);
+Backbone.Cord.View.prototype._invokeObservers = function(newKey, value, namespace) {
+	Backbone.Cord.log(newKey, value, namespace);
+	var i, observers = this._getObservers(newKey, namespace);
 	for(i = 0; i < observers.length; ++i)
 		observers[i].call(this, newKey, value);
 	return this;
@@ -550,7 +550,7 @@ function _applySubkeys(func, key) {
 	};
 }
 Backbone.Cord.View.prototype.observe = function(key, observer, immediate) {
-	var name, immediateCallback, newKey, found, scope, scopes, observers;
+	var immediateCallback, newKey, found, namespace, scope, scopes, observers;
 	if(typeof observer === 'string')
 		observer = this[observer] || _createSetValueCallback(observer);
 	if(typeof observer !== 'function')
@@ -584,17 +584,17 @@ Backbone.Cord.View.prototype.observe = function(key, observer, immediate) {
 	}
 	// For each scope plugin, stop and observe when an observe method callback returns a string
 	if(immediate)
-		immediateCallback = function(key, name) { observer.call(this, key, name ? scopes[name].getValue.call(this, key) : this.model.get(key)); };
-	for(name in scopes) {
-		if(scopes.hasOwnProperty(name)) {
-			scope = scopes[name];
+		immediateCallback = function(key, namespace) { observer.call(this, key, namespace ? scopes[namespace].getValue.call(this, key) : this.model.get(key)); };
+	for(namespace in scopes) {
+		if(scopes.hasOwnProperty(namespace)) {
+			scope = scopes[namespace];
 			newKey = scope.getKey.call(this, key);
 			if(typeof newKey === 'string') {
 				key = newKey;
 				scope.observe.call(this, key, observer, immediate);
-				if(!this._observers[name])
-					this._observers[name] = {};
-				observers = this._observers[name];
+				if(!this._observers[namespace])
+					this._observers[namespace] = {};
+				observers = this._observers[namespace];
 				found = true;
 				break;
 			}
@@ -602,7 +602,7 @@ Backbone.Cord.View.prototype.observe = function(key, observer, immediate) {
 	}
 	// If no observers entry set, do model binding
 	if(!found) {
-		name = null;
+		namespace = null;
 		observers = this._modelObservers;
 		if(key === 'id')
 			key = this.model.idAttribute;
@@ -612,22 +612,22 @@ Backbone.Cord.View.prototype.observe = function(key, observer, immediate) {
 		observers[key] = [];
 	observers[key].push(observer);
 	if(immediate)
-		requestAnimationFrame(immediateCallback.bind(this, key, name));
+		requestAnimationFrame(immediateCallback.bind(this, key, namespace));
 	return this;
 };
 Backbone.Cord.View.prototype.unobserve = function(key, observer) {
-	var newKey, name, observers, index, found, scope, scopes = Backbone.Cord._scopes;
+	var newKey, namespace, observers, index, found, scope, scopes = Backbone.Cord._scopes;
 	if(typeof observer === 'string')
 		observer = this[observer];
 	if(!observer)
 		return this;
-	for(name in scopes) {
-		if(scopes.hasOwnProperty(name)) {
-			scope = scopes[name];
+	for(namespace in scopes) {
+		if(scopes.hasOwnProperty(namespace)) {
+			scope = scopes[namespace];
 			newKey = scope.getKey.call(this, key);
 			if(typeof newKey === 'string') {
 				key = newKey;
-				observers = this._observers[name];
+				observers = this._observers[namespace];
 				found = true;
 				break;
 			}
@@ -657,12 +657,12 @@ function _createSetValueCallback(key) {
 	};
 }
 Backbone.Cord.View.prototype.getValueForKey = function(key) {
-	var newKey, name, scope, scopes = Backbone.Cord._scopes;
+	var newKey, namespace, scope, scopes = Backbone.Cord._scopes;
 	if(key.indexOf(Backbone.Cord.config.subkeySeparator) !== -1)
 		return _getObjValue(this, key);
-	for(name in scopes) {
-		if(scopes.hasOwnProperty(name)) {
-			scope = scopes[name];
+	for(namespace in scopes) {
+		if(scopes.hasOwnProperty(namespace)) {
+			scope = scopes[namespace];
 			newKey = scope.getKey.call(this, key);
 			if(typeof newKey === 'string')
 				return scope.getValue.call(this, newKey);
@@ -673,14 +673,14 @@ Backbone.Cord.View.prototype.getValueForKey = function(key) {
 	return this.model.get(key);
 };
 Backbone.Cord.View.prototype.setValueForKey = function(key, value) {
-	var newKey, name, scope, scopes = Backbone.Cord._scopes;
+	var newKey, namespace, scope, scopes = Backbone.Cord._scopes;
 	if(key.indexOf(Backbone.Cord.config.subkeySeparator) !== -1) {
 		_setObjValue(this, key, value);
 		return this;
 	}
-	for(name in scopes) {
-		if(scopes.hasOwnProperty(name)) {
-			scope = scopes[name];
+	for(namespace in scopes) {
+		if(scopes.hasOwnProperty(namespace)) {
+			scope = scopes[namespace];
 			newKey = scope.getKey.call(this, key);
 			if(typeof newKey === 'string') {
 				scope.setValue.call(this, newKey, value);

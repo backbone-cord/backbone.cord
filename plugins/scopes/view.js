@@ -1,7 +1,7 @@
 ;(function(Backbone) {
 'use strict';
 
-var SCOPE_NAME = 'viewscope';
+var NAMESPACE = 'this';
 
 function _propertyObserver(key, prevSet) {
 	var newSet = function(value) {
@@ -9,7 +9,7 @@ function _propertyObserver(key, prevSet) {
 			prevSet.call(this, value);
 		else
 			this['_' + key] = value;
-		this._invokeObservers(key, this[key], SCOPE_NAME);
+		this._invokeObservers(key, this[key], NAMESPACE);
 	};
 	newSet._cordWrapped = true;
 	newSet._prevSet = prevSet;
@@ -20,11 +20,12 @@ function _propertyObserver(key, prevSet) {
 // Partly based on the watch/unwatch polyfill here: https://gist.github.com/eligrey/384583
 // If wrapping properties, be sure to set configurable: true and (recommended) enumerable: true
 Backbone.Cord.plugins.push({
-	name: SCOPE_NAME,
+	name: 'viewscope',
 	config: {
 		viewPrefix: '_'
 	},
 	scope: {
+		namespace: NAMESPACE,
 		getKey: function(key) {
 			if(key.indexOf(Backbone.Cord.config.viewPrefix) === 0)
 				return key.substr(Backbone.Cord.config.viewPrefix.length);
@@ -53,7 +54,7 @@ Backbone.Cord.plugins.push({
 			}
 		},
 		unobserve: function(key) {
-			if(!this._getObservers(key, SCOPE_NAME).length) {
+			if(!this._getObservers(key, NAMESPACE).length) {
 				var prop = Object.getOwnPropertyDescriptor(this, key);
 				if(prop.set._prevSet) {
 					// Unwrap the previous set method

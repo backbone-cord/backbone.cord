@@ -1,7 +1,7 @@
 ;(function(Backbone) {
 'use strict';
 
-var SCOPE_NAME = 'sharedscope';
+var NAMESPACE = 'shared';
 
 function _modelObserver(model) {
 	var key, changed = model.changedAttributes();
@@ -9,7 +9,7 @@ function _modelObserver(model) {
 		return;
 	for(key in changed) {
 		if(changed.hasOwnProperty(key))
-			this._invokeObservers(key, changed[key], SCOPE_NAME);
+			this._invokeObservers(key, changed[key], NAMESPACE);
 	}
 }
 
@@ -21,21 +21,22 @@ Backbone.Cord.Shared = {
 // Listeners on the model are automatically added and removed
 // Final cleanup is automatic on remove() when backbone calls stopListening()
 Backbone.Cord.plugins.push({
-	name: SCOPE_NAME,
+	name: 'sharedscope',
 	config: {
 		sharedPrefix: '$'
 	},
 	scope: {
+		namespace: NAMESPACE,
 		getKey: function(key) {
 			if(key.indexOf(Backbone.Cord.config.sharedPrefix) === 0)
 				return key.substr(Backbone.Cord.config.sharedPrefix.length);
 		},
 		observe: function() {
-			if(!Object.keys(this._getObservers(null, SCOPE_NAME)).length)
+			if(!Object.keys(this._getObservers(null, NAMESPACE)).length)
 				this.listenTo(Backbone.Cord.Shared.model, 'change', _modelObserver);
 		},
 		unobserve: function() {
-			if(!Object.keys(this._getObservers(null, SCOPE_NAME)).length)
+			if(!Object.keys(this._getObservers(null, NAMESPACE)).length)
 				this.stopListening(Backbone.Cord.Shared.model, 'change', _modelObserver);
 		},
 		getValue: function(key) {
