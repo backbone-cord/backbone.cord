@@ -79,7 +79,7 @@ function _addRules(vuid, rules, _styles, selector, media, id) {
 						separator = ' ';
 						query = query.substr(Backbone.Cord.config.allPrefix.length);
 					}
-					if('_#'.indexOf(query[0]) !== -1)
+					if(query[0] === '#')
 						idQuery = query.substr(1);
 					if(idQuery && !Backbone.Cord.regex.testIdProperty(idQuery, true))
 						idQuery = null;
@@ -102,12 +102,14 @@ function _addRules(vuid, rules, _styles, selector, media, id) {
 				else {
 					var rule = selector + '{' + _getStylePrefix(key, true) + _camelCaseToDash(key) + ':' + value + ';}';
 					Backbone.Cord.log('@' + media,  rule);
-					sheet.insertRule(rule, 0);
+					sheet.insertRule(rule, sheet.rules.length);
 				}
 			}
 		}
 	}
 }
+
+var atKeyframes = '@' + _getStylePrefix('animationName', true) + 'keyframes ';
 
 function _addAnimations(vuid, animations) {
 	var sheet = Backbone.Cord._styleSheets.animations;
@@ -142,9 +144,9 @@ function _addAnimations(vuid, animations) {
 					}
 				}
 				animation.name = key + '-' + vuid;
-				rule = '@keyframes ' + animation.name + '{' + rule + '}';
+				rule = atKeyframes + animation.name + '{' + rule + '}';
 				Backbone.Cord.log(rule);
-				sheet.insertRule(rule, 0);
+				sheet.insertRule(rule, sheet.rules.length);
 			}
 		}
 	}
