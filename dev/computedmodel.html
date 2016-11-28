@@ -19,7 +19,7 @@
 			return nickName + ' ' + lastName;
 		})
 		var View = Backbone.View.extend({
-			el: function(h) { return h('p', 'My name is {name} and my nickname is {nick}'); },
+			el: function(h) { return h('p', 'My name is {model.name} and my nickname is {model.nick}'); },
 		});
 		$(document.body).append((new View({model: window.model})).el);
 	});

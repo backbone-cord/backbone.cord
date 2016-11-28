@@ -12,8 +12,8 @@
 		var FileSizeView = Backbone.View.extend({
 			el: function(h) {
 				return h('p',
-						h('input', {input: '_bytes'}),
-						' bytes is equal to {_bytes|filesize}.'
+						h('input', {input: 'bytes'}),
+						' bytes is equal to {bytes|filesize}.'
 					);
 			},
 			properties: { bytes: 0 }

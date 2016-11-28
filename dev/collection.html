@@ -29,10 +29,10 @@
 	$(function() {
 		var ItemView = Backbone.View.extend({
 			el: function(h) {
-				return h('tr.is-selected(_selected)', {onclick: '_onClick'},
-							h('td', '{firstName}'),
-							h('td', '{lastName}'),
-							h('td', '{version}')
+				return h('tr.is-selected(selected)', {onclick: '_onClick'},
+							h('td', '{model.firstName}'),
+							h('td', '{model.lastName}'),
+							h('td', '{model.version}')
 						);
 			},
 			properties: {
@@ -42,7 +42,7 @@
 		});
 		var DetailsView = Backbone.View.extend({
 			el: function(h) {
-				return h('p', {hidden:'!firstName'}, 'The selected first name is: {firstName}. The selected last name is: {lastName}.');
+				return h('p', {hidden:'!model.firstName'}, 'The selected first name is: {model.firstName}. The selected last name is: {model.lastName}.');
 			}
 		});
 		var CollectionView = Backbone.View.extend({
@@ -59,7 +59,7 @@
 								h('tbody#container')
 							),
 							s(DetailsView),
-							h('', 'Viewing {_start} - {_end} out of {_length}.')
+							h('', 'Viewing {start} - {end} out of {length}.')
 						);
 			},
 			itemView: ItemView,

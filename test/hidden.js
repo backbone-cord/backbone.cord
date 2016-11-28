@@ -7,8 +7,8 @@ describe('hidden plugin', function() {
 		view = new (Backbone.View.extend({
 			el: function(h) {
 				return h('',
-						h('#whenfalse', {hidden: '!_value'}, 'Visible when false'),
-						h('#whentrue', {hidden: '_value'}, 'Visible when true')
+						h('#whenfalse', {hidden: '!value'}, 'Visible when false'),
+						h('#whentrue', {hidden: 'value'}, 'Visible when true')
 					);
 			},
 			properties: {

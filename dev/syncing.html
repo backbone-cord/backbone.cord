@@ -14,7 +14,7 @@
 		var View = Backbone.View.extend({
 			className: 'syncView',
 			styles: {
-				'_status': {
+				'#status': {
 					backgroundColor: 'lightgreen',
 					border: '3px solid green',
 					fontWeight: 'bold',
@@ -24,7 +24,7 @@
 			},
 			el: function(h) {
 				return h('',
-						h('p#status', {hidden: '!_syncing'}, 'Syncing started - :={_syncProgress} * 100=:%'),
+						h('p#status', {hidden: '!syncing'}, 'Syncing started - :={syncProgress} * 100=:%'),
 						h('p', h('button', {type: 'button', onclick: 'fetch'}, 'Fetch'))
 					);
 			},

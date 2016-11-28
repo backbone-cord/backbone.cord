@@ -33,12 +33,20 @@ function _getObjValue(obj, keys) {
 	keys = Array.isArray(keys) ? keys : keys.split('.');
 	for(i = 0; i < keys.length; ++i) {
 		key = keys[i];
-		if(obj instanceof Backbone.Cord.View)
+		if(obj instanceof Backbone.Cord.View) {
+			// If a namespace is included in the keys pass the pair (which is still a single key) to getValueForKey
+			if(Backbone.Cord._scopes[key.toLowerCase()] && ((i + 1) < keys.length)) {
+				i += 1;
+				key = key + '.' + keys[i];
+			}
 			obj = obj.getValueForKey(key);
-		else if(obj instanceof Backbone.Model)
+		}
+		else if(obj instanceof Backbone.Model) {
 			obj = (key === 'id' ? obj.id : obj.get(key));
-		else if(obj)
+		}
+		else if(obj) {
 			obj = obj[key];
+		}
 	}
 	return obj;
 }
@@ -261,8 +269,7 @@ function _createText(str) {
 Backbone.Cord = {
 	VERSION: '1.0.10',
 	config: {
-		idProperties: true,
-		oncePrefix: '%'
+		idProperties: true
 	},
 	// Collection of reusable regular expression objects
 	// NOTE: Do not use the regex functions test/exec when the global flag is set because it is stateful (lastIndex). Instead use string methods search/match
@@ -345,6 +352,20 @@ Backbone.Cord.log = (debug ? function() {
 	args.unshift(format.join(' | '));
 	console.log.apply(console, args);
 } : function(){});
+
+// Override or wrap to provide different keyPath processing, different prefixes, or shorthands
+// The return value must be an array of the different key path components, with the first being the namespace normalized to lowercase
+Backbone.Cord.parseKeyPath = function(keyPath) {
+	var components;
+	keyPath = keyPath.replace(/__/g, '.');
+	components = keyPath.split('.');
+	// Default to the view scope
+	if(components.length === 1 || !Backbone.Cord._scopes[components[0].toLowerCase()])
+		components.unshift('this');
+	else
+		components[0] = components[0].toLowerCase();
+	return components;
+};
 
 Backbone.Cord.hasId = function(el) {
 	return !!el.getAttribute('data-id');
@@ -505,58 +526,88 @@ Backbone.Cord.View.prototype._synthesizeProperty = function(key, definition) {
 	Object.defineProperty(this, '_' + key, {configurable: false, enumerable: false, value: value, writable: true});
 };
 
-Backbone.Cord.View.prototype._modelObserver = function(model, options) {
-	var key, changed = options._changed || model.changedAttributes();
-	if(!changed)
-		return;
-	for(key in changed) {
-		if(changed.hasOwnProperty(key))
-			this._invokeObservers(key, changed[key]);
-	}
-};
-// Do not modify the array or dictionary returned from this method, they may sometimes simply be an empty return value
-Backbone.Cord.View.prototype._getObservers = function(newKey, namespace) {
+// Do not externally modify the array or object returned from this method
+// An empty array or object are returned when no observers exist
+// key argument is optional
+// create is also optional and if true will interally create the observer array or object as needed
+Backbone.Cord.View.prototype._getObservers = function(namespace, key, create) {
 	var observers;
-	namespace = namespace || 'model';
-	observers = this._observers[namespace.toLowerCase()] || {};
-	if(newKey)
-		observers = observers[newKey] || [];
+	namespace = namespace.toLowerCase();
+	observers = this._observers[namespace];
+	if(!observers) {
+		observers = {};
+		if(create)
+			this._observers[namespace] = observers;
+	}
+	if(key) {
+		if(!observers[key]) {
+			if(create)
+				observers = observers[key] = [];
+			else
+				observers = [];
+		}
+		else {
+			observers = observers[key];
+		}
+	}
 	return observers;
 };
-Backbone.Cord.View.prototype._hasObservers = function(newKey, namespace) {
-	var observers = this._getObservers(newKey, namespace);
+Backbone.Cord.View.prototype._hasObservers = function(namespace, key) {
+	var observers = this._getObservers(namespace, key);
 	if(Array.isArray(observers))
 		return !!observers.length;
 	return !!Object.keys(observers).length;
 };
-Backbone.Cord.View.prototype._invokeObservers = function(newKey, value, namespace) {
-	Backbone.Cord.log(newKey, value, namespace);
-	var i, observers = this._getObservers(newKey, namespace);
+Backbone.Cord.View.prototype._addObserver = function(namespace, key, observer) {
+	var observers = this._getObservers(namespace, key, true);
+	observers.push(observer);
+};
+Backbone.Cord.View.prototype._removeObserver = function(namespace, key, observer) {
+	var observers = this._getObservers(namespace);
+	if(observers[key]) {
+		var index = observers[key].indexOf(observer);
+		if(index !== -1) {
+			observers[key].splice(index, 1);
+			if(!observers[key].length)
+				delete observers[key];
+		}
+	}
+};
+Backbone.Cord.View.prototype._invokeObservers = function(namespace, key, value) {
+	Backbone.Cord.log(namespace, key, value);
+	var i, observers = this._getObservers(namespace, key);
 	for(i = 0; i < observers.length; ++i)
-		observers[i].call(this, newKey, value);
+		observers[i].call(this, key, value);
 	return this;
 };
 function _applyFilters(func, filters) {
-	return function(newKey, val) {
+	return function(key, value) {
 		for(var i = 0; i < filters.length; ++i)
-			val = filters[i](val);
-		return func.call(this, newKey, val);
+			value = filters[i](value);
+		return func.call(this, key, value);
 	};
 }
-function _applySubkeys(func, key) {
-	var keys = key.split('.');
-	keys.shift();
-	return function(newKey, val) {
-		return func.call(this, newKey, _getObjValue(val, keys));
+function _applyNegation(func) {
+	return function(key, value) {
+		func.call(this, key, !Backbone.Cord.convertToBool(value));
+	};
+}
+function _applySubkeys(func, keys) {
+	return function(key, value) {
+		return func.call(this, key, _getObjValue(value, keys));
 	};
 }
 Backbone.Cord.View.prototype.observe = function(key, observer, immediate) {
-	var immediateCallback, newKey, found, namespace, scope, scopes, observers;
+	var path, namespace, scope;
 	if(typeof observer === 'string')
 		observer = this[observer] || _createSetValueCallback(observer);
 	if(typeof observer !== 'function')
 		return this;
-	scopes = Backbone.Cord._scopes;
+	// If key starts with ! then apply a negation
+	if(key[0] === '!') {
+		key = key.substr(1);
+		observer = _applyNegation(observer);
+	}
 	// Apply any filters to the observer function
 	if(key.indexOf('|') !== -1) {
 		var i, filters = [], names = key.split('|');
@@ -565,135 +616,67 @@ Backbone.Cord.View.prototype.observe = function(key, observer, immediate) {
 			filters.push(Backbone.Cord.filters[names[i].trim()] || Math[names[i].trim()]);
 		observer = _applyFilters(observer, filters);
 	}
-	// Support any subkeys but only changes to the top-level key are observed
-	if(key.indexOf('.') !== -1) {
-		observer = _applySubkeys(observer, key);
-		key = key.split('.', 1)[0];
-	}
-	// If key starts with oncePrefix, just do an immediate timeout with the getValue
-	// not compatible with ! and doesn't include the key on callback
-	if(key.indexOf(Backbone.Cord.config.oncePrefix) === 0) {
-		key = key.substr(Backbone.Cord.config.oncePrefix.length);
+	// If key starts with %, just do an immediate timeout with the getValue
+	// Doesn't include the key on callback since this is used only for binding straight to some output
+	if(key[0] === '%') {
+		key = key.substr(1);
 		requestAnimationFrame(function() { observer.call(this, null, this.getValueForKey.call(this, key)); }.bind(this));
 		return this;
 	}
-	// If key starts with ! then apply a not wrapper to the observer function
-	if(key[0] === '!') {
-		var prevObserver = observer;
-		key = key.substr(1);
-		observer = function(key, value) { prevObserver.call(this, key, !Backbone.Cord.convertToBool(value)); };
-	}
-	// For each scope plugin, stop and observe when an observe method callback returns a string
+	path = Backbone.Cord.parseKeyPath(key);
+	namespace = path[0];
+	key = path[1];
+	scope = Backbone.Cord._scopes[namespace];
+	// Support any subkeys but only changes to the top-level key are observed
+	if(path.length > 2)
+		observer = _applySubkeys(observer, path.slice(2));
+	// Add the observer
+	scope.observe.call(this, key, observer, immediate);
+	this._addObserver(namespace, key, observer);
 	if(immediate)
-		immediateCallback = function(key, namespace) { observer.call(this, key, namespace ? scopes[namespace].getValue.call(this, key) : this.model.get(key)); };
-	for(namespace in scopes) {
-		if(scopes.hasOwnProperty(namespace)) {
-			scope = scopes[namespace];
-			newKey = scope.getKey.call(this, key);
-			if(typeof newKey === 'string') {
-				key = newKey;
-				scope.observe.call(this, key, observer, immediate);
-				if(!this._observers[namespace])
-					this._observers[namespace] = {};
-				observers = this._observers[namespace];
-				found = true;
-				break;
-			}
-		}
-	}
-	// If no observers entry set, do model binding
-	if(!found) {
-		namespace = null;
-		if(!this._observers.model)
-			this._observers.model = {};
-		observers = this._observers.model;
-		if(key === 'id')
-			key = this.model.idAttribute;
-	}
-	// Register the observer
-	if(!observers[key])
-		observers[key] = [];
-	observers[key].push(observer);
-	if(immediate)
-		requestAnimationFrame(immediateCallback.bind(this, key, namespace));
+		requestAnimationFrame(function() { observer.call(this, key, scope.getValue.call(this, key)); }.bind(this));
 	return this;
 };
 Backbone.Cord.View.prototype.unobserve = function(key, observer) {
-	var newKey, namespace, observers, index, found, scope, scopes = Backbone.Cord._scopes;
+	var path, namespace, scope;
 	if(typeof observer === 'string')
 		observer = this[observer];
 	if(!observer)
 		return this;
-	for(namespace in scopes) {
-		if(scopes.hasOwnProperty(namespace)) {
-			scope = scopes[namespace];
-			newKey = scope.getKey.call(this, key);
-			if(typeof newKey === 'string') {
-				key = newKey;
-				observers = this._observers[namespace];
-				found = true;
-				break;
-			}
-		}
-	}
-	// If no observers entry set, do model unbinding
-	if(!found) {
-		observers = this._observers.model;
-		if(key === 'id')
-			key = this.model.idAttribute;
-	}
-	index = observers[key].indexOf(observer);
-	if(index !== -1)
-		observers[key].splice(index, 1);
-	if(!observers[key].length)
-		delete observers[key];
-	// Do the unobserve callback after removing the observer
-	if(found)
-		scope.unobserve.call(this, key, observer);
+	path = Backbone.Cord.parseKeyPath(key);
+	namespace = path[0];
+	key = path[1];
+	scope = Backbone.Cord._scopes[namespace];
+	// Remove the observer
+	this._removeObserver(namespace, key, observer);
+	scope.unobserve.call(this, key, observer);
 	return this;
 };
 
 // A simple event callback, where the last argument is taken as a value to pass into setValueForKey
-function _createSetValueCallback(key) {
+function _createSetValueCallback(keyPath) {
 	return function() {
-		this.setValueForKey(key, arguments[arguments.length - 1]);
+		this.setValueForKey(keyPath, arguments[arguments.length - 1]);
 	};
 }
-Backbone.Cord.View.prototype.getValueForKey = function(key) {
-	var newKey, namespace, scope, scopes = Backbone.Cord._scopes;
-	if(key.indexOf('.') !== -1)
-		return _getObjValue(this, key);
-	for(namespace in scopes) {
-		if(scopes.hasOwnProperty(namespace)) {
-			scope = scopes[namespace];
-			newKey = scope.getKey.call(this, key);
-			if(typeof newKey === 'string')
-				return scope.getValue.call(this, newKey);
-		}
-	}
-	if(key === 'id')
-		return this.model.id;
-	return this.model.get(key);
+Backbone.Cord.View.prototype.getValueForKey = function(keyPath) {
+	var path, scope, value;
+	path = Backbone.Cord.parseKeyPath(keyPath);
+	scope = Backbone.Cord._scopes[path[0]];
+	value = scope.getValue.call(this, path[1]);
+	if(path.length > 2)
+		value = _getObjValue(value, path.slice(2));
+	return value;
 };
-Backbone.Cord.View.prototype.setValueForKey = function(key, value) {
-	var newKey, namespace, scope, scopes = Backbone.Cord._scopes;
-	if(key.indexOf('.') !== -1) {
-		_setObjValue(this, key, value);
-		return this;
-	}
-	for(namespace in scopes) {
-		if(scopes.hasOwnProperty(namespace)) {
-			scope = scopes[namespace];
-			newKey = scope.getKey.call(this, key);
-			if(typeof newKey === 'string') {
-				scope.setValue.call(this, newKey, value);
-				return this;
-			}
-		}
-	}
-	if(key === 'id')
-		key = this.model.idAttribute;
-	this.model.set(key, value);
+Backbone.Cord.View.prototype.setValueForKey = function(keyPath, value) {
+	var path, scope;
+	path = Backbone.Cord.parseKeyPath(keyPath);
+	scope = Backbone.Cord._scopes[path[0]];
+	// Use _setObjValue with subkeys, code is optimized with the first getValue, also valid is: _setObjValue(this, path, value);
+	if(path.length > 2)
+		_setObjValue(scope.getValue.call(this, path[1]), path.slice(2), value);
+	else
+		scope.setValue.call(this, path[1], value);
 	return this;
 };
 Backbone.Cord.View.prototype.setValuesForKeys = function(values) {
@@ -709,19 +692,6 @@ Backbone.Cord.View.prototype.setValuesForKeys = function(values) {
 	}
 	return this;
 };
-Backbone.Cord.View.prototype.setProperties = function(values) {
-	var i, key;
-	if(_isPlainObj(values)) {
-		for(key in values) {
-			if(values.hasOwnProperty(key))
-				this[key] = values[key];
-		}
-	} else {
-		for(i = 0; (i + 1) < arguments.length; i += 2)
-			this[arguments[i]] = arguments[i + 1];
-	}
-	return this;
-};
 
 Backbone.Cord.View.prototype.getChildById = function(id) {
 	return this.el.querySelector('[data-id="' + id + '-' + this.vuid + '"]');
@@ -732,13 +702,44 @@ Backbone.Cord.View.prototype.getSubviewById = function(id) {
 		return this.subviews[node.getAttribute('data-sid')];
 };
 
+// Built-in model scope that simply wraps access to the model, the model listening for observing is managed by setModel()
+Backbone.Cord._scopes.model = {
+	observe: function(key, observer) {
+		if(key === 'id')
+			this._addObserver('model', this.model.idAttribute, observer);
+	},
+	unobserve: function(key, observer) {
+		if(key === 'id')
+			this._removeObserver('model', this.model.idAttribute, observer);
+	},
+	getValue: function(key) {
+		if(key === 'id')
+			return this.model.id;
+		return this.model.get(key);
+	},
+	setValue: function(key, value) {
+		if(key === 'id')
+			key = this.model.idAttribute;
+		this.model.set(key, value);
+	}
+};
+// Built-in observer for all changes on the model
+Backbone.Cord.View.prototype._modelObserver = function(model, options) {
+	var key, changed = options._changed || model.changedAttributes();
+	if(!changed)
+		return;
+	for(key in changed) {
+		if(changed.hasOwnProperty(key))
+			this._invokeObservers('model', key, changed[key]);
+	}
+};
 // setModel will change the model a View has and invoke any observers
 // For best performance and results, models should normally be provided in the View's constructor - only use setModel to swap out an existing model
 // A default empty model is provided so that Cord and plugins can always count on a model being available, making the logic a bit easier
 // setModel is defined as a method and not a property because it would be too confusing to distinguish between the first set and later changes, this is more explicit
 Backbone.Cord.View.prototype.model = Backbone.Cord.EmptyModel;
 Backbone.Cord.View.prototype.setModel = function(newModel, noCascade) {
-	var key, current, subview;
+	var key, current, subview, observers;
 	if(this.model === newModel)
 		return this;
 	if(!newModel)
@@ -750,12 +751,13 @@ Backbone.Cord.View.prototype.setModel = function(newModel, noCascade) {
 	this.stopListening(current);
 	this.listenTo(this.model, 'change', this._modelObserver);
 	// Detect the changes and invoke observers
-	if(Object.keys(this._observers.model).length) {
+	observers = this._getObservers('model');
+	if(Object.keys(observers).length) {
 		// Invoke all observers if the model is the empty model
 		if(this.model === Backbone.Cord.EmptyModel) {
-			for(key in this._observers.model) {
-				if(this._observers.model.hasOwnProperty(key))
-					this._invokeObservers(key);
+			for(key in observers) {
+				if(observers.hasOwnProperty(key))
+					this._invokeObservers('model', key, void(0));
 			}
 		}
 		else {

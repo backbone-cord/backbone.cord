@@ -6,7 +6,7 @@ describe('subkeys', function() {
 	before(function() {
 		view = new (Backbone.View.extend({
 			el: function(h) {
-				return h('', '{_obj.a} {_obj.b}');
+				return h('', '{obj.a} {obj.b}');
 			},
 			properties: {
 				obj: {

@@ -6,7 +6,7 @@ describe('dynamicclasses plugin', function() {
 	before(function() {
 		view = new (Backbone.View.extend({
 			el: function(h) {
-				return h('.{_value}');
+				return h('.{value}');
 			},
 			properties: {
 				value: 'one'

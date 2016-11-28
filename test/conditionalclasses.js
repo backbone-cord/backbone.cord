@@ -6,7 +6,7 @@ describe('conditionalclasses plugin', function() {
 	before(function() {
 		view = new (Backbone.View.extend({
 			el: function(h) {
-				return h('.red(_value)');
+				return h('.red(value)');
 			},
 			properties: {
 				value: 'one'

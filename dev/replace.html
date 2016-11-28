@@ -21,7 +21,7 @@
 		var SamplesView = Backbone.View.extend({
 			el: function(h) {
 				return h('',
-						'Choose a date: ', h('input', {type: 'date', change: '_value'}),
+						'Choose a date: ', h('input', {type: 'date', change: 'value'}),
 						h('br'),
 						'And another date: ', h('input', {type: 'date'}),
 						h('br'),

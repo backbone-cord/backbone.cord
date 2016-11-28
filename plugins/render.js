@@ -64,7 +64,7 @@ Backbone.Cord.plugins.push({
 				// Instead just a single immediate callback and the actual observer is a debounced render
 				renderedObserver = _once(this.render.bind(this));
 				this.observe = function(key, observer) {
-					Backbone.Cord.View.prototype.observe.call(this, Backbone.Cord.config.oncePrefix + key, observer);
+					Backbone.Cord.View.prototype.observe.call(this, '%' + key, observer);
 					if(!this._renderedObservers[key])
 						Backbone.Cord.View.prototype.observe.call(this, key, this._renderedObservers[key] = renderedObserver);
 				};

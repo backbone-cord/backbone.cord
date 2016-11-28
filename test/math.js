@@ -8,9 +8,9 @@ describe('math plugin', function() {
 			el: function(h) {
 				return h('',
 						h('', '100 added to value is ',
-							h('#add', ':=100 + {_value}=:')),
+							h('#add', ':=100 + {value}=:')),
 						h('', 'value divided by 2 is ',
-							h('#divide', ':={_value}/2=:'))
+							h('#divide', ':={value}/2=:'))
 					);
 			},
 			properties: {
