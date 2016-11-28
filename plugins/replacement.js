@@ -13,8 +13,8 @@ function _getSelectorTag(selector) {
 // selector MUST include a tag, but otherwise must be any valid query selector
 // func is the replacement function taking the args el and fragment and can modify the element by:
 // * Modifying the first argument and return nothing
+// * Modifying the element and add siblings using the documentFragment provided as the second argument and return nothing
 // * Return a completely new element, which may be a subview's el
-// * Modify the element and add siblings using the documentFragment provided as the second argument
 // NOTES:
 // * If replacing an element the old one may still be around with bindings and even as a property through this if an #id is used - be very aware of what the replacement is doing
 // * DO NOT replace any root elements in a view's el layout
@@ -49,7 +49,7 @@ Backbone.Cord.plugins.push({
 		noReplaceAttribute: 'noreplace'
 	},
 	complete: function(context) {
-		var el, i, tag, local, replacements, replacement;
+		var el, i, tag, local, replacements, replacement, fragment, result;
 		if(context.subview)
 			return;
 		el = context.el;
@@ -65,12 +65,17 @@ Backbone.Cord.plugins.push({
 		else
 			replacements = replacements || local;
 		if(replacements) {
-			var fragment = document.createDocumentFragment();
+			fragment = document.createDocumentFragment();
 			fragment.appendChild(el);
 			for(i = 0; i < replacements.length; ++i) {
 				replacement = replacements[i];
-				if(fragment.querySelector(replacement.selector) === el)
-					return replacement.func.call(this, el, fragment) || fragment;
+				if(fragment.querySelector(replacement.selector) === el) {
+					// Perform the replacement and persist any given id
+					result = replacement.func.call(this, el, fragment) || fragment;
+					if(result.nodetype !== Node.DOCUMENT_FRAGMENT_NODE && Backbone.Cord.hasId(el))
+						Backbone.Cord.setId(result, Backbone.Cord.getId(el), this.vuid);
+					return result;
+				}
 			}
 		}
 	}
