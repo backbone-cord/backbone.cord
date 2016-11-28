@@ -65,8 +65,8 @@ function _addRules(vuid, rules, _styles, selector, media, id) {
 				mediaQuery = idQuery = null;
 				separator = '>';
 				query = key;
-				if(query.indexOf(Backbone.Cord.config.mediaPrefix) === 0) {
-					mediaQuery = query.substr(Backbone.Cord.config.mediaPrefix.length);
+				if(query.indexOf(Backbone.Cord.config.mediaQueryPrefix) === 0) {
+					mediaQuery = query.substr(Backbone.Cord.config.mediaQueryPrefix.length);
 					if(!Backbone.Cord.Styles.mediaQueries[mediaQuery])
 						return;
 				}
@@ -75,9 +75,9 @@ function _addRules(vuid, rules, _styles, selector, media, id) {
 						separator = query[0];
 						query = query.substr(1);
 					}
-					else if(query.indexOf(Backbone.Cord.config.allPrefix) === 0) {
+					else if(query.indexOf(Backbone.Cord.config.allSelectorPrefix) === 0) {
 						separator = ' ';
-						query = query.substr(Backbone.Cord.config.allPrefix.length);
+						query = query.substr(Backbone.Cord.config.allSelectorPrefix.length);
 					}
 					if(query[0] === '#')
 						idQuery = query.substr(1);
@@ -449,8 +449,8 @@ Backbone.Cord.plugins.push({
 	name: 'styles',
 	requirements: ['interpolation'],
 	config: {
-		mediaPrefix: '@',
-		allPrefix: '$'
+		mediaQueryPrefix: '@',
+		allSelectorPrefix: '$'
 	},
 	attrs: _styles,
 	bindings: _styles,
