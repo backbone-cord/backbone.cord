@@ -3,7 +3,7 @@
 
 function _getContainer() {
 	// Look for a child with the container id, but default to the view's el
-	return this.getChildById(Backbone.Cord.config.containerId) || this.el;
+	return this.getChildById(Backbone.Cord.config.renderContainerId) || this.el;
 }
 
 function _createSubview() {
@@ -34,7 +34,7 @@ function _once(func) {
 Backbone.Cord.plugins.push({
 	name: 'render',
 	config: {
-		containerId: 'container'
+		renderContainerId: 'container'
 	},
 	initialize: function() {
 		if(this.render !== Backbone.View.prototype.render) {
