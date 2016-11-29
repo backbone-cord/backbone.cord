@@ -304,9 +304,10 @@ Backbone.Cord = {
 	ForceValue: function(value) { this.value = value; },
 	// Initialize the Cord View class depending on the compatibility mode
 	View: compatibilityMode ? Backbone.View.extend({}) : Backbone.View,
-	// EmptyModel and EmptyView to use as default model and a subview placeholder
+	// EmptyModel, EmptyView, and EmptyCollection to use as default model, subview placeholder, and fallback collection on setCollection(null)
 	EmptyModel: new (Backbone.Model.extend({set: function() { return this; }, toString: function() { return ''; }}))(),
 	EmptyView: Backbone.View.extend({ tagName: 'meta' }),
+	EmptyCollection: new (Backbone.Collection.extend({add: function() { return this; }, reset: function() { return this; }, set: function() { return this; }, toString: function() { return ''; }}))(),
 	// Layout creation methods
 	createElement: _createElement,
 	createSubview: _createSubview,
@@ -845,6 +846,12 @@ Backbone.Cord.View.prototype.setModel = function(newModel, noCascade) {
 
 // setCollection provided as a convention for plugins to wrap
 Backbone.Cord.View.prototype.setCollection = function(newCollection) {
+	if(this.collection === newCollection)
+		return this;
+	if(!newCollection)
+		newCollection = Backbone.Cord.EmptyCollection;
+	if(!(newCollection instanceof Backbone.Collection))
+		throw new Error('Attempting to assign a non-Backbone.Collection to View.collection.');
 	this.stopListening(this.collection);
 	this.collection = newCollection;
 	return this;
