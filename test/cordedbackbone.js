@@ -23,7 +23,6 @@ if(!global.window) {
 	require('../plugins/modeltracking');
 	require('../plugins/replacement');
 	require('../plugins/styles');
-	require('../plugins/scopes/shared');
-	require('../plugins/scopes/view');
+	require('../plugins/sharedscope');
 }
 module.exports = require('backbone');

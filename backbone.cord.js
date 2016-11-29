@@ -481,6 +481,68 @@ Backbone.Cord.View.prototype.createText = _createText;
 Backbone.Cord.View.prototype._callPlugins = _callPlugins;
 Backbone.Cord.View.prototype._createElement = _createElement;
 
+// Built-in view property scope for observing view properties
+// Observe to add observer methods for existing view properties first and model attributes second
+// Partly based on the watch/unwatch polyfill here: https://gist.github.com/eligrey/384583
+// If wrapping properties, be sure to set configurable: true and (recommended) enumerable: true
+function _propertyObserver(key, prevSet) {
+	var newSet = function(value) {
+		if(prevSet)
+			prevSet.call(this, value);
+		else
+			this['_' + key] = value;
+		this._invokeObservers('this', key, this[key]);
+	};
+	newSet._cordWrapped = true;
+	newSet._prevSet = prevSet;
+	return newSet;
+}
+Backbone.Cord._scopes.this = {
+	observe: function(key) {
+		var prop = Object.getOwnPropertyDescriptor(this, key);
+		if(!prop)
+			return;
+		if(!prop.set._cordWrapped) {
+			if(prop.set) {
+				// Just wrap the setter of a defined property
+				Object.defineProperty(this, key, {set: _propertyObserver(key, prop.set)});
+			}
+			else {
+				// Define a new property without an existing defined setter
+				this['_' + key] = this[key];
+				if(delete this[key]) {
+					Object.defineProperty(this, key, {
+						get: this._synthesizeGetter(key),
+						set: _propertyObserver(key),
+						enumerable: true,
+						configurable: true
+					});
+				}
+			}
+		}
+	},
+	unobserve: function(key) {
+		if(!this._hasObservers('this', key)) {
+			var prop = Object.getOwnPropertyDescriptor(this, key);
+			if(prop.set._prevSet) {
+				// Unwrap the previous set method
+				Object.defineProperty(this, key, {set: prop.set._prevSet});
+			}
+			else {
+				// Convert the property back to a normal attribute
+				var value = this[key];
+				delete this[key];
+				this[key] = value;
+			}
+		}
+	},
+	getValue: function(key) {
+		return this[key];
+	},
+	setValue: function(key, value) {
+		this[key] = value;
+	}
+};
 Backbone.Cord.View.prototype._synthesizeGetter = function(key) {
 	key = '_' + key;
 	return function() { return this[key]; };

@@ -52,7 +52,6 @@ function _replaceExpressions(str) {
 // Math needs to run first before other plugins because it changes bindings
 Backbone.Cord.plugins.unshift({
 	name: 'math',
-	requirements: ['viewscope'],
 	attrs: function(context, attrs) {
 		if(!context.isView)
 			return;
