@@ -82,7 +82,7 @@ Backbone.Cord.plugins.push({
 						fragment.appendChild(rendered);
 				}
 				container.appendChild(fragment);
-				this.trigger('render');
+				this.trigger('render', this);
 				return this;
 			};
 			this._rendered = [];
