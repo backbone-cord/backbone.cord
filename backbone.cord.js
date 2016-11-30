@@ -4,7 +4,6 @@
 var Backbone = root.Backbone || require('backbone');
 var compatibilityMode = root.cordCompatibilityMode;
 var debug = root.cordDebug;
-var requestAnimationFrame = root.requestAnimationFrame || setTimeout;
 
 // Returns true if the given object is an instance of Object and not of a subclass or other type
 function _isPlainObj(obj) {
@@ -300,6 +299,9 @@ Backbone.Cord = {
 	randomUID: function() { return (Math.floor((1 + Math.random()) * 0x10000) ^ (Date.now() % 0x10000)).toString(16).substr(1); }, // jshint ignore:line
 	randomGUID: function() { var c4 = this.randomUID; return c4() + c4() + '-' + c4() + '-' + c4() + '-' + c4() + '-' + c4() + c4() + c4(); },
 	randomCode: function(len) { var c = ''; len = len || 12; while(c.length < len) c += this.randomUID(); return c.substr(0, len); },
+	// Run a callback immediately after the current call stack
+	setImmediate: (root.requestAnimationFrame || root.setTimeout).bind(root),
+	clearImmediate: (root.cancelAnimationFrame || root.clearTimeout).bind(root),
 	// Internally set readonly properties with the ForceValue object
 	ForceValue: function(value) { this.value = value; },
 	// Initialize the Cord View class depending on the compatibility mode
@@ -683,7 +685,7 @@ Backbone.Cord.View.prototype.observe = function(key, observer, immediate) {
 	// Doesn't include the key on callback since this is used only for binding straight to some output
 	if(key[0] === '%') {
 		key = key.substr(1);
-		requestAnimationFrame(function() { observer.call(this, null, this.getValueForKey.call(this, key)); }.bind(this));
+		Backbone.Cord.setImmediate(function() { observer.call(this, null, this.getValueForKey.call(this, key)); }.bind(this));
 		return this;
 	}
 	path = Backbone.Cord.parseKeyPath(key);
@@ -697,7 +699,7 @@ Backbone.Cord.View.prototype.observe = function(key, observer, immediate) {
 	scope.observe.call(this, key, observer, immediate);
 	this._addObserver(namespace, key, observer);
 	if(immediate)
-		requestAnimationFrame(function() { observer.call(this, key, scope.getValue.call(this, key)); }.bind(this));
+		Backbone.Cord.setImmediate(function() { observer.call(this, key, scope.getValue.call(this, key)); }.bind(this));
 	return this;
 };
 Backbone.Cord.View.prototype.unobserve = function(key, observer) {

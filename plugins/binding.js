@@ -89,7 +89,7 @@ Backbone.Cord.plugins.push({
 		}
 		// Invoke the reverse listener with the initial value if an initial change event is not expected from an attribute observer
 		if(listener && !expectChange)
-			setTimeout(listener, 0, {currentTarget: context.el});
+			Backbone.Cord.setImmediate(listener.bind(this, {currentTarget: context.el}));
 	},
 	children: function(context, children) {
 		var i, j, child, strings, matches, spliceArgs, node;

@@ -14,11 +14,11 @@ function _createSubview() {
 }
 
 function _once(func) {
-	// Call the inner function but only once on the next tick
+	// Call the inner function only once by tracking a single tid
 	var tid;
 	return function() {
 		if(!tid)
-			tid = setTimeout(func);
+			tid = Backbone.Cord.setImmediate(func);
 	};
 }
 
@@ -57,7 +57,7 @@ Backbone.Cord.plugins.push({
 				}
 				this._renderedObservers = {};
 				// Check to see if arguments have been updated and save them to be used when calling the __render method
-				// The initial setTimeout and observer method both use setTimeout with no arguments, so the arguments should be empty through those calls
+				// The initial setImmediate and observer method both use setImmediate with no arguments, so the arguments should be empty through those calls
 				if(arguments.length)
 					this._renderedArgs = Array.prototype.slice.call(arguments);
 				// Render and replace the observe method while rendering, so that observers bound to elements etc aren't saved

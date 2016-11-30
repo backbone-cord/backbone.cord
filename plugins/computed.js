@@ -27,8 +27,8 @@ function _detectComputedChanges() {
 			}
 		}
 	}
-	// To not interefer with the current change event, use setTimeout to modify the changed object
-	setTimeout(function() {
+	// To not interefer with the current change event, use setImmediate to modify the changed object
+	Backbone.Cord.setImmediate(function() {
 		this.changed = newChanged;
 		this.trigger('change', this, {});
 	}.bind(this), 0);

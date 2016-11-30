@@ -85,7 +85,7 @@ Backbone.Cord.mixins.collection = {
 				this.listenTo(this.collection, 'reset', this._onResetCollection);
 			}
 			// Reset everything after the parent setCollection actually sets this.collection
-			setTimeout(this._onResetCollection.bind(this));
+			Backbone.Cord.setImmediate(this._onResetCollection.bind(this));
 		}
 	},
 	getCollectionContainer: function() {
