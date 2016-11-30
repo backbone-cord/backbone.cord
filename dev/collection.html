@@ -38,14 +38,14 @@
 			properties: {
 				'selected': false
 			},
-			_onClick: function() { this.trigger('select', this.model); }
+			_onClick: function() { this.trigger('select', this); }
 		});
 		var DetailsView = Backbone.View.extend({
 			el: function(h) {
 				return h('p', {hidden:'!model.firstName'}, 'The selected first name is: {model.firstName}. The selected last name is: {model.lastName}.');
 			}
 		});
-		var CollectionView = Backbone.View.extend({
+		var CollectionView = Backbone.View.extend(Backbone.Cord.mixProto('collection', {
 			el: function(h, s) {
 				return h('',
 							h('table',
@@ -68,7 +68,7 @@
 				this.collection.comparator = comparator;
 				this.collection.sort();
 			}
-		});
+		}));
 		window.collection = new Backbone.Collection([
 			{firstName:'Marca', lastName:'Tofu', version: 3},
 			{firstName:'Macro', lastName:'Soft', version: 13},
