@@ -19,17 +19,25 @@ function _getSelectorTag(selector) {
 // * If replacing an element the old one may still be around with bindings and even as a property through this if an #id is used - be very aware of what the replacement is doing
 // * DO NOT replace any root elements in a view's el layout
 // * If the element is the root element for a view and the documentfragment is returned, the remove function will not work properly because the view's el becomes an empty documentfragment
-Backbone.Cord.addReplacement = function(selector, func) {
+function _addReplacement(selector, func) {
+	if(typeof selector === 'object') {
+		var replacements = selector;
+		for(selector in replacements) {
+			if(replacements.hasOwnProperty(selector))
+				_addReplacement(selector, replacements[selector]);
+		}
+		return;
+	}
 	var tag = _getSelectorTag(selector);
 	if(!_replacementTags[tag])
 		_replacementTags[tag] = [];
 	_replacementTags[tag].push({selector: selector, func: func});
-};
+}
 
 // Compile replacement functions local to the view only not global
 // Works well for a mixin or parent class that needs to control how the subclass creates elements
 // The compiled replacements cannot be mixed with other compiled replacements if there is a conflict in selector tags
-Backbone.Cord.compileReplacements = function(replacements) {
+function _compileReplacements(replacements) {
 	var selector, tag, func, compiled = {};
 	for(selector in replacements) {
 		if(replacements.hasOwnProperty(selector)) {
@@ -41,6 +49,11 @@ Backbone.Cord.compileReplacements = function(replacements) {
 		}
 	}
 	return compiled;
+}
+
+Backbone.Cord.Replacements = {
+	add: _addReplacement,
+	compile: _compileReplacements
 };
 
 Backbone.Cord.plugins.push({

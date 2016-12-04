@@ -9,14 +9,14 @@
 	<link rel="stylesheet" href="http://dbushell.github.io/Pikaday/css/pikaday.css">
 	<script type="text/javascript">
 	$(function() {
-		// how is pikaday putting the picker in the document?
-		// how to get the date? because the value is not correct
-		Backbone.Cord.addReplacement('input[type="date"]', function(el) {
-			var picker = new Pikaday({ field: el });
-			this.once('remove', function() { picker.destroy(); });
-		});
-		Backbone.Cord.addReplacement('animal', function(el) {
-			return this.createElement('img', {src: 'http://lorempixel.com/400/200/animals'});
+		Backbone.Cord.Replacements.add({
+			'input[type="date"]': function(el) {
+				var picker = new Pikaday({ field: el });
+				this.once('remove', function() { picker.destroy(); });
+			},
+			'animal': function(el) {
+				return this.createElement('img', {src: 'http://lorempixel.com/400/200/animals'});
+			}
 		});
 		var SamplesView = Backbone.View.extend({
 			el: function(h) {
