@@ -21,7 +21,7 @@ if(!global.window) {
 	require('../plugins/interpolation');
 	require('../plugins/math');
 	require('../plugins/modeltracking');
-	require('../plugins/replacement');
+	require('../plugins/replacements');
 	require('../plugins/styles');
 	require('../plugins/sharedscope');
 }

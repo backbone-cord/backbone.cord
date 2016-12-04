@@ -5,18 +5,18 @@ describe('replacement plugin', function() {
 	var view;
 	before(function() {
 
-		Backbone.Cord.addReplacement('paragraph', function(el) {
+		Backbone.Cord.Replacements.add('paragraph', function(el) {
 			return this.createElement('p.paragraph.replaced');
 		});
 
-		Backbone.Cord.addReplacement('widget', function() {
+		Backbone.Cord.Replacements.add('widget', function() {
 			var fragment = document.createDocumentFragment();
 			fragment.appendChild(this.createElement('label.replaced2'));
 			fragment.appendChild(this.createElement('input.replaced3'));
 			return fragment;
 		});
 
-		Backbone.Cord.addReplacement('div.complex.selector[data-test="dog"]', function() {
+		Backbone.Cord.Replacements.add('div.complex.selector[data-test="dog"]', function() {
 			return this.createElement('h1');
 		});
 
@@ -24,7 +24,7 @@ describe('replacement plugin', function() {
 			el: function(h) {
 				return h('', h('.complex.selector', {'data-test': 'dog'}));
 			},
-			replacements: Backbone.Cord.compileReplacements({
+			replacements: Backbone.Cord.Replacements.compile({
 				'div.complex.selector[data-test="dog"]': function() {
 					return this.createElement('h5');
 				}
