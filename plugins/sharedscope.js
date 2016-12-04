@@ -11,7 +11,7 @@ function _modelObserver(model) {
 	}
 }
 
-Backbone.Cord.Shared = {
+Backbone.Cord.SharedScope = {
 	model: new Backbone.Model()
 };
 
@@ -24,17 +24,17 @@ Backbone.Cord.plugins.push({
 		namespace: 'shared',
 		observe: function() {
 			if(!this._hasObservers('shared'))
-				this.listenTo(Backbone.Cord.Shared.model, 'change', _modelObserver);
+				this.listenTo(Backbone.Cord.SharedScope.model, 'change', _modelObserver);
 		},
 		unobserve: function() {
 			if(!this._hasObservers('shared'))
-				this.stopListening(Backbone.Cord.Shared.model, 'change', _modelObserver);
+				this.stopListening(Backbone.Cord.SharedScope.model, 'change', _modelObserver);
 		},
 		getValue: function(key) {
-			return Backbone.Cord.Shared.model.get(key);
+			return Backbone.Cord.SharedScope.model.get(key);
 		},
 		setValue: function(key, value) {
-			Backbone.Cord.Shared.model.set(key, value);
+			Backbone.Cord.SharedScope.model.set(key, value);
 		}
 	}
 });
