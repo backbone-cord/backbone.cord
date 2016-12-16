@@ -419,6 +419,53 @@ Backbone.Cord.View.prototype.beginTransition = function(selector, styles, option
 	return this;
 };
 
+Backbone.Cord.View.prototype.applyStyles = function(selector, styles) {
+	var elements, i, el, style;
+	if(Backbone.Cord.isPlainObj(selector)) {
+		styles = selector;
+		selector = null;
+	}
+	if(selector)
+		elements = this.el.querySelectorAll(Backbone.Cord.regex.replaceIdSelectors(selector, this.vuid));
+	else
+		elements = [this.el];
+	if(!elements.length)
+		return this;
+	for(i = 0; i < elements.length; ++i) {
+		el = elements[i];
+		for(style in styles) {
+			if(styles.hasOwnProperty(style)) {
+				el.style[_addStylePrefix(style)] = styles[style];
+			}
+		}
+	}
+	return this;
+};
+
+Backbone.Cord.View.prototype.clearStyles = function(selector, styles) {
+	if(Backbone.Cord.isPlainObj(selector)) {
+		styles = selector;
+		selector = null;
+	}
+	styles = Backbone.Cord.copyObj(styles);
+	for(var style in styles) {
+		if(styles.hasOwnProperty(style))
+			styles[style] = '';
+	}
+	this.applyStyles(selector, styles);
+};
+
+// Get styles for a keyframe from an animation with a 0-based index or string as a key
+// Every animation has at least 2 keyframes from/to or 0%/100%, if keyframe is excluded 0% is the default
+Backbone.Cord.View.prototype.getKeyframe = function(animation, keyframe) {
+	var subs = {'0%': 'from', 'from': '0%', '100%': 'to', 'to': '100%'};
+	var styles;
+	animation = this.animations[animation];
+	keyframe = keyframe || '0%';
+	styles = animation[keyframe] || animation[subs[keyframe]];
+	return Backbone.Cord.copyObj(styles);
+};
+
 // Expose useful functions, media queries which can be modified, and some browser info
 Backbone.Cord.Styles = {
 	userAgent: ua,
