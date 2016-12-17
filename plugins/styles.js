@@ -453,6 +453,7 @@ Backbone.Cord.View.prototype.clearStyles = function(selector, styles) {
 			styles[style] = '';
 	}
 	this.applyStyles(selector, styles);
+	return this;
 };
 
 // Get styles for a keyframe from an animation with a 0-based index or string as a key
@@ -464,6 +465,24 @@ Backbone.Cord.View.prototype.getKeyframe = function(animation, keyframe) {
 	keyframe = keyframe || '0%';
 	styles = animation[keyframe] || animation[subs[keyframe]];
 	return Backbone.Cord.copyObj(styles);
+};
+
+Backbone.Cord.View.prototype.applyKeyframe = function(selector, animation, keyframe) {
+	if(this.animations[selector]) {
+		keyframe = animation;
+		animation = selector;
+		selector = null;
+	}
+	return this.applyStyles(selector, this.getKeyframe(animation, keyframe));
+};
+
+Backbone.Cord.View.prototype.clearKeyframe = function(selector, animation, keyframe) {
+	if(this.animations[selector]) {
+		keyframe = animation;
+		animation = selector;
+		selector = null;
+	}
+	return this.clearStyles(selector, this.getKeyframe(animation, keyframe));
 };
 
 // Expose useful functions, media queries which can be modified, and some browser info
