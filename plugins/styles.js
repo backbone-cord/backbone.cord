@@ -133,7 +133,7 @@ function _addAnimations(vuid, animations) {
 					continue;
 				rule = '';
 				for(keyframe in animation) {
-					if(animation.hasOwnProperty(keyframe) && keyframe !== 'options') {
+					if(animation.hasOwnProperty(keyframe) && keyframe !== 'options' && keyframe !== 'aliases') {
 						rule += keyframe + '{';
 						keystyles = animation[keyframe];
 						for(style in keystyles) {
@@ -462,15 +462,49 @@ Backbone.Cord.View.prototype.clearStyles = function(selector, styles) {
 	return this;
 };
 
+var DEFAULT_KEYFRAME_ALIASES = {'0%': 'from', 'from': '0%', '100%': 'to', 'to': '100%'};
+
 // Get styles for a keyframe from an animation with a 0-based index or string as a key
 // Every animation has at least 2 keyframes from/to or 0%/100%, if keyframe is excluded 0% is the default
-Backbone.Cord.View.prototype.getKeyframe = function(animation, keyframe) {
-	var subs = {'0%': 'from', 'from': '0%', '100%': 'to', 'to': '100%'};
-	var styles;
+Backbone.Cord.View.prototype.getKeyframe = function(animation, keyframe, clear) {
+	var aliases, styles;
 	animation = this.animations[animation];
 	keyframe = keyframe || '0%';
-	styles = animation[keyframe] || animation[subs[keyframe]];
-	return Backbone.Cord.copyObj(styles);
+	aliases = animation.aliases || {};
+	styles = animation[keyframe] || animation[DEFAULT_KEYFRAME_ALIASES[keyframe] || aliases[keyframe]];
+	styles = Backbone.Cord.copyObj(styles);
+	if(clear) {
+		for(var style in styles) {
+			if(styles.hasOwnProperty(style))
+				styles[style] = '';
+		}
+	}
+	return styles;
+};
+
+Backbone.Cord.View.prototype.beginKeyframeTransition = function(selector, animation, keyframe, options, callback) {
+	var styles;
+	if(this.animations[selector]) {
+		callback = options;
+		options = keyframe;
+		keyframe = animation;
+		animation = selector;
+		selector = null;
+	}
+	if(typeof keyframe !== 'string') {
+		callback = options;
+		options = keyframe;
+		keyframe = null;
+	}
+	keyframe = keyframe || '0%';
+	styles = this.getKeyframe(animation, keyframe);
+	if(!selector) {
+		var clearKeyframe = this._appliedKeyframes[animation];
+		if(clearKeyframe)
+			styles = Backbone.Cord.mixObj(this.getKeyframe(animation, clearKeyframe, true), styles);
+		this._appliedKeyframes[animation] = keyframe;
+	}
+	return this.beginTransition(selector, styles, options, callback);
 };
 
 Backbone.Cord.View.prototype.applyKeyframe = function(selector, animation, keyframe) {
@@ -479,6 +513,9 @@ Backbone.Cord.View.prototype.applyKeyframe = function(selector, animation, keyfr
 		animation = selector;
 		selector = null;
 	}
+	keyframe = keyframe || '0%';
+	if(!selector)
+		this._appliedKeyframes[animation] = keyframe;
 	return this.applyStyles(selector, this.getKeyframe(animation, keyframe));
 };
 
@@ -487,6 +524,11 @@ Backbone.Cord.View.prototype.clearKeyframe = function(selector, animation, keyfr
 		keyframe = animation;
 		animation = selector;
 		selector = null;
+	}
+	keyframe = keyframe || '0%';
+	if(!selector) {
+		keyframe = this._appliedKeyframes[animation];
+		delete this._appliedKeyframes[animation];
 	}
 	return this.clearStyles(selector, this.getKeyframe(animation, keyframe));
 };
@@ -554,6 +596,7 @@ Backbone.Cord.plugins.push({
 					this.observeFormat(styles[style], _createStyleObserver(this.el, style), true);
 			}
 		}
+		this._appliedKeyframes = {};
 	},
 	complete: function(context) {
 		// Apply any dynamic class styles detected from the initial extend
