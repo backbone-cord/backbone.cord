@@ -143,7 +143,10 @@ function _addAnimations(vuid, animations) {
 						rule += '}';
 					}
 				}
-				animation.name = key + '-' + vuid;
+				if(vuid)
+					animation.name = key + '-' + vuid;
+				else
+					animation.name = key;
 				rule = atKeyframes + animation.name + '{' + rule + '}';
 				Backbone.Cord.log(rule);
 				sheet.insertRule(rule, sheet.rules.length);
@@ -205,7 +208,7 @@ function _parseAnimationSelector(animationSelector, options) {
 	}
 	for(i = 0; i < animations.length; ++i) {
 		key = animations[i];
-		animation = this.animations[key];
+		animation = this.animations[key] || Backbone.Cord.Styles.animations[key];
 		animations[i] = animation.name;
 		if(animation.options)
 			options = Backbone.Cord.mixObj(animation.options, options);
@@ -468,7 +471,7 @@ var DEFAULT_KEYFRAME_ALIASES = {'0%': 'from', 'from': '0%', '100%': 'to', 'to': 
 // Every animation has at least 2 keyframes from/to or 0%/100%, if keyframe is excluded 0% is the default
 Backbone.Cord.View.prototype.getKeyframe = function(animation, keyframe, clear) {
 	var aliases, styles;
-	animation = this.animations[animation];
+	animation = this.animations[animation] || Backbone.Cord.Styles.animations[animation];
 	keyframe = keyframe || '0%';
 	aliases = animation.aliases || {};
 	styles = animation[keyframe] || animation[DEFAULT_KEYFRAME_ALIASES[keyframe] || aliases[keyframe]];
@@ -484,7 +487,7 @@ Backbone.Cord.View.prototype.getKeyframe = function(animation, keyframe, clear) 
 
 Backbone.Cord.View.prototype.beginKeyframeTransition = function(selector, animation, keyframe, options, callback) {
 	var styles;
-	if(this.animations[selector]) {
+	if(this.animations[selector] || Backbone.Cord.Styles.animations[selector]) {
 		callback = options;
 		options = keyframe;
 		keyframe = animation;
@@ -508,7 +511,7 @@ Backbone.Cord.View.prototype.beginKeyframeTransition = function(selector, animat
 };
 
 Backbone.Cord.View.prototype.applyKeyframe = function(selector, animation, keyframe) {
-	if(this.animations[selector]) {
+	if(this.animations[selector] || Backbone.Cord.Styles.animations[selector]) {
 		keyframe = animation;
 		animation = selector;
 		selector = null;
@@ -520,7 +523,7 @@ Backbone.Cord.View.prototype.applyKeyframe = function(selector, animation, keyfr
 };
 
 Backbone.Cord.View.prototype.clearKeyframe = function(selector, animation, keyframe) {
-	if(this.animations[selector]) {
+	if(this.animations[selector] || Backbone.Cord.Styles.animations[selector]) {
 		keyframe = animation;
 		animation = selector;
 		selector = null;
@@ -548,6 +551,19 @@ Backbone.Cord.Styles = {
 		tablet: 'only screen and (max-width: 768px)',
 		phablet: 'only screen and (max-width: 480px)',
 		mobile: 'only screen and (max-width: 320px)'
+	},
+	animations: {},
+	addAnimation: function(nameAnimations, animation) {
+		var animations;
+		if(!Backbone.Cord.isPlainObj(nameAnimations)) {
+			animations = {};
+			animations[nameAnimations] = animation;
+		}
+		else {
+			animations = nameAnimations;
+		}
+		_addAnimations(null, animations);
+		Backbone.Cord.Styles.animations = Backbone.Cord.mixObj(Backbone.Cord.Styles.animations, animations);
 	}
 };
 
