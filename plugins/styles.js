@@ -133,7 +133,7 @@ function _addAnimations(vuid, animations) {
 					continue;
 				rule = '';
 				for(keyframe in animation) {
-					if(animation.hasOwnProperty(keyframe)) {
+					if(animation.hasOwnProperty(keyframe) && keyframe !== 'options') {
 						rule += keyframe + '{';
 						keystyles = animation[keyframe];
 						for(style in keystyles) {
@@ -192,8 +192,8 @@ var DEFAULT_ANIMATION_OPTIONS = {
 	interactive: true
 };
 
-function _parseAnimationSelector(animationSelector) {
-	var components = animationSelector.split(/: */);
+function _parseAnimationSelector(animationSelector, options) {
+	var i, key, animation, components = animationSelector.split(/: */);
 	var animations, elements;
 	if(components.length > 1) {
 		animations = components[1].split(/, */);
@@ -203,8 +203,14 @@ function _parseAnimationSelector(animationSelector) {
 		animations = components[0].split(/, */);
 		elements = [this.el];
 	}
-	animations = animations.map(function(name) { return this.animations[name].name; }.bind(this));
-	return {animations: animations, elements: elements};
+	for(i = 0; i < animations.length; ++i) {
+		key = animations[i];
+		animation = this.animations[key];
+		animations[i] = animation.name;
+		if(animation.options)
+			options = Backbone.Cord.mixObj(animation.options, options);
+	}
+	return {animations: animations, elements: elements, options: options};
 }
 
 function _getStyleListIndices(list, names) {
@@ -254,13 +260,13 @@ Backbone.Cord.View.prototype.beginAnimation = function(animationSelector, option
 			this.beginAnimation(animationSelector[i], options);
 		animationSelector = animationSelector[0];
 	}
-	options = Backbone.Cord.mixObj(DEFAULT_ANIMATION_OPTIONS, options);
-	pointerEvents = options.interactive ? '' : 'none';
-	parsed = _parseAnimationSelector.call(this, animationSelector);
+	parsed = _parseAnimationSelector.call(this, animationSelector, options);
 	animations = parsed.animations;
 	elements = parsed.elements;
 	if(!elements.length)
 		return this;
+	options = Backbone.Cord.mixObj(DEFAULT_ANIMATION_OPTIONS, parsed.options);
+	pointerEvents = options.interactive ? '' : 'none';
 	for(i = 0; i < elements.length; ++i) {
 		el = elements[i];
 		separator = !!el.style.animationName ? ',' : '';
