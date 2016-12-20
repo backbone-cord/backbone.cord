@@ -286,6 +286,7 @@ Backbone.Cord.View.prototype.beginAnimation = function(animationSelector, option
 			separator = ',';
 		}
 	}
+	// Add an iteration and end listener
 	if(parseInt(options.count) > 1 && callback) {
 		iteration = 0;
 		iterationListener = function(e) {
@@ -467,17 +468,22 @@ Backbone.Cord.View.prototype.clearStyles = function(selector, styles) {
 
 var DEFAULT_KEYFRAME_ALIASES = {'0%': 'from', 'from': '0%', '100%': 'to', 'to': '100%'};
 
-// Get styles for a keyframe from an animation with a 0-based index or string as a key
+// Get styles for a keyframe from an animation with a keyframe key
+// Animation properties such as animation-timing-function are excluded
 // Every animation has at least 2 keyframes from/to or 0%/100%, if keyframe is excluded 0% is the default
 Backbone.Cord.View.prototype.getKeyframe = function(animation, keyframe, clear) {
-	var aliases, styles;
+	var aliases, style, styles;
 	animation = this.animations[animation] || Backbone.Cord.Styles.animations[animation];
 	keyframe = keyframe || '0%';
 	aliases = animation.aliases || {};
 	styles = animation[keyframe] || animation[DEFAULT_KEYFRAME_ALIASES[keyframe] || aliases[keyframe]];
 	styles = Backbone.Cord.copyObj(styles);
+	for(style in styles) {
+		if(style.indexOf('animation') === 0 && styles.hasOwnProperty(style))
+			delete styles[style];
+	}
 	if(clear) {
-		for(var style in styles) {
+		for(style in styles) {
 			if(styles.hasOwnProperty(style))
 				styles[style] = '';
 		}
