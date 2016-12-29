@@ -2,6 +2,7 @@
 'use strict';
 
 Backbone.Cord.mixins.collection = {
+	collection: Backbone.Cord.EmptyCollection,
 	properties: {
 		length: {
 			readonly: true,
@@ -79,10 +80,10 @@ Backbone.Cord.mixins.collection = {
 		// Setup event listeners on the collection
 		if(this.collection !== newCollection || init) {
 			if(newCollection) {
-				this.listenTo(this.collection, 'add', this._onAddItem);
-				this.listenTo(this.collection, 'remove', this._onRemoveItem);
-				this.listenTo(this.collection, 'sort', this._onSortCollection);
-				this.listenTo(this.collection, 'reset', this._onResetCollection);
+				this.listenTo(newCollection, 'add', this._onAddItem);
+				this.listenTo(newCollection, 'remove', this._onRemoveItem);
+				this.listenTo(newCollection, 'sort', this._onSortCollection);
+				this.listenTo(newCollection, 'reset', this._onResetCollection);
 			}
 			// Reset everything after the parent setCollection actually sets this.collection
 			Backbone.Cord.setImmediate(this._onResetCollection.bind(this));

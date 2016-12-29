@@ -847,6 +847,7 @@ Backbone.Cord.View.prototype.setModel = function(newModel, noCascade) {
 };
 
 // setCollection provided as a convention for plugins to wrap
+// NOTE: Backbone.Cord.View.prototype.collection is set to EmptyCollection only in the collection mixin
 Backbone.Cord.View.prototype.setCollection = function(newCollection) {
 	if(this.collection === newCollection)
 		return this;
