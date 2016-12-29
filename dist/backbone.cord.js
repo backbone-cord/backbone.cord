@@ -847,6 +847,7 @@ Backbone.Cord.View.prototype.setModel = function(newModel, noCascade) {
 };
 
 // setCollection provided as a convention for plugins to wrap
+// NOTE: Backbone.Cord.View.prototype.collection is set to EmptyCollection only in the collection mixin
 Backbone.Cord.View.prototype.setCollection = function(newCollection) {
 	if(this.collection === newCollection)
 		return this;
@@ -1084,6 +1085,7 @@ Backbone.Cord.plugins.push({
 'use strict';
 
 Backbone.Cord.mixins.collection = {
+	collection: Backbone.Cord.EmptyCollection,
 	properties: {
 		length: {
 			readonly: true,
@@ -1161,10 +1163,10 @@ Backbone.Cord.mixins.collection = {
 		// Setup event listeners on the collection
 		if(this.collection !== newCollection || init) {
 			if(newCollection) {
-				this.listenTo(this.collection, 'add', this._onAddItem);
-				this.listenTo(this.collection, 'remove', this._onRemoveItem);
-				this.listenTo(this.collection, 'sort', this._onSortCollection);
-				this.listenTo(this.collection, 'reset', this._onResetCollection);
+				this.listenTo(newCollection, 'add', this._onAddItem);
+				this.listenTo(newCollection, 'remove', this._onRemoveItem);
+				this.listenTo(newCollection, 'sort', this._onSortCollection);
+				this.listenTo(newCollection, 'reset', this._onResetCollection);
 			}
 			// Reset everything after the parent setCollection actually sets this.collection
 			Backbone.Cord.setImmediate(this._onResetCollection.bind(this));
@@ -1973,17 +1975,25 @@ function _getSelectorTag(selector) {
 // * If replacing an element the old one may still be around with bindings and even as a property through this if an #id is used - be very aware of what the replacement is doing
 // * DO NOT replace any root elements in a view's el layout
 // * If the element is the root element for a view and the documentfragment is returned, the remove function will not work properly because the view's el becomes an empty documentfragment
-Backbone.Cord.addReplacement = function(selector, func) {
+function _addReplacement(selector, func) {
+	if(typeof selector === 'object') {
+		var replacements = selector;
+		for(selector in replacements) {
+			if(replacements.hasOwnProperty(selector))
+				_addReplacement(selector, replacements[selector]);
+		}
+		return;
+	}
 	var tag = _getSelectorTag(selector);
 	if(!_replacementTags[tag])
 		_replacementTags[tag] = [];
 	_replacementTags[tag].push({selector: selector, func: func});
-};
+}
 
 // Compile replacement functions local to the view only not global
 // Works well for a mixin or parent class that needs to control how the subclass creates elements
 // The compiled replacements cannot be mixed with other compiled replacements if there is a conflict in selector tags
-Backbone.Cord.compileReplacements = function(replacements) {
+function _compileReplacements(replacements) {
 	var selector, tag, func, compiled = {};
 	for(selector in replacements) {
 		if(replacements.hasOwnProperty(selector)) {
@@ -1995,6 +2005,11 @@ Backbone.Cord.compileReplacements = function(replacements) {
 		}
 	}
 	return compiled;
+}
+
+Backbone.Cord.Replacements = {
+	add: _addReplacement,
+	compile: _compileReplacements
 };
 
 Backbone.Cord.plugins.push({
@@ -2050,7 +2065,7 @@ function _modelObserver(model) {
 	}
 }
 
-Backbone.Cord.Shared = {
+Backbone.Cord.SharedScope = {
 	model: new Backbone.Model()
 };
 
@@ -2063,17 +2078,17 @@ Backbone.Cord.plugins.push({
 		namespace: 'shared',
 		observe: function() {
 			if(!this._hasObservers('shared'))
-				this.listenTo(Backbone.Cord.Shared.model, 'change', _modelObserver);
+				this.listenTo(Backbone.Cord.SharedScope.model, 'change', _modelObserver);
 		},
 		unobserve: function() {
 			if(!this._hasObservers('shared'))
-				this.stopListening(Backbone.Cord.Shared.model, 'change', _modelObserver);
+				this.stopListening(Backbone.Cord.SharedScope.model, 'change', _modelObserver);
 		},
 		getValue: function(key) {
-			return Backbone.Cord.Shared.model.get(key);
+			return Backbone.Cord.SharedScope.model.get(key);
 		},
 		setValue: function(key, value) {
-			Backbone.Cord.Shared.model.set(key, value);
+			Backbone.Cord.SharedScope.model.set(key, value);
 		}
 	}
 });
@@ -2215,7 +2230,7 @@ function _addAnimations(vuid, animations) {
 					continue;
 				rule = '';
 				for(keyframe in animation) {
-					if(animation.hasOwnProperty(keyframe)) {
+					if(animation.hasOwnProperty(keyframe) && keyframe !== 'options' && keyframe !== 'aliases') {
 						rule += keyframe + '{';
 						keystyles = animation[keyframe];
 						for(style in keystyles) {
@@ -2225,7 +2240,10 @@ function _addAnimations(vuid, animations) {
 						rule += '}';
 					}
 				}
-				animation.name = key + '-' + vuid;
+				if(vuid)
+					animation.name = key + '-' + vuid;
+				else
+					animation.name = key;
 				rule = atKeyframes + animation.name + '{' + rule + '}';
 				Backbone.Cord.log(rule);
 				sheet.insertRule(rule, sheet.rules.length);
@@ -2274,8 +2292,8 @@ var DEFAULT_ANIMATION_OPTIONS = {
 	interactive: true
 };
 
-function _parseAnimationSelector(animationSelector) {
-	var components = animationSelector.split(/: */);
+function _parseAnimationSelector(animationSelector, options) {
+	var i, key, animation, components = animationSelector.split(/: */);
 	var animations, elements;
 	if(components.length > 1) {
 		animations = components[1].split(/, */);
@@ -2285,8 +2303,14 @@ function _parseAnimationSelector(animationSelector) {
 		animations = components[0].split(/, */);
 		elements = [this.el];
 	}
-	animations = animations.map(function(name) { return this.animations[name].name; }.bind(this));
-	return {animations: animations, elements: elements};
+	for(i = 0; i < animations.length; ++i) {
+		key = animations[i];
+		animation = this.animations[key] || Backbone.Cord.Styles.animations[key];
+		animations[i] = animation.name;
+		if(animation.options)
+			options = Backbone.Cord.mixObj(animation.options, options);
+	}
+	return {animations: animations, elements: elements, options: options};
 }
 
 function _getStyleListIndices(list, names) {
@@ -2336,13 +2360,13 @@ Backbone.Cord.View.prototype.beginAnimation = function(animationSelector, option
 			this.beginAnimation(animationSelector[i], options);
 		animationSelector = animationSelector[0];
 	}
-	options = Backbone.Cord.mixObj(DEFAULT_ANIMATION_OPTIONS, options);
-	pointerEvents = options.interactive ? '' : 'none';
-	parsed = _parseAnimationSelector.call(this, animationSelector);
+	parsed = _parseAnimationSelector.call(this, animationSelector, options);
 	animations = parsed.animations;
 	elements = parsed.elements;
 	if(!elements.length)
 		return this;
+	options = Backbone.Cord.mixObj(DEFAULT_ANIMATION_OPTIONS, parsed.options);
+	pointerEvents = options.interactive ? '' : 'none';
 	for(i = 0; i < elements.length; ++i) {
 		el = elements[i];
 		separator = !!el.style.animationName ? ',' : '';
@@ -2359,6 +2383,7 @@ Backbone.Cord.View.prototype.beginAnimation = function(animationSelector, option
 			separator = ',';
 		}
 	}
+	// Add an iteration and end listener
 	if(parseInt(options.count) > 1 && callback) {
 		iteration = 0;
 		iterationListener = function(e) {
@@ -2501,6 +2526,119 @@ Backbone.Cord.View.prototype.beginTransition = function(selector, styles, option
 	return this;
 };
 
+Backbone.Cord.View.prototype.applyStyles = function(selector, styles) {
+	var elements, i, el, style;
+	if(Backbone.Cord.isPlainObj(selector)) {
+		styles = selector;
+		selector = null;
+	}
+	if(selector)
+		elements = this.el.querySelectorAll(Backbone.Cord.regex.replaceIdSelectors(selector, this.vuid));
+	else
+		elements = [this.el];
+	if(!elements.length)
+		return this;
+	for(i = 0; i < elements.length; ++i) {
+		el = elements[i];
+		for(style in styles) {
+			if(styles.hasOwnProperty(style)) {
+				el.style[_addStylePrefix(style)] = styles[style];
+			}
+		}
+	}
+	return this;
+};
+
+Backbone.Cord.View.prototype.clearStyles = function(selector, styles) {
+	if(Backbone.Cord.isPlainObj(selector)) {
+		styles = selector;
+		selector = null;
+	}
+	styles = Backbone.Cord.copyObj(styles);
+	for(var style in styles) {
+		if(styles.hasOwnProperty(style))
+			styles[style] = '';
+	}
+	this.applyStyles(selector, styles);
+	return this;
+};
+
+var DEFAULT_KEYFRAME_ALIASES = {'0%': 'from', 'from': '0%', '100%': 'to', 'to': '100%'};
+
+// Get styles for a keyframe from an animation with a keyframe key
+// Animation properties such as animation-timing-function are excluded
+// Every animation has at least 2 keyframes from/to or 0%/100%, if keyframe is excluded 0% is the default
+Backbone.Cord.View.prototype.getKeyframe = function(animation, keyframe, clear) {
+	var aliases, style, styles;
+	animation = this.animations[animation] || Backbone.Cord.Styles.animations[animation];
+	keyframe = keyframe || '0%';
+	aliases = animation.aliases || {};
+	styles = animation[keyframe] || animation[DEFAULT_KEYFRAME_ALIASES[keyframe] || aliases[keyframe]];
+	styles = Backbone.Cord.copyObj(styles);
+	for(style in styles) {
+		if(style.indexOf('animation') === 0 && styles.hasOwnProperty(style))
+			delete styles[style];
+	}
+	if(clear) {
+		for(style in styles) {
+			if(styles.hasOwnProperty(style))
+				styles[style] = '';
+		}
+	}
+	return styles;
+};
+
+Backbone.Cord.View.prototype.beginKeyframeTransition = function(selector, animation, keyframe, options, callback) {
+	var styles;
+	if(this.animations[selector] || Backbone.Cord.Styles.animations[selector]) {
+		callback = options;
+		options = keyframe;
+		keyframe = animation;
+		animation = selector;
+		selector = null;
+	}
+	if(typeof keyframe !== 'string') {
+		callback = options;
+		options = keyframe;
+		keyframe = null;
+	}
+	keyframe = keyframe || '0%';
+	styles = this.getKeyframe(animation, keyframe);
+	if(!selector) {
+		var clearKeyframe = this._appliedKeyframes[animation];
+		if(clearKeyframe)
+			styles = Backbone.Cord.mixObj(this.getKeyframe(animation, clearKeyframe, true), styles);
+		this._appliedKeyframes[animation] = keyframe;
+	}
+	return this.beginTransition(selector, styles, options, callback);
+};
+
+Backbone.Cord.View.prototype.applyKeyframe = function(selector, animation, keyframe) {
+	if(this.animations[selector] || Backbone.Cord.Styles.animations[selector]) {
+		keyframe = animation;
+		animation = selector;
+		selector = null;
+	}
+	keyframe = keyframe || '0%';
+	if(!selector)
+		this._appliedKeyframes[animation] = keyframe;
+	return this.applyStyles(selector, this.getKeyframe(animation, keyframe));
+};
+
+Backbone.Cord.View.prototype.clearKeyframe = function(selector, animation, keyframe) {
+	if(this.animations[selector] || Backbone.Cord.Styles.animations[selector]) {
+		keyframe = animation;
+		animation = selector;
+		selector = null;
+	}
+	keyframe = keyframe || '0%';
+	if(!selector) {
+		keyframe = this._appliedKeyframes[animation];
+		delete this._appliedKeyframes[animation];
+	}
+	return this.clearStyles(selector, this.getKeyframe(animation, keyframe));
+};
+
 // Expose useful functions, media queries which can be modified, and some browser info
 Backbone.Cord.Styles = {
 	userAgent: ua,
@@ -2516,6 +2654,19 @@ Backbone.Cord.Styles = {
 		tablet: 'only screen and (max-width: 768px)',
 		phablet: 'only screen and (max-width: 480px)',
 		mobile: 'only screen and (max-width: 320px)'
+	},
+	animations: {},
+	addAnimation: function(nameAnimations, animation) {
+		var animations;
+		if(!Backbone.Cord.isPlainObj(nameAnimations)) {
+			animations = {};
+			animations[nameAnimations] = animation;
+		}
+		else {
+			animations = nameAnimations;
+		}
+		_addAnimations(null, animations);
+		Backbone.Cord.Styles.animations = Backbone.Cord.mixObj(Backbone.Cord.Styles.animations, animations);
 	}
 };
 
@@ -2564,6 +2715,7 @@ Backbone.Cord.plugins.push({
 					this.observeFormat(styles[style], _createStyleObserver(this.el, style), true);
 			}
 		}
+		this._appliedKeyframes = {};
 	},
 	complete: function(context) {
 		// Apply any dynamic class styles detected from the initial extend
@@ -2578,5 +2730,54 @@ Backbone.Cord.plugins.push({
 		}
 	}
 });
+
+})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone || require('backbone'));
+
+;(function(Backbone) {
+'use strict';
+
+function _createUnmanagedScope(namespace, model) {
+	var _modelObserver = function(model) {
+		var key, changed = model.changedAttributes();
+		if(!changed)
+			return;
+		for(key in changed) {
+			if(changed.hasOwnProperty(key))
+				this._invokeObservers(namespace, key, changed[key]);
+		}
+	};
+	return {
+		namespace: namespace,
+		model: model,
+		observe: function() {
+			if(!this._hasObservers(namespace))
+				this.listenTo(model, 'change', _modelObserver);
+		},
+		unobserve: function() {
+			if(!this._hasObservers(namespace))
+				this.stopListening(model, 'change', _modelObserver);
+		},
+		getValue: function(key) {
+			return model.get(key);
+		},
+		setValue: function(key, value) {
+			model.set(key, value);
+		}
+	};
+}
+
+Backbone.Cord.UnmanagedScopes = {
+	set: function(namespace, model) {
+		namespace = namespace.toLowerCase();
+		if(Backbone.Cord._scopes[namespace])
+			throw new Error('Attempting to override an existing scope.');
+		Backbone.Cord._scopes[namespace] = _createUnmanagedScope(namespace, model);
+	}
+};
+
+// Plugin for adding scopes into models not managed by views
+// Does not supporting setting an already created namespace
+// i.e. don't set a namespace to a new model there currently isn't a way to notify all views observering the scope
+Backbone.Cord.plugins.push({ name: 'unmanagedscopes' });
 
 })(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone || require('backbone'));
