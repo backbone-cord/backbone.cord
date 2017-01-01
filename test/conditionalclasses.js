@@ -1,7 +1,7 @@
 var assert = require('assert');
 var Backbone = require('./cordedbackbone');
 
-describe('conditionalclasses plugin', function() {
+describe('conditional classes', function() {
 	var view;
 	before(function() {
 		view = new (Backbone.View.extend({

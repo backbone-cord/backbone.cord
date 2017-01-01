@@ -1,7 +1,7 @@
 var assert = require('assert');
 var Backbone = require('./cordedbackbone');
 
-describe('dynamicclasses plugin', function() {
+describe('dynamic classes', function() {
 	var view;
 	before(function() {
 		view = new (Backbone.View.extend({

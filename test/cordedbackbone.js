@@ -12,10 +12,9 @@ if(!global.window) {
 	var Cord = require('../backbone.cord');
 	// require all of the plugins to activate them
 	require('../plugins/binding');
+	require('../plugins/classes');
 	require('../plugins/collection');
 	require('../plugins/computed');
-	require('../plugins/conditionalclasses');
-	require('../plugins/dynamicclasses');
 	require('../plugins/events');
 	require('../plugins/hidden');
 	require('../plugins/interpolation');
