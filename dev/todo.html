@@ -9,7 +9,7 @@
 	$(function() {
 		var TodoItemView = Backbone.View.extend({
 			el: function(h) {
-				return h('li', '{model.value}');
+				return h('li', '{model.value} ', h('a', {href:'#', onclick: this.remove.bind(this)}, '[x]'));
 			}
 		});
 		var TodoView = Backbone.View.extend(Backbone.Cord.mixProto('collection', {

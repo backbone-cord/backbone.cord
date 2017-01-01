@@ -101,6 +101,10 @@ Backbone.Cord.mixins.collection = {
 		this.listenTo(view, 'select', function(view) {
 			this.selected = view.model;
 		});
+		// If the itemView calls remove() on itself then remove the corresponding model
+		this.listenTo(view, 'remove', function(view) {
+			this.collection.remove(view.model, {viewRemoved: true});
+		});
 		this.itemViews[view.model.cid] = view;
 		return view;
 	},
@@ -143,7 +147,7 @@ Backbone.Cord.mixins.collection = {
 	},
 	_onAddItem: function(model, collection, options) {
 		var view, container, sibling, index;
-		this.length = new Backbone.Cord.ForceValue(this.collection.length);
+		this.length = new Backbone.Cord.ForceValue(collection.length);
 		container = this.getCollectionContainer();
 		if(!container)
 			return;
@@ -170,7 +174,7 @@ Backbone.Cord.mixins.collection = {
 	_onRemoveItem: function(model, collection, options) {
 		var view, container;
 		var more = this._more;
-		this.length = new Backbone.Cord.ForceValue(this.collection.length);
+		this.length = new Backbone.Cord.ForceValue(collection.length);
 		container = this.getCollectionContainer();
 		if(!container)
 			return;
@@ -179,8 +183,11 @@ Backbone.Cord.mixins.collection = {
 		view = this.itemViews[model.cid];
 		if(view) {
 			delete this.itemViews[model.cid];
+			// Stop listening to prevent the remove event on the itemView
+			// and remove the actual view only if the itemView did not remove() itself
 			this.stopListening(view);
-			view.remove();
+			if(!options.viewRemoved)
+				view.remove();
 			if(options.index >= this._start && options.index <= this._end && more) {
 				// A new node needs to be added at the end of the page
 				view = this.createItemView(collection.at(this._end));
