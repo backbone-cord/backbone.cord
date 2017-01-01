@@ -193,7 +193,10 @@ Backbone.Cord.mixins.collection = {
 				view = this.createItemView(collection.at(this._end));
 				container.appendChild(view.el);
 			}
-			this.itemViews._first = this.itemViews[collection.at(this._start).cid];
+			if(collection.length)
+				this.itemViews._first = this.itemViews[collection.at(this._start).cid];
+			else
+				delete this.itemViews._first;
 		}
 	},
 	_onSortCollection: function() {
