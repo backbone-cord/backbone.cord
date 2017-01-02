@@ -208,7 +208,7 @@ function _parseAnimationSelector(animationSelector, options) {
 	}
 	for(i = 0; i < animations.length; ++i) {
 		key = animations[i];
-		animation = this.animations[key] || Backbone.Cord.Styles.animations[key];
+		animation = this.animations[key] || Backbone.Cord.Styles.animations[key] || {name: key};
 		animations[i] = animation.name;
 		if(animation.options)
 			options = Backbone.Cord.mixObj(animation.options, options);
