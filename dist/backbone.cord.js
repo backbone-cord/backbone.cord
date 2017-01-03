@@ -1084,6 +1084,57 @@ Backbone.Cord.plugins.push({
 ;(function(Backbone) {
 'use strict';
 
+function _createObserver(el, cls) {
+	return function(key, value) {
+		// Add or remove the class based on the value
+		var enabled = Backbone.Cord.convertToBool(value);
+		if(enabled)
+			Backbone.Cord.addClass(el, cls);
+		else
+			Backbone.Cord.removeClass(el, cls);
+	};
+}
+
+function _createFormatObserver(el) {
+	var prev = '';
+	return function(key, formatted) {
+		Backbone.Cord.removeClass(el, prev);
+		prev = Backbone.Cord.convertToString(formatted);
+		Backbone.Cord.addClass(el, prev);
+	};
+}
+
+// Support for interpolated class names, such as div.{red}-top and conditional class names such as div.red(red)
+Backbone.Cord.plugins.push({
+	name: 'classes',
+	requirements: ['interpolation'],
+	classes: function(context, classes) {
+		var matchInfo;
+		if(!context.isView)
+			return;
+		for(var i = classes.length - 1; i >= 0; --i) {
+			// Check for conditional classes then dynamic classnames
+			matchInfo = classes[i].match(Backbone.Cord.regex.conditionalValue);
+			if(matchInfo) {
+				var el = context.el;
+				var cls = classes[i].substr(0, matchInfo.index);
+				var key = matchInfo[1];
+				this.observe(key, _createObserver(el, cls), true);
+				classes.splice(i, 1);
+			}
+			else if(classes[i].search(Backbone.Cord.regex.variableSearch) !== -1) {
+				this.observeFormat(classes[i], _createFormatObserver(context.el), true);
+				classes.splice(i, 1);
+			}
+		}
+	}
+});
+
+})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone || require('backbone'));
+
+;(function(Backbone) {
+'use strict';
+
 Backbone.Cord.mixins.collection = {
 	collection: Backbone.Cord.EmptyCollection,
 	properties: {
@@ -1184,6 +1235,10 @@ Backbone.Cord.mixins.collection = {
 		this.listenTo(view, 'select', function(view) {
 			this.selected = view.model;
 		});
+		// If the itemView calls remove() on itself then remove the corresponding model
+		this.listenTo(view, 'remove', function(view) {
+			this.collection.remove(view.model, {viewRemoved: true});
+		});
 		this.itemViews[view.model.cid] = view;
 		return view;
 	},
@@ -1226,7 +1281,7 @@ Backbone.Cord.mixins.collection = {
 	},
 	_onAddItem: function(model, collection, options) {
 		var view, container, sibling, index;
-		this.length = new Backbone.Cord.ForceValue(this.collection.length);
+		this.length = new Backbone.Cord.ForceValue(collection.length);
 		container = this.getCollectionContainer();
 		if(!container)
 			return;
@@ -1253,7 +1308,7 @@ Backbone.Cord.mixins.collection = {
 	_onRemoveItem: function(model, collection, options) {
 		var view, container;
 		var more = this._more;
-		this.length = new Backbone.Cord.ForceValue(this.collection.length);
+		this.length = new Backbone.Cord.ForceValue(collection.length);
 		container = this.getCollectionContainer();
 		if(!container)
 			return;
@@ -1262,14 +1317,20 @@ Backbone.Cord.mixins.collection = {
 		view = this.itemViews[model.cid];
 		if(view) {
 			delete this.itemViews[model.cid];
+			// Stop listening to prevent the remove event on the itemView
+			// and remove the actual view only if the itemView did not remove() itself
 			this.stopListening(view);
-			view.remove();
+			if(!options.viewRemoved)
+				view.remove();
 			if(options.index >= this._start && options.index <= this._end && more) {
 				// A new node needs to be added at the end of the page
 				view = this.createItemView(collection.at(this._end));
 				container.appendChild(view.el);
 			}
-			this.itemViews._first = this.itemViews[collection.at(this._start).cid];
+			if(collection.length)
+				this.itemViews._first = this.itemViews[collection.at(this._start).cid];
+			else
+				delete this.itemViews._first;
 		}
 	},
 	_onSortCollection: function() {
@@ -1487,71 +1548,6 @@ Backbone.Cord.plugins.push({
 						}
 					}
 				}
-			}
-		}
-	}
-});
-
-})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone || require('backbone'));
-
-;(function(Backbone) {
-'use strict';
-
-function _createObserver(el, cls) {
-	return function(key, value) {
-		// Add or remove the class based on the value
-		var enabled = Backbone.Cord.convertToBool(value);
-		if(enabled)
-			Backbone.Cord.addClass(el, cls);
-		else
-			Backbone.Cord.removeClass(el, cls);
-	};
-}
-
-Backbone.Cord.plugins.push({
-	name: 'conditionalclasses',
-	classes: function(context, classes) {
-		var matchInfo;
-		if(!context.isView)
-			return;
-		for(var i = classes.length - 1; i >= 0; --i) {
-			matchInfo = classes[i].match(Backbone.Cord.regex.conditionalValue);
-			if(matchInfo) {
-				var el = context.el;
-				var cls = classes[i].substr(0, matchInfo.index);
-				var key = matchInfo[1];
-				this.observe(key, _createObserver(el, cls), true);
-				classes.splice(i, 1);
-			}
-		}
-	}
-});
-
-})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone || require('backbone'));
-
-;(function(Backbone) {
-'use strict';
-
-function _createObserver(el) {
-	var prev = '';
-	return function(key, formatted) {
-		Backbone.Cord.removeClass(el, prev);
-		prev = Backbone.Cord.convertToString(formatted);
-		Backbone.Cord.addClass(el, prev);
-	};
-}
-
-// Support for interpolated class names, such as div.{_red}-top
-Backbone.Cord.plugins.push({
-	name: 'dynamicclasses',
-	requirements: ['interpolation'],
-	classes: function(context, classes) {
-		if(!context.isView)
-			return;
-		for(var i = classes.length - 1; i >= 0; --i) {
-			if(classes[i].search(Backbone.Cord.regex.variableSearch) !== -1) {
-				this.observeFormat(classes[i], _createObserver(context.el), true);
-				classes.splice(i, 1);
 			}
 		}
 	}
@@ -2305,7 +2301,7 @@ function _parseAnimationSelector(animationSelector, options) {
 	}
 	for(i = 0; i < animations.length; ++i) {
 		key = animations[i];
-		animation = this.animations[key] || Backbone.Cord.Styles.animations[key];
+		animation = this.animations[key] || Backbone.Cord.Styles.animations[key] || {name: key};
 		animations[i] = animation.name;
 		if(animation.options)
 			options = Backbone.Cord.mixObj(animation.options, options);
