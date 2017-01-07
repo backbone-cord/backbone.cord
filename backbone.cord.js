@@ -183,7 +183,7 @@ function _createElement(tagIdClasses, attrs) {
 }
 
 // id and classes on the subview are maintained, but recommended that id is set by the parent view
-function _createSubview(instanceClass, idClasses, bindings) {
+function _createSubview(instanceClass, idClasses, bindings, keyValues) {
 	var id, classes, subview, context, callback;
 	if(!(instanceClass instanceof Backbone.View))
 		subview = new instanceClass();
@@ -209,6 +209,7 @@ function _createSubview(instanceClass, idClasses, bindings) {
 		Backbone.Cord.addClass(subview.el, this._callPlugins('classes', context, classes) || classes);
 	}
 	else {
+		keyValues = bindings;
 		bindings = idClasses;
 	}
 	if(bindings) {
@@ -223,6 +224,8 @@ function _createSubview(instanceClass, idClasses, bindings) {
 			}
 		}
 	}
+	if(keyValues)
+		subview.setValuesForKeys(keyValues);
 	subview.sid = Backbone.Cord._sid;
 	Backbone.Cord._sid += 1;
 	subview.el.setAttribute('data-sid', subview.sid);
