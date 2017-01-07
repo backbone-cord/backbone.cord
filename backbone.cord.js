@@ -219,8 +219,12 @@ function _createSubview(instanceClass, idClasses, bindings, keyValues) {
 		for(var e in bindings) {
 			if(bindings.hasOwnProperty(e)) {
 				callback = (typeof bindings[e] === 'string') ? (this[bindings[e]] || _createSetValueCallback(bindings[e])) : bindings[e];
-				if(typeof callback === 'function')
-					this.listenTo(subview, e, callback);
+				if(typeof callback === 'function') {
+					if(subview.properties && subview.properties.hasOwnProperty(e))
+						subview.observe(e, callback.bind(this));
+					else
+						this.listenTo(subview, e, callback);
+				}
 			}
 		}
 	}
