@@ -1,11 +1,11 @@
 ;(function(Backbone) {
 'use strict';
 
-var THIS_ID = '(this)';
-var ua = navigator.userAgent.toLowerCase();
-var browser = (/(chrome|safari)/.exec(ua) || /firefox/.exec(ua) || /msie/.exec(ua) || /trident/.exec(ua) || /opera/.exec(ua) || '')[0];
-var stylePrefix = ({ chrome: 'webkit', firefox: 'Moz', msie: 'ms', opera: 'O', safari: 'webkit', trident: 'ms' })[browser] || '';
-var cssPrefix = '-' + stylePrefix.toLowerCase() + '-';
+var _THIS_ID = '(this)';
+var _ua = navigator.userAgent.toLowerCase();
+var _browser = (/(chrome|safari)/.exec(_ua) || /firefox/.exec(_ua) || /msie/.exec(_ua) || /trident/.exec(_ua) || /opera/.exec(_ua) || '')[0];
+var _stylePrefix = ({ chrome: 'webkit', firefox: 'Moz', msie: 'ms', opera: 'O', safari: 'webkit', trident: 'ms' })[_browser] || '';
+var _cssPrefix = '-' + _stylePrefix.toLowerCase() + '-';
 
 function _createStyleSheets() {
 	var el, key;
@@ -30,7 +30,7 @@ function _createStyleSheets() {
 
 function _getStylePrefix(style, css) {
 	if(document.documentElement.style[style] === void(0))
-		return css ? cssPrefix : stylePrefix;
+		return css ? _cssPrefix : _stylePrefix;
 	return '';
 }
 
@@ -94,7 +94,7 @@ function _addRules(vuid, rules, _styles, selector, media, id) {
 			else {
 				var value = rules[key].toString();
 				if(value.search(Backbone.Cord.regex.variableSearch) !== -1) {
-					var scope = id || THIS_ID;
+					var scope = id || _THIS_ID;
 					if(!_styles[scope])
 						_styles[scope] = {};
 					_styles[scope][key] = value;
@@ -109,7 +109,7 @@ function _addRules(vuid, rules, _styles, selector, media, id) {
 	}
 }
 
-var atKeyframes = '@' + _getStylePrefix('animationName', true) + 'keyframes ';
+var _atKeyframes = '@' + _getStylePrefix('animationName', true) + 'keyframes ';
 
 function _addAnimations(vuid, animations) {
 	var sheet = Backbone.Cord._styleSheets.animations;
@@ -147,7 +147,7 @@ function _addAnimations(vuid, animations) {
 					animation.name = key + '-' + vuid;
 				else
 					animation.name = key;
-				rule = atKeyframes + animation.name + '{' + rule + '}';
+				rule = _atKeyframes + animation.name + '{' + rule + '}';
 				Backbone.Cord.log(rule);
 				sheet.insertRule(rule, sheet.rules.length);
 			}
@@ -184,7 +184,7 @@ function _styles(context, attrs) {
 	}
 }
 
-var DEFAULT_ANIMATION_OPTIONS = {
+var _DEFAULT_ANIMATION_OPTIONS = {
 	duration: '250ms',
 	delay: '0',
 	timing: 'ease',
@@ -268,7 +268,7 @@ Backbone.Cord.View.prototype.beginAnimation = function(animationSelector, option
 	elements = parsed.elements;
 	if(!elements.length)
 		return this;
-	options = Backbone.Cord.mixObj(DEFAULT_ANIMATION_OPTIONS, parsed.options);
+	options = Backbone.Cord.mixObj(_DEFAULT_ANIMATION_OPTIONS, parsed.options);
 	pointerEvents = options.interactive ? '' : 'none';
 	for(i = 0; i < elements.length; ++i) {
 		el = elements[i];
@@ -381,7 +381,7 @@ Backbone.Cord.View.prototype.beginTransition = function(selector, styles, option
 		callback = options;
 		options = {};
 	}
-	options = Backbone.Cord.mixObj(DEFAULT_ANIMATION_OPTIONS, options);
+	options = Backbone.Cord.mixObj(_DEFAULT_ANIMATION_OPTIONS, options);
 	if(selector)
 		elements = this.el.querySelectorAll(Backbone.Cord.regex.replaceIdSelectors(selector, this.vuid));
 	else
@@ -466,7 +466,7 @@ Backbone.Cord.View.prototype.clearStyles = function(selector, styles) {
 	return this;
 };
 
-var DEFAULT_KEYFRAME_ALIASES = {'0%': 'from', 'from': '0%', '100%': 'to', 'to': '100%'};
+var _DEFAULT_KEYFRAME_ALIASES = {'0%': 'from', 'from': '0%', '100%': 'to', 'to': '100%'};
 
 // Get styles for a keyframe from an animation with a keyframe key
 // Animation properties such as animation-timing-function are excluded
@@ -476,7 +476,7 @@ Backbone.Cord.View.prototype.getKeyframe = function(animation, keyframe, clear) 
 	animation = this.animations[animation] || Backbone.Cord.Styles.animations[animation];
 	keyframe = keyframe || '0%';
 	aliases = animation.aliases || {};
-	styles = animation[keyframe] || animation[DEFAULT_KEYFRAME_ALIASES[keyframe] || aliases[keyframe]];
+	styles = animation[keyframe] || animation[_DEFAULT_KEYFRAME_ALIASES[keyframe] || aliases[keyframe]];
 	styles = Backbone.Cord.copyObj(styles);
 	for(style in styles) {
 		if(style.indexOf('animation') === 0 && styles.hasOwnProperty(style))
@@ -544,8 +544,8 @@ Backbone.Cord.View.prototype.clearKeyframe = function(selector, animation, keyfr
 
 // Expose useful functions, media queries which can be modified, and some browser info
 Backbone.Cord.Styles = {
-	userAgent: ua,
-	browser: browser,
+	userAgent: _ua,
+	browser: _browser,
 	addStylePrefix: _addStylePrefix,
 	getCSSPrefix: function(style) { return _getStylePrefix(style, true); },
 	camelCaseToDash: _camelCaseToDash,
@@ -609,8 +609,8 @@ Backbone.Cord.plugins.push({
 		context.protoProps._styles = _styles;
 	},
 	initialize: function(context) {
-		if(this._styles && this._styles[THIS_ID]) {
-			var styles = Backbone.Cord.copyObj(this._styles[THIS_ID]);
+		if(this._styles && this._styles[_THIS_ID]) {
+			var styles = Backbone.Cord.copyObj(this._styles[_THIS_ID]);
 			Backbone.Cord.log(styles);
 			this._callPlugins('strings', context, styles);
 			for(var style in styles) {
