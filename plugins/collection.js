@@ -118,7 +118,7 @@ Backbone.Cord.mixins.collection = {
 			if(model)
 				cid = model.cid;
 		}
-		else if(indexModelElement.nodeType === 1) {
+		else if(indexModelElement.nodeType === Node.ELEMENT_NODE) {
 			for(key in this.itemViews) {
 				if(this.itemViews.hasOwnProperty(key) && this.itemViews[key].el === indexModelElement) {
 					cid = key;
