@@ -1,56 +1,89 @@
 ;(function(Backbone) {
 'use strict';
 
-var _nodeProperties = {
-	'innerHTML': true,
-	'value': true,
-	'checked': true
+var _VALUE_DECODERS = {
+	range: function(el) { return parseInt(el.value); },
+	number: function(el) { return Number(el.value); },
+	integer: function(el) { return parseInt(el.value); },
+	decimal: function(el) { return parseFloat(el.value); },
+	date: function(el) { return new Date(el.value); },
+	datetime: function(el) { return new Date(el.value); },
+	checkbox: function(el) { return el.checked; }
 };
 
-var _changeEventProperties = {
-	'value': true,
-	'checked': true
+var _VALUE_ENCODERS = {
+	date: function(el, value) { el.value = value.toDateString(); },
+	datetime: function(el, value) { el.value = value.toString(); },
+	checkbox: function(el, value) { el.checked = Backbone.Cord.convertToBool(value); }
 };
 
-function _createAttrObserver(node, attr) {
-	if(_nodeProperties[attr])
+var _ATTR_PROPERTIES = {
+	innerHTML: true,
+	value: true,
+	checked: true
+};
+
+var _DATA_BINDING_ATTR = 'data-binding';
+var _currentBinding = null;
+
+function _dispatchChangeEvent(el) {
+	if(Backbone.Cord.config.dispatchValueChangeEvents) {
+		var evt = document.createEvent('HTMLEvents');
+		evt.initEvent('change', true, true);
+		el.dispatchEvent(evt);
+	}
+}
+
+function _createAttrObserver(el, attr) {
+	if(_ATTR_PROPERTIES[attr])
 		return function(key, formatted) {
-			if(attr === 'checked')
-				node[attr] = Backbone.Cord.convertToBool(formatted);
-			else
-				node[attr] = Backbone.Cord.convertToString(formatted);
-			if(Backbone.Cord.config.bindingDispatchChangeEvents && _changeEventProperties[attr]) {
-				var evt = document.createEvent('HTMLEvents');
-				evt.initEvent('change', true, true);
-				node.dispatchEvent(evt);
-			}
+			el[attr] = Backbone.Cord.convertToString(formatted);
+			if(attr !== 'innerHTML')
+				_dispatchChangeEvent(el);
 		};
 	else
 		return function(key, formatted) {
-			node.setAttribute(attr, Backbone.Cord.convertToString(formatted));
+			el.setAttribute(attr, Backbone.Cord.convertToString(formatted));
 		};
 }
 
-function _createChildObserver(node) {
+function _createChildObserver(el) {
 	return function(key, value) {
-		node.textContent = Backbone.Cord.convertToString(value);
+		el.textContent = Backbone.Cord.convertToString(value);
 	};
 }
 
-var _valueDecoders = {
-	'range': function(el) { return parseInt(el.value); },
-	'number': function(el) { return Number(el.value); },
-	'integer': function(el) { return parseInt(el.value); },
-	'decimal': function(el) { return parseFloat(el.value); },
-	'date': function(el) { return new Date(el.value); },
-	'datetime': function(el) { return new Date(el.value); },
-	'checkbox': function(el) { return el.checked; }
-};
+function _testBindingFeedback(el) {
+	// Prevent two-way data binding from creating an infinite feedback loop through dispatching events
+	var bindingUid = el.getAttribute(_DATA_BINDING_ATTR);
+	if(bindingUid && bindingUid === _currentBinding) {
+		_currentBinding = null;
+		return true;
+	}
+	else {
+		_currentBinding = bindingUid;
+		return false;
+	}
+}
 
-function _createValueListener(key) {
-	return function(e) {
-		var el = e.currentTarget;
-		var decoder = _valueDecoders[el.getAttribute('data-type') || el.getAttribute('type')];
+function _createValueObserver(el) {
+	return function(key, value) {
+		if(_testBindingFeedback(el))
+			return;
+		var encoder = _VALUE_ENCODERS[el.getAttribute('data-type') || el.getAttribute('type')];
+		if(encoder)
+			encoder(el, value);
+		else
+			el.value = Backbone.Cord.convertToString(value);
+		_dispatchChangeEvent(el);
+	};
+}
+
+function _createValueListener(el, key) {
+	return function() {
+		if(_testBindingFeedback(el))
+			return;
+		var decoder = _VALUE_DECODERS[el.getAttribute('data-type') || el.getAttribute('type')];
 		this.setValueForKey(key, decoder ? decoder.call(this, el) : el.value);
 	};
 }
@@ -59,37 +92,56 @@ Backbone.Cord.plugins.push({
 	name: 'binding',
 	requirements: ['interpolation'],
 	config: {
-		bindingDispatchChangeEvents: true
+		dispatchValueChangeEvents: true
 	},
 	attrs: function(context, attrs) {
-		var format, listener, expectChange;
+		var format, listener, twoWay;
 		if(!context.isView)
 			return;
+		// Observe any formatted attributes
 		for(var attr in attrs) {
 			if(attrs.hasOwnProperty(attr)) {
 				format = attrs[attr];
 				if(typeof format === 'string' && format.match(Backbone.Cord.regex.variableSearch)) {
 					this.observeFormat(format, _createAttrObserver(context.el, attr), true);
-					if(Backbone.Cord.config.bindingDispatchChangeEvents && _changeEventProperties[attr])
-						expectChange = true;
 					delete attrs[attr];
 				}
 			}
 		}
-		// Reverse binding on change or input events
+		// Support the non-formatted version of innerHTML with just a observer key
+		if(attrs.innerHTML) {
+			this.observe(attrs.innerHTML, _createAttrObserver(context.el, 'innerHTML'), true);
+			delete attrs.innerHTML;
+		}
+		// The attr bind is shorthand for both observe and change
+		if(attrs.bind) {
+			attrs.observe = attrs.bind;
+			attrs.change = attrs.bind;
+			delete attrs.bind;
+		}
+		// Observer binding to set the value
+		if(attrs.observe) {
+			if(attrs.observe === attrs.change || attrs.observe === attrs.input) {
+				twoWay = true;
+				attrs[_DATA_BINDING_ATTR] = 'binding-' + Backbone.Cord.randomUID();
+			}
+			this.observe(attrs.observe, _createValueObserver(context.el), true);
+			delete attrs.observe;
+		}
+		// Reverse binding on change or input events to listen to changes in the value
 		if(attrs.change) {
-			listener = _createValueListener(attrs.change).bind(this);
+			listener = _createValueListener(context.el, attrs.change).bind(this);
 			context.el.addEventListener('change', listener);
 			delete attrs.change;
 		}
 		if(attrs.input) {
-			listener = _createValueListener(attrs.input).bind(this);
+			listener = _createValueListener(context.el, attrs.input).bind(this);
 			context.el.addEventListener('input', listener);
 			delete attrs.input;
 		}
-		// Invoke the reverse listener with the initial value if an initial change event is not expected from an attribute observer
-		if(listener && !expectChange)
-			Backbone.Cord.setImmediate(listener.bind(this, {currentTarget: context.el}));
+		// Invoke the reverse listener with the initial value if an initial change event is not expected from an observer
+		if(listener && !twoWay)
+			Backbone.Cord.setImmediate(listener);
 	},
 	children: function(context, children) {
 		var i, j, child, strings, matches, spliceArgs, node;
