@@ -44,7 +44,10 @@ function _getObjValue(obj, keys) {
 			obj = (key === 'id' ? obj.id : obj.get(key));
 		}
 		else if(obj) {
-			obj = obj[key];
+			if(key === 'value' && obj.nodeType === Node.ELEMENT_NODE)
+				obj = Backbone.Cord.decodeValue(obj);
+			else
+				obj = obj[key];
 		}
 	}
 	return obj;
@@ -54,12 +57,18 @@ function _setObjValue(obj, keys, value) {
 	keys = Array.isArray(keys) ? keys : keys.split('.');
 	obj = _getObjValue(obj, keys.slice(0, -1));
 	key = keys[keys.length - 1];
-	if(obj instanceof Backbone.Cord.View)
+	if(obj instanceof Backbone.Cord.View) {
 		obj.setValueForKey(key, value);
-	else if(obj instanceof Backbone.Model)
+	}
+	else if(obj instanceof Backbone.Model) {
 		obj.set((key === 'id' ? obj.idAttribute : key), value);
-	else if(obj)
-		obj[key] = value;
+	}
+	else if(obj) {
+		if(key === 'value' && obj.nodeType === Node.ELEMENT_NODE)
+			Backbone.Cord.encodeValue(obj, value);
+		else
+			obj[key] = value;
+	}
 }
 
 // Helper functions for mixing objects and prototypes
@@ -291,6 +300,35 @@ Backbone.Cord = {
 		lower: function(str) { return str.toLowerCase(); },
 		upper: function(str) { return str.toUpperCase(); },
 		title: function(str) { return str.replace(/\b[^\s-]*/g, function(s) { return s.charAt(0).toUpperCase() + s.substr(1).toLowerCase(); }); }
+	},
+	// Value decoders and encoders for when "value" is get or set on an element, keys into decoders/encoders is based on the data-type and type attribute
+	decoders: {
+		range: function(el) { return parseInt(el.value); },
+		number: function(el) { return Number(el.value); },
+		integer: function(el) { return parseInt(el.value); },
+		decimal: function(el) { return parseFloat(el.value); },
+		date: function(el) { return new Date(el.value); },
+		datetime: function(el) { return new Date(el.value); },
+		checkbox: function(el) { return el.checked; }
+	},
+	encoders: {
+		date: function(el, value) { el.value = value.toDateString(); },
+		datetime: function(el, value) { el.value = value.toString(); },
+		checkbox: function(el, value) { el.checked = Backbone.Cord.convertToBool(value); }
+	},
+	decodeValue: function(el) {
+		var decoder = Backbone.Cord.decoders[el.getAttribute('data-type') || el.getAttribute('type')];
+		return decoder ? decoder(el) : el.value;
+	},
+	encodeValue: function(el, value) {
+		var encoder = Backbone.Cord.encoders[el.getAttribute('data-type') || el.getAttribute('type')];
+		if(encoder)
+			encoder(el, value);
+		else
+			el.value = Backbone.Cord.convertToString(value);
+		var evt = document.createEvent('HTMLEvents');
+		evt.initEvent('change', true, true);
+		el.dispatchEvent(evt);
 	},
 	// Mixins installed by the app by setting keys on this object
 	mixins: {},

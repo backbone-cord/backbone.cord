@@ -1,45 +1,21 @@
 ;(function(Backbone) {
 'use strict';
 
-var _VALUE_DECODERS = {
-	range: function(el) { return parseInt(el.value); },
-	number: function(el) { return Number(el.value); },
-	integer: function(el) { return parseInt(el.value); },
-	decimal: function(el) { return parseFloat(el.value); },
-	date: function(el) { return new Date(el.value); },
-	datetime: function(el) { return new Date(el.value); },
-	checkbox: function(el) { return el.checked; }
-};
-
-var _VALUE_ENCODERS = {
-	date: function(el, value) { el.value = value.toDateString(); },
-	datetime: function(el, value) { el.value = value.toString(); },
-	checkbox: function(el, value) { el.checked = Backbone.Cord.convertToBool(value); }
-};
-
 var _ATTR_PROPERTIES = {
 	innerHTML: true,
 	value: true,
 	checked: true
 };
-
 var _DATA_BINDING_ATTR = 'data-binding';
 var _currentBinding = null;
-
-function _dispatchChangeEvent(el) {
-	if(Backbone.Cord.config.dispatchValueChangeEvents) {
-		var evt = document.createEvent('HTMLEvents');
-		evt.initEvent('change', true, true);
-		el.dispatchEvent(evt);
-	}
-}
 
 function _createAttrObserver(el, attr) {
 	if(_ATTR_PROPERTIES[attr])
 		return function(key, formatted) {
-			el[attr] = Backbone.Cord.convertToString(formatted);
 			if(attr !== 'innerHTML')
-				_dispatchChangeEvent(el);
+				Backbone.Cord.encodeValue(el, formatted);
+			else
+				el[attr] = Backbone.Cord.convertToString(formatted);
 		};
 	else
 		return function(key, formatted) {
@@ -70,12 +46,7 @@ function _createValueObserver(el) {
 	return function(key, value) {
 		if(_testBindingFeedback(el))
 			return;
-		var encoder = _VALUE_ENCODERS[el.getAttribute('data-type') || el.getAttribute('type')];
-		if(encoder)
-			encoder(el, value);
-		else
-			el.value = Backbone.Cord.convertToString(value);
-		_dispatchChangeEvent(el);
+		Backbone.Cord.encodeValue(el, value);
 	};
 }
 
@@ -83,17 +54,13 @@ function _createValueListener(el, key) {
 	return function() {
 		if(_testBindingFeedback(el))
 			return;
-		var decoder = _VALUE_DECODERS[el.getAttribute('data-type') || el.getAttribute('type')];
-		this.setValueForKey(key, decoder ? decoder.call(this, el) : el.value);
+		this.setValueForKey(key, Backbone.Cord.decodeValue(el));
 	};
 }
 
 Backbone.Cord.plugins.push({
 	name: 'binding',
 	requirements: ['interpolation'],
-	config: {
-		dispatchValueChangeEvents: true
-	},
 	attrs: function(context, attrs) {
 		var format, listener, twoWay;
 		if(!context.isView)
