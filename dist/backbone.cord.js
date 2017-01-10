@@ -44,7 +44,10 @@ function _getObjValue(obj, keys) {
 			obj = (key === 'id' ? obj.id : obj.get(key));
 		}
 		else if(obj) {
-			obj = obj[key];
+			if(key === 'value' && obj.nodeType === Node.ELEMENT_NODE)
+				obj = Backbone.Cord.decodeValue(obj);
+			else
+				obj = obj[key];
 		}
 	}
 	return obj;
@@ -54,12 +57,18 @@ function _setObjValue(obj, keys, value) {
 	keys = Array.isArray(keys) ? keys : keys.split('.');
 	obj = _getObjValue(obj, keys.slice(0, -1));
 	key = keys[keys.length - 1];
-	if(obj instanceof Backbone.Cord.View)
+	if(obj instanceof Backbone.Cord.View) {
 		obj.setValueForKey(key, value);
-	else if(obj instanceof Backbone.Model)
+	}
+	else if(obj instanceof Backbone.Model) {
 		obj.set((key === 'id' ? obj.idAttribute : key), value);
-	else if(obj)
-		obj[key] = value;
+	}
+	else if(obj) {
+		if(key === 'value' && obj.nodeType === Node.ELEMENT_NODE)
+			Backbone.Cord.encodeValue(obj, value);
+		else
+			obj[key] = value;
+	}
 }
 
 // Helper functions for mixing objects and prototypes
@@ -183,7 +192,7 @@ function _createElement(tagIdClasses, attrs) {
 }
 
 // id and classes on the subview are maintained, but recommended that id is set by the parent view
-function _createSubview(instanceClass, idClasses, bindings) {
+function _createSubview(instanceClass, idClasses, bindings, keyValues) {
 	var id, classes, subview, context, callback;
 	if(!(instanceClass instanceof Backbone.View))
 		subview = new instanceClass();
@@ -209,6 +218,7 @@ function _createSubview(instanceClass, idClasses, bindings) {
 		Backbone.Cord.addClass(subview.el, this._callPlugins('classes', context, classes) || classes);
 	}
 	else {
+		keyValues = bindings;
 		bindings = idClasses;
 	}
 	if(bindings) {
@@ -218,11 +228,17 @@ function _createSubview(instanceClass, idClasses, bindings) {
 		for(var e in bindings) {
 			if(bindings.hasOwnProperty(e)) {
 				callback = (typeof bindings[e] === 'string') ? (this[bindings[e]] || _createSetValueCallback(bindings[e])) : bindings[e];
-				if(typeof callback === 'function')
-					this.listenTo(subview, e, callback);
+				if(typeof callback === 'function') {
+					if(subview.properties && subview.properties.hasOwnProperty(e))
+						subview.observe(e, callback.bind(this));
+					else
+						this.listenTo(subview, e, callback);
+				}
 			}
 		}
 	}
+	if(keyValues)
+		subview.setValuesForKeys(keyValues);
 	subview.sid = Backbone.Cord._sid;
 	Backbone.Cord._sid += 1;
 	subview.el.setAttribute('data-sid', subview.sid);
@@ -266,7 +282,7 @@ function _createText(str) {
 }
 
 Backbone.Cord = {
-	VERSION: '1.0.10',
+	VERSION: '1.0.11',
 	config: {
 		idProperties: true
 	},
@@ -284,6 +300,35 @@ Backbone.Cord = {
 		lower: function(str) { return str.toLowerCase(); },
 		upper: function(str) { return str.toUpperCase(); },
 		title: function(str) { return str.replace(/\b[^\s-]*/g, function(s) { return s.charAt(0).toUpperCase() + s.substr(1).toLowerCase(); }); }
+	},
+	// Value decoders and encoders for when "value" is get or set on an element, keys into decoders/encoders is based on the data-type and type attribute
+	decoders: {
+		range: function(el) { return parseInt(el.value); },
+		number: function(el) { return Number(el.value); },
+		integer: function(el) { return parseInt(el.value); },
+		decimal: function(el) { return parseFloat(el.value); },
+		date: function(el) { return new Date(el.value); },
+		datetime: function(el) { return new Date(el.value); },
+		checkbox: function(el) { return el.checked; }
+	},
+	encoders: {
+		date: function(el, value) { el.value = value.toDateString(); },
+		datetime: function(el, value) { el.value = value.toString(); },
+		checkbox: function(el, value) { el.checked = Backbone.Cord.convertToBool(value); }
+	},
+	decodeValue: function(el) {
+		var decoder = Backbone.Cord.decoders[el.getAttribute('data-type') || el.getAttribute('type')];
+		return decoder ? decoder(el) : el.value;
+	},
+	encodeValue: function(el, value) {
+		var encoder = Backbone.Cord.encoders[el.getAttribute('data-type') || el.getAttribute('type')];
+		if(encoder)
+			encoder(el, value);
+		else
+			el.value = Backbone.Cord.convertToString(value);
+		var evt = document.createEvent('HTMLEvents');
+		evt.initEvent('change', true, true);
+		el.dispatchEvent(evt);
 	},
 	// Mixins installed by the app by setting keys on this object
 	mixins: {},
@@ -962,95 +1007,114 @@ Backbone.Cord.View.prototype.remove = function() {
 ;(function(Backbone) {
 'use strict';
 
-var _nodeProperties = {
-	'innerHTML': true,
-	'value': true,
-	'checked': true
+var _ATTR_PROPERTIES = {
+	innerHTML: true,
+	value: true,
+	checked: true
 };
+var _DATA_BINDING_ATTR = 'data-binding';
+var _currentBinding = null;
 
-var _changeEventProperties = {
-	'value': true,
-	'checked': true
-};
-
-function _createAttrObserver(node, attr) {
-	if(_nodeProperties[attr])
+function _createAttrObserver(el, attr) {
+	if(_ATTR_PROPERTIES[attr])
 		return function(key, formatted) {
-			if(attr === 'checked')
-				node[attr] = Backbone.Cord.convertToBool(formatted);
+			if(attr !== 'innerHTML')
+				Backbone.Cord.encodeValue(el, formatted);
 			else
-				node[attr] = Backbone.Cord.convertToString(formatted);
-			if(Backbone.Cord.config.bindingDispatchChangeEvents && _changeEventProperties[attr]) {
-				var evt = document.createEvent('HTMLEvents');
-				evt.initEvent('change', true, true);
-				node.dispatchEvent(evt);
-			}
+				el[attr] = Backbone.Cord.convertToString(formatted);
 		};
 	else
 		return function(key, formatted) {
-			node.setAttribute(attr, Backbone.Cord.convertToString(formatted));
+			el.setAttribute(attr, Backbone.Cord.convertToString(formatted));
 		};
 }
 
-function _createChildObserver(node) {
+function _createChildObserver(el) {
 	return function(key, value) {
-		node.textContent = Backbone.Cord.convertToString(value);
+		el.textContent = Backbone.Cord.convertToString(value);
 	};
 }
 
-var _valueDecoders = {
-	'range': function(el) { return parseInt(el.value); },
-	'number': function(el) { return Number(el.value); },
-	'integer': function(el) { return parseInt(el.value); },
-	'decimal': function(el) { return parseFloat(el.value); },
-	'date': function(el) { return new Date(el.value); },
-	'datetime': function(el) { return new Date(el.value); },
-	'checkbox': function(el) { return el.checked; }
-};
+function _testBindingFeedback(el) {
+	// Prevent two-way data binding from creating an infinite feedback loop through dispatching events
+	var bindingUid = el.getAttribute(_DATA_BINDING_ATTR);
+	if(bindingUid && bindingUid === _currentBinding) {
+		_currentBinding = null;
+		return true;
+	}
+	else {
+		_currentBinding = bindingUid;
+		return false;
+	}
+}
 
-function _createValueListener(key) {
-	return function(e) {
-		var el = e.currentTarget;
-		var decoder = _valueDecoders[el.getAttribute('data-type') || el.getAttribute('type')];
-		this.setValueForKey(key, decoder ? decoder.call(this, el) : el.value);
+function _createValueObserver(el) {
+	return function(key, value) {
+		if(_testBindingFeedback(el))
+			return;
+		Backbone.Cord.encodeValue(el, value);
+	};
+}
+
+function _createValueListener(el, key) {
+	return function() {
+		if(_testBindingFeedback(el))
+			return;
+		this.setValueForKey(key, Backbone.Cord.decodeValue(el));
 	};
 }
 
 Backbone.Cord.plugins.push({
 	name: 'binding',
 	requirements: ['interpolation'],
-	config: {
-		bindingDispatchChangeEvents: true
-	},
 	attrs: function(context, attrs) {
-		var format, listener, expectChange;
+		var format, listener, twoWay;
 		if(!context.isView)
 			return;
+		// Observe any formatted attributes
 		for(var attr in attrs) {
 			if(attrs.hasOwnProperty(attr)) {
 				format = attrs[attr];
 				if(typeof format === 'string' && format.match(Backbone.Cord.regex.variableSearch)) {
 					this.observeFormat(format, _createAttrObserver(context.el, attr), true);
-					if(Backbone.Cord.config.bindingDispatchChangeEvents && _changeEventProperties[attr])
-						expectChange = true;
 					delete attrs[attr];
 				}
 			}
 		}
-		// Reverse binding on change or input events
+		// Support the non-formatted version of innerHTML with just a observer key
+		if(attrs.innerHTML) {
+			this.observe(attrs.innerHTML, _createAttrObserver(context.el, 'innerHTML'), true);
+			delete attrs.innerHTML;
+		}
+		// The attr bind is shorthand for both observe and change
+		if(attrs.bind) {
+			attrs.observe = attrs.bind;
+			attrs.change = attrs.bind;
+			delete attrs.bind;
+		}
+		// Observer binding to set the value
+		if(attrs.observe) {
+			if(attrs.observe === attrs.change || attrs.observe === attrs.input) {
+				twoWay = true;
+				attrs[_DATA_BINDING_ATTR] = 'binding-' + Backbone.Cord.randomUID();
+			}
+			this.observe(attrs.observe, _createValueObserver(context.el), true);
+			delete attrs.observe;
+		}
+		// Reverse binding on change or input events to listen to changes in the value
 		if(attrs.change) {
-			listener = _createValueListener(attrs.change).bind(this);
+			listener = _createValueListener(context.el, attrs.change).bind(this);
 			context.el.addEventListener('change', listener);
 			delete attrs.change;
 		}
 		if(attrs.input) {
-			listener = _createValueListener(attrs.input).bind(this);
+			listener = _createValueListener(context.el, attrs.input).bind(this);
 			context.el.addEventListener('input', listener);
 			delete attrs.input;
 		}
-		// Invoke the reverse listener with the initial value if an initial change event is not expected from an attribute observer
-		if(listener && !expectChange)
-			Backbone.Cord.setImmediate(listener.bind(this, {currentTarget: context.el}));
+		// Invoke the reverse listener with the initial value if an initial change event is not expected from an observer
+		if(listener && !twoWay)
+			Backbone.Cord.setImmediate(listener);
 	},
 	children: function(context, children) {
 		var i, j, child, strings, matches, spliceArgs, node;
@@ -1252,7 +1316,7 @@ Backbone.Cord.mixins.collection = {
 			if(model)
 				cid = model.cid;
 		}
-		else if(indexModelElement.nodeType === 1) {
+		else if(indexModelElement.nodeType === Node.ELEMENT_NODE) {
 			for(key in this.itemViews) {
 				if(this.itemViews.hasOwnProperty(key) && this.itemViews[key].el === indexModelElement) {
 					cid = key;
@@ -2094,11 +2158,12 @@ Backbone.Cord.plugins.push({
 ;(function(Backbone) {
 'use strict';
 
-var THIS_ID = '(this)';
-var ua = navigator.userAgent.toLowerCase();
-var browser = (/(chrome|safari)/.exec(ua) || /firefox/.exec(ua) || /msie/.exec(ua) || /trident/.exec(ua) || /opera/.exec(ua) || '')[0];
-var stylePrefix = ({ chrome: 'webkit', firefox: 'Moz', msie: 'ms', opera: 'O', safari: 'webkit', trident: 'ms' })[browser] || '';
-var cssPrefix = '-' + stylePrefix.toLowerCase() + '-';
+var _THIS_ID = '(this)';
+var _ua = navigator.userAgent.toLowerCase();
+var _browser = (/(chrome|safari)/.exec(_ua) || /firefox/.exec(_ua) || /msie/.exec(_ua) || /trident/.exec(_ua) || /opera/.exec(_ua) || '')[0];
+var _stylePrefix = ({ chrome: 'webkit', firefox: 'Moz', msie: 'ms', opera: 'O', safari: 'webkit', trident: 'ms' })[_browser] || '';
+var _eventPrefix = ({ chrome: 'webkit', opera: 'webkit', safari: 'webkit' })[_browser] || '';
+var _cssPrefix = '-' + _stylePrefix.toLowerCase() + '-';
 
 function _createStyleSheets() {
 	var el, key;
@@ -2123,7 +2188,7 @@ function _createStyleSheets() {
 
 function _getStylePrefix(style, css) {
 	if(document.documentElement.style[style] === void(0))
-		return css ? cssPrefix : stylePrefix;
+		return css ? _cssPrefix : _stylePrefix;
 	return '';
 }
 
@@ -2132,6 +2197,17 @@ function _addStylePrefix(style) {
 	if(prefix)
 		return prefix + style[0].toUpperCase() + style.substr(1);
 	return style;
+}
+
+// Really only needed for transition and animation events
+// Only webkit prefix is considered given focus on modern browsers see docs for transition and animation events
+// http://www.w3schools.com/jsref/dom_obj_event.asp
+function _addEventPrefix(name) {
+	var standard = name.toLowerCase();
+	if(!_eventPrefix || Element.prototype.hasOwnProperty('on' + standard))
+		return standard;
+	else
+		return _eventPrefix + name;
 }
 
 function _camelCaseToDash(str) {
@@ -2187,7 +2263,7 @@ function _addRules(vuid, rules, _styles, selector, media, id) {
 			else {
 				var value = rules[key].toString();
 				if(value.search(Backbone.Cord.regex.variableSearch) !== -1) {
-					var scope = id || THIS_ID;
+					var scope = id || _THIS_ID;
 					if(!_styles[scope])
 						_styles[scope] = {};
 					_styles[scope][key] = value;
@@ -2195,14 +2271,14 @@ function _addRules(vuid, rules, _styles, selector, media, id) {
 				else {
 					var rule = selector + '{' + _getStylePrefix(key, true) + _camelCaseToDash(key) + ':' + value + ';}';
 					Backbone.Cord.log('@' + media,  rule);
-					sheet.insertRule(rule, sheet.rules.length);
+					sheet.insertRule(rule, sheet.cssRules.length);
 				}
 			}
 		}
 	}
 }
 
-var atKeyframes = '@' + _getStylePrefix('animationName', true) + 'keyframes ';
+var _atKeyframes = '@' + _getStylePrefix('animationName', true) + 'keyframes ';
 
 function _addAnimations(vuid, animations) {
 	var sheet = Backbone.Cord._styleSheets.animations;
@@ -2240,9 +2316,9 @@ function _addAnimations(vuid, animations) {
 					animation.name = key + '-' + vuid;
 				else
 					animation.name = key;
-				rule = atKeyframes + animation.name + '{' + rule + '}';
+				rule = _atKeyframes + animation.name + '{' + rule + '}';
 				Backbone.Cord.log(rule);
-				sheet.insertRule(rule, sheet.rules.length);
+				sheet.insertRule(rule, sheet.cssRules.length);
 			}
 		}
 	}
@@ -2277,7 +2353,7 @@ function _styles(context, attrs) {
 	}
 }
 
-var DEFAULT_ANIMATION_OPTIONS = {
+var _DEFAULT_ANIMATION_OPTIONS = {
 	duration: '250ms',
 	delay: '0',
 	timing: 'ease',
@@ -2287,6 +2363,23 @@ var DEFAULT_ANIMATION_OPTIONS = {
 	state: 'running',
 	interactive: true
 };
+
+var _animationName = _addStylePrefix('animationName');
+var _animationDelay = _addStylePrefix('animationDelay');
+var _animationDirection = _addStylePrefix('animationDirection');
+var _animationDuration = _addStylePrefix('animationDuration');
+var _animationIterationCount = _addStylePrefix('animationIterationCount');
+var _animationTimingFunction = _addStylePrefix('animationTimingFunction');
+var _animationFillMode = _addStylePrefix('animationFillMode');
+var _animationPlayState = _addStylePrefix('animationPlayState');
+var _transitionDelay = _addStylePrefix('transitionDelay');
+var _transitionDuration = _addStylePrefix('transitionDuration');
+var _transitionProperty = _addStylePrefix('transitionProperty');
+var _transitionTimingFunction = _addStylePrefix('transitionTimingFunction');
+
+var _animationiteration = _addEventPrefix('AnimationIteration');
+var _animationend = _addEventPrefix('AnimationEnd');
+var _transitionend = _addEventPrefix('TransitionEnd');
 
 function _parseAnimationSelector(animationSelector, options) {
 	var i, key, animation, components = animationSelector.split(/: */);
@@ -2361,20 +2454,20 @@ Backbone.Cord.View.prototype.beginAnimation = function(animationSelector, option
 	elements = parsed.elements;
 	if(!elements.length)
 		return this;
-	options = Backbone.Cord.mixObj(DEFAULT_ANIMATION_OPTIONS, parsed.options);
+	options = Backbone.Cord.mixObj(_DEFAULT_ANIMATION_OPTIONS, parsed.options);
 	pointerEvents = options.interactive ? '' : 'none';
 	for(i = 0; i < elements.length; ++i) {
 		el = elements[i];
-		separator = !!el.style.animationName ? ',' : '';
+		separator = !!el.style[_animationName] ? ',' : '';
 		for(j = 0; j < animations.length; ++j) {
-			el.style.animationDelay += separator + options.delay;
-			el.style.animationDirection += separator + options.direction;
-			el.style.animationDuration += separator + options.duration;
-			el.style.animationIterationCount += separator + options.count;
-			el.style.animationTimingFunction += separator + options.timing;
-			el.style.animationFillMode += separator + options.fill;
-			el.style.animationPlayState += separator + options.state;
-			el.style.animationName += separator + animations[j];
+			el.style[_animationDelay] += separator + options.delay;
+			el.style[_animationDirection] += separator + options.direction;
+			el.style[_animationDuration] += separator + options.duration;
+			el.style[_animationIterationCount] += separator + options.count;
+			el.style[_animationTimingFunction] += separator + options.timing;
+			el.style[_animationFillMode] += separator + options.fill;
+			el.style[_animationPlayState] += separator + options.state;
+			el.style[_animationName] += separator + animations[j];
 			el.style.pointerEvents = pointerEvents;
 			separator = ',';
 		}
@@ -2389,7 +2482,7 @@ Backbone.Cord.View.prototype.beginAnimation = function(animationSelector, option
 			if(callback.call(this, iteration, animationSelector, options) === false)
 				this.pauseAnimation(animationSelector);
 		}.bind(this);
-		elements[0].addEventListener('animationiteration', iterationListener);
+		elements[0].addEventListener(_animationiteration, iterationListener);
 	}
 	// If options.count is not infinite and fill is none call cancelAnimation at the end
 	cancelable = (options.count !== 'infinite' && options.fill === 'none');
@@ -2397,14 +2490,14 @@ Backbone.Cord.View.prototype.beginAnimation = function(animationSelector, option
 		if(e.target !== e.currentTarget)
 			return;
 		if(iterationListener)
-			e.target.removeEventListener('animationiteration', iterationListener);
-		e.target.removeEventListener('animationend', endListener);
+			e.target.removeEventListener(_animationiteration, iterationListener);
+		e.target.removeEventListener(_animationend, endListener);
 		if(cancelable)
 			this.cancelAnimation(animationSelector);
 		if(callback)
 			callback.call(this, -1, animationSelector, options);
 	}.bind(this);
-	elements[0].addEventListener('animationend', endListener);
+	elements[0].addEventListener(_animationend, endListener);
 	return this;
 };
 
@@ -2418,9 +2511,9 @@ Backbone.Cord.View.prototype._updateAnimation = function(animationSelector, prop
 		return this;
 	for(i = 0; i < elements.length; ++i) {
 		el = elements[i];
-		if(el.style.animationName !== prevAnimations) {
-			prevAnimations = el.style.animationName;
-			indices = _getStyleListIndices(el.style.animationName, animations);
+		if(el.style[_animationName] !== prevAnimations) {
+			prevAnimations = el.style[_animationName];
+			indices = _getStyleListIndices(el.style[_animationName], animations);
 		}
 		el.style[property] = _alterStyleList(el.style[property], indices, value);
 	}
@@ -2428,11 +2521,11 @@ Backbone.Cord.View.prototype._updateAnimation = function(animationSelector, prop
 };
 
 Backbone.Cord.View.prototype.pauseAnimation = function(animationSelector) {
-	return this._updateAnimation(animationSelector, 'animationPlayState', 'paused');
+	return this._updateAnimation(animationSelector, _animationPlayState, 'paused');
 };
 
 Backbone.Cord.View.prototype.resumeAnimation = function(animationSelector) {
-	return this._updateAnimation(animationSelector, 'animationPlayState', 'running');
+	return this._updateAnimation(animationSelector, _animationPlayState, 'running');
 };
 
 Backbone.Cord.View.prototype.cancelAnimation = function(animationSelector) {
@@ -2444,18 +2537,18 @@ Backbone.Cord.View.prototype.cancelAnimation = function(animationSelector) {
 		return this;
 	for(i = 0; i < elements.length; ++i) {
 		el = elements[i];
-		if(el.style.animationName !== prevAnimations) {
-			prevAnimations = el.style.animationName;
-			indices = _getStyleListIndices(el.style.animationName, animations);
+		if(el.style[_animationName] !== prevAnimations) {
+			prevAnimations = el.style[_animationName];
+			indices = _getStyleListIndices(el.style[_animationName], animations);
 		}
-		el.style.animationDelay = _filterStyleList(el.style.animationDelay, indices);
-		el.style.animationDirection = _filterStyleList(el.style.animationDirection, indices);
-		el.style.animationDuration = _filterStyleList(el.style.animationDuration, indices);
-		el.style.animationIterationCount = _filterStyleList(el.style.animationIterationCount, indices);
-		el.style.animationTimingFunction = _filterStyleList(el.style.animationTimingFunction, indices);
-		el.style.animationFillMode = _filterStyleList(el.style.animationFillMode, indices);
-		el.style.animationPlayState = _filterStyleList(el.style.animationPlayState, indices);
-		el.style.animationName = _filterStyleList(el.style.animationName, indices);
+		el.style[_animationDelay] = _filterStyleList(el.style[_animationDelay], indices);
+		el.style[_animationDirection] = _filterStyleList(el.style[_animationDirection], indices);
+		el.style[_animationDuration] = _filterStyleList(el.style[_animationDuration], indices);
+		el.style[_animationIterationCount] = _filterStyleList(el.style[_animationIterationCount], indices);
+		el.style[_animationTimingFunction] = _filterStyleList(el.style[_animationTimingFunction], indices);
+		el.style[_animationFillMode] = _filterStyleList(el.style[_animationFillMode], indices);
+		el.style[_animationPlayState] = _filterStyleList(el.style[_animationPlayState], indices);
+		el.style[_animationName] = _filterStyleList(el.style[_animationName], indices);
 		el.style.pointerEvents = '';
 	}
 	return this;
@@ -2474,7 +2567,7 @@ Backbone.Cord.View.prototype.beginTransition = function(selector, styles, option
 		callback = options;
 		options = {};
 	}
-	options = Backbone.Cord.mixObj(DEFAULT_ANIMATION_OPTIONS, options);
+	options = Backbone.Cord.mixObj(_DEFAULT_ANIMATION_OPTIONS, options);
 	if(selector)
 		elements = this.el.querySelectorAll(Backbone.Cord.regex.replaceIdSelectors(selector, this.vuid));
 	else
@@ -2483,13 +2576,13 @@ Backbone.Cord.View.prototype.beginTransition = function(selector, styles, option
 		return this;
 	for(i = 0; i < elements.length; ++i) {
 		el = elements[i];
-		separator = !!el.style.transitionProperty ? ',' : '';
+		separator = !!el.style[_transitionProperty] ? ',' : '';
 		for(style in styles) {
 			if(styles.hasOwnProperty(style)) {
-				el.style.transitionDelay += separator + options.delay;
-				el.style.transitionDuration += separator + options.duration;
-				el.style.transitionProperty += separator + _getStylePrefix(style, true) + _camelCaseToDash(style);
-				el.style.transitionTimingFunction += separator + options.timing;
+				el.style[_transitionDelay] += separator + options.delay;
+				el.style[_transitionDuration] += separator + options.duration;
+				el.style[_transitionProperty] += separator + _getStylePrefix(style, true) + _camelCaseToDash(style);
+				el.style[_transitionTimingFunction] += separator + options.timing;
 				el.style[_addStylePrefix(style)] = styles[style];
 				separator = ',';
 			}
@@ -2499,26 +2592,26 @@ Backbone.Cord.View.prototype.beginTransition = function(selector, styles, option
 		var i, el, properties, prevTransitions, indices;
 		if(e.target !== e.currentTarget)
 			return;
-		e.target.removeEventListener('transitionend', listener);
+		e.target.removeEventListener(_transitionend, listener);
 		properties = Object.keys(styles).map(function(property) {
 			return _getStylePrefix(property, true) + _camelCaseToDash(property);
 		});
 		// Remove the transition properties
 		for(i = 0; i < elements.length; ++i) {
 			el = elements[i];
-			if(el.style.transitionProperty !== prevTransitions) {
-				prevTransitions = el.style.transitionProperty;
-				indices = _getStyleListIndices(el.style.transitionProperty, properties);
+			if(el.style[_transitionProperty] !== prevTransitions) {
+				prevTransitions = el.style[_transitionProperty];
+				indices = _getStyleListIndices(el.style[_transitionProperty], properties);
 			}
-			el.style.transitionDelay = _filterStyleList(el.style.transitionDelay, indices);
-			el.style.transitionDuration = _filterStyleList(el.style.transitionDuration, indices);
-			el.style.transitionProperty = _filterStyleList(el.style.transitionProperty, indices);
-			el.style.transitionTimingFunction = _filterStyleList(el.style.transitionTimingFunction, indices);
+			el.style[_transitionDelay] = _filterStyleList(el.style[_transitionDelay], indices);
+			el.style[_transitionDuration] = _filterStyleList(el.style[_transitionDuration], indices);
+			el.style[_transitionProperty] = _filterStyleList(el.style[_transitionProperty], indices);
+			el.style[_transitionTimingFunction] = _filterStyleList(el.style[_transitionTimingFunction], indices);
 		}
 		if(callback)
 			callback.call(this, selector, styles, options);
 	}.bind(this);
-	elements[0].addEventListener('transitionend', listener);
+	elements[0].addEventListener(_transitionend, listener);
 	return this;
 };
 
@@ -2559,7 +2652,7 @@ Backbone.Cord.View.prototype.clearStyles = function(selector, styles) {
 	return this;
 };
 
-var DEFAULT_KEYFRAME_ALIASES = {'0%': 'from', 'from': '0%', '100%': 'to', 'to': '100%'};
+var _DEFAULT_KEYFRAME_ALIASES = {'0%': 'from', 'from': '0%', '100%': 'to', 'to': '100%'};
 
 // Get styles for a keyframe from an animation with a keyframe key
 // Animation properties such as animation-timing-function are excluded
@@ -2569,7 +2662,7 @@ Backbone.Cord.View.prototype.getKeyframe = function(animation, keyframe, clear) 
 	animation = this.animations[animation] || Backbone.Cord.Styles.animations[animation];
 	keyframe = keyframe || '0%';
 	aliases = animation.aliases || {};
-	styles = animation[keyframe] || animation[DEFAULT_KEYFRAME_ALIASES[keyframe] || aliases[keyframe]];
+	styles = animation[keyframe] || animation[_DEFAULT_KEYFRAME_ALIASES[keyframe] || aliases[keyframe]];
 	styles = Backbone.Cord.copyObj(styles);
 	for(style in styles) {
 		if(style.indexOf('animation') === 0 && styles.hasOwnProperty(style))
@@ -2597,6 +2690,10 @@ Backbone.Cord.View.prototype.beginKeyframeTransition = function(selector, animat
 		callback = options;
 		options = keyframe;
 		keyframe = null;
+	}
+	if(typeof options === 'function') {
+		callback = options;
+		options = {};
 	}
 	keyframe = keyframe || '0%';
 	styles = this.getKeyframe(animation, keyframe);
@@ -2637,9 +2734,10 @@ Backbone.Cord.View.prototype.clearKeyframe = function(selector, animation, keyfr
 
 // Expose useful functions, media queries which can be modified, and some browser info
 Backbone.Cord.Styles = {
-	userAgent: ua,
-	browser: browser,
+	userAgent: _ua,
+	browser: _browser,
 	addStylePrefix: _addStylePrefix,
+	addEventPrefix: _addEventPrefix,
 	getCSSPrefix: function(style) { return _getStylePrefix(style, true); },
 	camelCaseToDash: _camelCaseToDash,
 	mediaQueries: {
@@ -2702,8 +2800,8 @@ Backbone.Cord.plugins.push({
 		context.protoProps._styles = _styles;
 	},
 	initialize: function(context) {
-		if(this._styles && this._styles[THIS_ID]) {
-			var styles = Backbone.Cord.copyObj(this._styles[THIS_ID]);
+		if(this._styles && this._styles[_THIS_ID]) {
+			var styles = Backbone.Cord.copyObj(this._styles[_THIS_ID]);
 			Backbone.Cord.log(styles);
 			this._callPlugins('strings', context, styles);
 			for(var style in styles) {

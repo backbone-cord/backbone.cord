@@ -282,7 +282,7 @@ function _createText(str) {
 }
 
 Backbone.Cord = {
-	VERSION: '1.0.10',
+	VERSION: '1.0.11',
 	config: {
 		idProperties: true
 	},
