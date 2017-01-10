@@ -27,6 +27,26 @@
 		text-align: center;
 		position: relative;
 	}
+	@keyframes flash {
+		0% {
+			transform: scale(1,1);
+		}
+		20% {
+			transform: scale(0.75,0.75);
+		}
+		40% {
+			transform: scale(1,1);
+		}
+		60% {
+			transform: scale(1,1);
+		}
+		80% {
+			transform: scale(0.5,0.5);
+		}
+		100% {
+			transform: scale(1,1);
+		}
+	}
 	</style>
 </head>
 <body>
@@ -48,22 +68,85 @@
 			properties: {
 				top: 0,
 				left: 0
-			},
-			observers: {
-				top: Backbone.Events.trigger
 			}
 		});
 
 		var Parent = Backbone.Cord.View.extend({
-			className: 'parent',
 			styles: {
 				backgroundColor: '#999',
 				color: '#333'
 			}
 		});
 
+		Backbone.Cord.UnmanagedScopes.set('unmanaged', new Backbone.Model({color: 'pink'}));
+
+		Backbone.Cord.Styles.addAnimation({
+			fadeIn: {
+				from: {
+					opacity: '0',
+					animationTimingFunction: 'linear'
+				},
+				to: {
+					opacity: '1'
+				},
+				options: {
+					duration: '1s'
+				}
+			},
+			bounceIn: {
+				"from": {
+					"animationTimingFunction": "cubic-bezier(0.215, 0.610, 0.355, 1.000)",
+					"opacity": "0",
+					"transform": "translate3d(0, -3000px, 0)"
+				},
+				"60%": {
+					"animationTimingFunction": "cubic-bezier(0.215, 0.610, 0.355, 1.000)",
+					"opacity": "1",
+					"transform": "translate3d(0, 25px, 0)"
+				},
+				"75%": {
+					"animationTimingFunction": "cubic-bezier(0.215, 0.610, 0.355, 1.000)",
+					"transform": "translate3d(0, -10px, 0)"
+				},
+				"90%": {
+					"animationTimingFunction": "cubic-bezier(0.215, 0.610, 0.355, 1.000)",
+					"transform": "translate3d(0, 5px, 0)"
+				},
+				"to": {
+					"animationTimingFunction": "cubic-bezier(0.215, 0.610, 0.355, 1.000)",
+					"transform": "none"
+				}
+			},
+			flip: {
+				"from": {
+					"transform": "perspective(400px) rotate3d(0, 1, 0, -360deg)",
+					"animationTimingFunction": "ease-out",
+					"backfaceVisibility": 'hidden'
+				},
+				"to": {
+					"transform": "perspective(400px)",
+					"animationTimingFunction": "ease-in",
+					"backfaceVisibility": 'hidden'
+				},
+				"40%": {
+					"transform": "perspective(400px) translate3d(0, 0, 150px) rotate3d(0, 1, 0, -190deg)",
+					"animationTimingFunction": "ease-out",
+					"backfaceVisibility": 'hidden'
+				},
+				"50%": {
+					"transform": "perspective(400px) translate3d(0, 0, 150px) rotate3d(0, 1, 0, -170deg)",
+					"animationTimingFunction": "ease-in",
+					"backfaceVisibility": 'hidden'
+				},
+				"80%": {
+					"transform": "perspective(400px) scale3d(.95, .95, .95)",
+					"animationTimingFunction": "ease-in",
+					"backfaceVisibility": 'hidden'
+				}
+			}
+		});
+
 		var Square = Parent.extend({
-			//className: 'view',
 			styles: {
 				userSelect: 'none',
 				backgroundColor: '#DDD',
@@ -85,31 +168,38 @@
 				}
 			},
 			animations: {
-				test: [{width: 100}, {width: 200}, {width: 500}],
-				bg: [{backgroundColor: '#333', transform: 'scale(0.5,1)'}]
+				test: {
+					'0%': {width: '100px', opacity: '0.3'}, '50%': {width: '200px', opacity: '0.8'}, '100%': {width: '500px'},
+					aliases: {small: '0%', medium: '50%', large: '100%'}
+				},
+				bg: {
+					from: {opacity: 1},
+					to: {backgroundColor: '#333', transform: 'scale(0.5,1)', opacity: 0.5},
+					options: {duration: '0.5s', count: 'infinite'}
+				}
 			},
 			el: function(h, s) {
 				return h('', {onkeyup: 'alertKey'},
-						h('select', {change: 'localStorage_color'},
+						h('select', {bind: 'unmanaged.color'},
 							h('option', {value: 'purple'}, 'Purple'),
 							h('option', {value: 'grey'}, 'Grey'),
 							h('option', {value: 'blue'}, 'Blue')
 						),
 						h('input', {type: 'checkbox', change: 'message'}),
-						h('input', {type: 'range', min: 0, max: 100, input: 'left', value: '{left}'}),
-						h('#container.square.red(red)', {style: {borderTop: '{left}px solid {localStorage_color}', top: '{top}px', left: '{left}px'}}),
+						h('input#range', {type: 'range', min: 0, max: 100, change: 'left', observe: 'left'}),
+						h('#container.square.red(red)', {style: {borderTop: '{left}px solid {unmanaged.color}', top: '{top}px', left: '{left}px'}}),
 						h('p',
 							'Click the button below to change the color.', 'Distance is {distance}.'),
 						h('button#button', {onclick: 'onButtonClick'}, 'Click Me'),
 						h('p.red-{red}',
 							'Red is: {red}'),
-						h('.hi', {style: {paddingLeft: ':={input_cursorX}-200=:', paddingTop: ':={input_cursorY}/2=:'}},
+						h('.hi', {style: {paddingLeft: ':={input_cursorX}-200=:px', paddingTop: ':={input_cursorY}/2=:px'}},
 							'Hi {model.firstName}, Blue is: {blue}'),
 						h('p#thankyou', {invisible: 'red'},
 							'Thank you much, {model.firstName} {model.lastName} aka {model.nickName}!'),
 						h('input', {value: ' this is {shared.shared} world {blue} hello {model.firstName}', change: 'message'}),
 						h('a', {href: 'http://backbonejs.org', target: '_blank', onclick: function() { return false; } }, 'backbonejs.org'),
-						s(Circle, '#circle', {style: {marginLeft: '{left}'}, top: 'onCircleTop'}),
+						s(Circle, '#circle', {style: {marginLeft: '{left}px'}, top: 'onCircleTop'}, {top: 100}),
 						s(Circle, '#circle2', {invisible: 'red', onclick: 'onButtonClick'}),
 						s(Backbone.Cord.EmptyView, '#emptyView')
 					);
@@ -130,7 +220,6 @@
 				test: {
 					value: new Backbone.Model({fizz: new Backbone.Model({fuzz: 'buzz'})})
 				},
-				localStorage_color: 'orange',
 				distance: function(top, left) { return top + left; },
 				inherited: null,
 				inheritedLastName: function(inherited, model__lastName) { return inherited || model__lastName; }
@@ -140,7 +229,7 @@
 				this.blue = Math.floor(Math.random() * 100);
 				this.el.appendChild(this.createElement('p', 'Thank you much, blue * 11 is :={blue} * 11 - 5.6=: {model.lastName}! {inheritedLastName}'));
 			},
-			onCircleTop: function(value) {
+			onCircleTop: function(key, value) {
 				console.log('onCircleTop ' + value);
 			},
 			alertKey: function(e) {
