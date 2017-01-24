@@ -282,7 +282,7 @@ function _createText(str) {
 }
 
 Backbone.Cord = {
-	VERSION: '1.0.11',
+	VERSION: '1.0.12',
 	config: {
 		idProperties: true
 	},
@@ -995,8 +995,8 @@ Backbone.Cord.View.prototype.remove = function() {
 			this.subviews[key].remove();
 	}
 	this.subviews = null;
-	// Previously, a backwards loop called unobserve for each observer, but unobserve does not do any extra needed cleanup, so just set null
-	// e.g. for(i = this._observers[key].length - 1; i >= 0; --i) this.unobserve(...);
+	// Some scopes do not need extra cleanup - just setting observers to null and calling stopListening() in __remove()
+	// other scopes should implement remove() plugin callback
 	this._observers = null;
 	this.trigger('remove', this);
 	return __remove.apply(this, arguments);
@@ -2248,6 +2248,10 @@ function _addRules(vuid, rules, _styles, selector, media, id) {
 						separator = ' ';
 						query = query.substr(Backbone.Cord.config.allSelectorPrefix.length);
 					}
+					else if(query.indexOf(Backbone.Cord.config.parentSelectorPrefix) === 0) {
+						separator = '';
+						query = query.substr(Backbone.Cord.config.parentSelectorPrefix.length);
+					}
 					if(query[0] === '#')
 						idQuery = query.substr(1);
 					if(idQuery && !Backbone.Cord.regex.testIdProperty(idQuery, true))
@@ -2777,6 +2781,7 @@ Backbone.Cord.plugins.push({
 	requirements: ['interpolation'],
 	config: {
 		mediaQueryPrefix: '@',
+		parentSelectorPrefix: '&',
 		allSelectorPrefix: '$'
 	},
 	attrs: _styles,
