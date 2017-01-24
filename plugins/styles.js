@@ -91,9 +91,9 @@ function _addRules(vuid, rules, _styles, selector, media, id) {
 						separator = ' ';
 						query = query.substr(Backbone.Cord.config.allSelectorPrefix.length);
 					}
-					else if(query.indexOf(Backbone.Cord.config.ampersandPrefix) === 0) {
+					else if(query.indexOf(Backbone.Cord.config.parentSelectorPrefix) === 0) {
 						separator = '';
-						query = query.substr(Backbone.Cord.config.ampersandPrefix.length);
+						query = query.substr(Backbone.Cord.config.parentSelectorPrefix.length);
 					}
 					if(query[0] === '#')
 						idQuery = query.substr(1);
@@ -624,7 +624,7 @@ Backbone.Cord.plugins.push({
 	requirements: ['interpolation'],
 	config: {
 		mediaQueryPrefix: '@',
-		ampersandPrefix: '&',
+		parentSelectorPrefix: '&',
 		allSelectorPrefix: '$'
 	},
 	attrs: _styles,
