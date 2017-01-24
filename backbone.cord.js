@@ -988,15 +988,22 @@ Backbone.Cord.View.prototype._ensureElement = function() {
 // Wrap the remove method to also process subviews and plugins
 var __remove = Backbone.Cord.View.prototype.remove;
 Backbone.Cord.View.prototype.remove = function() {
-	var key;
+	var key, namespace, scope;
 	this._callPlugins('remove', {});
 	for(key in this.subviews) {
 		if(this.subviews.hasOwnProperty(key))
 			this.subviews[key].remove();
 	}
 	this.subviews = null;
-	// Previously, a backwards loop called unobserve for each observer, but unobserve does not do any extra needed cleanup, so just set null
-	// e.g. for(i = this._observers[key].length - 1; i >= 0; --i) this.unobserve(...);
+	// Some scopes do not need extra cleanup, just setting observers to null and the parent remove() calling stopListening()
+	// Other scopes may implement a remove callback to perform cleanup
+	for(namespace in this._observers) {
+		if(this._observers.hasOwnProperty(namespace)) {
+			scope = Backbone.Cord._scopes[namespace];
+			if(scope.remove)
+				scope.remove.call(this);
+		}
+	}
 	this._observers = null;
 	this.trigger('remove', this);
 	return __remove.apply(this, arguments);
