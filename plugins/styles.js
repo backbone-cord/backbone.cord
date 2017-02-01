@@ -83,6 +83,13 @@ function _addRules(vuid, rules, _styles, selector, media, id) {
 						return;
 				}
 				if(!mediaQuery) {
+					if(query.indexOf(',') !== -1) {
+						var queries = query.split(',');
+						var expandedRules = {};
+						for(var i = 0; i < queries.length; ++i)
+							expandedRules[queries[i].trim()] = rules[key];
+						return _addRules(vuid, expandedRules, _styles, selector, media, id);
+					}
 					if(':+~>'.indexOf(query[0]) !== -1) {
 						separator = query[0];
 						query = query.substr(1);
