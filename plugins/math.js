@@ -26,7 +26,7 @@ function _createExpressionProperty(expr, prop) {
 }
 
 function _replaceExpressions(str) {
-	var i, expr, prop, newStr;
+	var i, expr, filter, prop, newStr, index;
 	var strings = str.split(Backbone.Cord.regex.expressionSearch);
 	var matches = str.match(Backbone.Cord.regex.expressionSearch);
 	if(!matches)
@@ -34,8 +34,13 @@ function _replaceExpressions(str) {
 
 	for(i = 0; i < matches.length; ++i) {
 		expr = Backbone.Cord.regex.expressionValue.exec(matches[i])[1];
+		filter = '';
+		if((index = expr.indexOf('|')) !== -1) {
+			filter = expr.substr(index);
+			expr = expr.substr(0, index);
+		}
 		prop = 'expr' + Backbone.Cord.randomUID();
-		matches[i] = Backbone.Cord.regex.variable.prefix + prop + Backbone.Cord.regex.variable.suffix;
+		matches[i] = Backbone.Cord.regex.variable.prefix + prop + filter + Backbone.Cord.regex.variable.suffix;
 		_createExpressionProperty.call(this, expr, prop);
 	}
 
