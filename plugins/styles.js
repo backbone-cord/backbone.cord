@@ -88,7 +88,8 @@ function _addRules(vuid, rules, _styles, selector, media, id) {
 						var expandedRules = {};
 						for(var i = 0; i < queries.length; ++i)
 							expandedRules[queries[i].trim()] = rules[key];
-						return _addRules(vuid, expandedRules, _styles, selector, media, id);
+						_addRules(vuid, expandedRules, _styles, selector, media, id);
+						continue;
 					}
 					if(':+~>'.indexOf(query[0]) !== -1) {
 						separator = query[0];
