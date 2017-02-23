@@ -1,0 +1,53 @@
+<html>
+<head>
+	<style type="text/css">
+	body {
+		text-align: center;
+		margin-top: 150px;
+	}
+	svg {
+		margin-right: 25px;
+	}
+	</style>
+</head>
+<body>
+	<script type="text/javascript" src="https://raw.githubusercontent.com/jashkenas/underscore/master/underscore.js"></script>
+	<script type="text/javascript" src="https://raw.githubusercontent.com/jquery/jquery/2.2.4/dist/jquery.js"></script>
+	<script type="text/javascript" src="https://raw.githubusercontent.com/jashkenas/backbone/master/backbone.js"></script>
+	<script type="text/javascript" src="https://raw.githubusercontent.com/backbone-cord/backbone.cord/master/dist/backbone.cord.js"></script>
+	<script type="text/javascript" src="https://raw.githubusercontent.com/backbone-cord/backbone.cord.svg/master/backbone.cord.svg.js"></script>
+	<script type="text/javascript">
+	$(function() {
+		var EyeView = Backbone.View.extend({
+			el: function() {
+				var svg = this.createSVGElement.bind(this);
+				return svg('svg', {width: 110, height: 160},
+						svg('ellipse', {cx: 55, cy: 80, rx: 50, ry: 75, style: 'fill: white; stroke: black; stroke-width: 10;'}),
+						svg('circle#pupil', {cx: ':=55 + (Math.cos({angle}) * 25)=:', cy: ':=80 + (Math.sin({angle}) * 25)=:', r: 7, style: 'fill: black; stroke: black;'})
+					);
+			},
+			properties: {
+				angle: 0
+			},
+			initialize: function() {
+				var updateAngle = function(e) {
+					var rect = this.pupil.getBoundingClientRect();
+					var cx = rect.left + (rect.width/2);
+					var cy = rect.top + (rect.height/2);
+					var dx = e.clientX - cx, dy = e.clientY - cy;
+					this.angle = Math.atan(dy/dx);
+					if(e.clientX < cx)
+						this.angle += Math.PI;
+				}.bind(this);
+				document.addEventListener('mousemove', updateAngle);
+				this.listenTo(this, 'remove', function() { document.removeEventListener('mousemove', updateAngle); });
+			}
+		});
+		var left = new EyeView();
+		var right = new EyeView();
+		$(document.body).append(left.el);
+		$(document.body).append(right.el);
+	});
+	</script>
+</body>
+</html>

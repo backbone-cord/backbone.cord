@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+	<script type="text/javascript" src="/underscore/underscore.js"></script>
+	<script type="text/javascript" src="/jquery/dist/jquery.js"></script>
+	<script type="text/javascript" src="/backbone/backbone.js"></script>
+	<script type="text/javascript" src="/backbone.cord.js"></script>
+	<script type="text/javascript" src="https://rawgit.com/backbone-cord/backbone.cord.clock/master/backbone.cord.clock.js"></script>
+	<script type="text/javascript" src="https://rawgit.com/EvanHahn/HumanizeDuration.js/master/humanize-duration.js"></script>
+	<script type="text/javascript">
+		Backbone.Cord.filters.ago = function(duration) {
+			return humanizeDuration(duration, {largest: 1, round: true, units: ['y', 'mo', 'w', 'd', 'h', 'm']}) + ' ago';
+		}
+		$(function() {
+			var AgoView = Backbone.View.extend({
+				el: function(h) {
+					return h('p', 'Page loaded: :={clock.time} - {loadDate}|ago=:');
+				},
+				properties: {
+					loadDate: new Date()
+				}
+			});
+
+			var ClockView = Backbone.View.extend({
+				el: function(h) {
+					return h('p', 'Current time: {clock.year}/{clock.month}/{clock.day} {clock.hours}:{clock.minutes}');
+				}
+			});
+
+			var SecondView = Backbone.View.extend({
+				el: function(h) {
+					return h('p', 'Seconds: {clock.seconds}');
+				}
+			});
+
+			var MilliSecondView = Backbone.View.extend({
+				el: function(h) {
+					return h('p', 'Milliseconds: {clock.milliseconds}');
+				}
+			});
+
+			$(document.body).append((new AgoView()).el);
+			$(document.body).append((new ClockView()).el);
+			$(document.body).append((new SecondView()).el);
+			$(document.body).append((new MilliSecondView()).el);
+		});
+	</script>
+</body>
+</html>
