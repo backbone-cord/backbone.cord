@@ -179,6 +179,8 @@ describe('createElement', function() {
 			assert.element(el, 'div', 'dog');
 			assert.text(el.childNodes[0], 'jumped over the fence');
 		});
+		// JSX compatible id and class as attributes
+		it('should apply id and class from attrs <div id="dog" class="fluffy"></div>', function() { assert.element(cord.createElement('div', {id: 'dog', class:'fluffy'}), 'div', 'dog', ['fluffy']); });
 	});
 });
 

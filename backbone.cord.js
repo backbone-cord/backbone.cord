@@ -148,12 +148,12 @@ function _createElement(tagIdClasses, attrs) {
 	tagIdClasses = tagIdClasses.split('.');
 	var context = { isView: this instanceof Backbone.Cord.View };
 	var tagId = tagIdClasses[0].split('#');
-	var tag = tagId[0] ? tagId[0] : 'div';
+	var tag = tagId[0] || 'div';
 	var el = context.el = this._callPlugins('tag', context, tag) || document.createElement(tag);
-	var id = context.id = tagId[1];
+	var id = context.id = tagId[1] || (attrs && attrs.id);
 	if(id)
 		Backbone.Cord.setId(el, id, this.vuid);
-	var classes = tagIdClasses.slice(1);
+	var classes = tagIdClasses.slice(1) || (attrs && attrs.className);
 	Backbone.Cord.addClass(el, this._callPlugins('classes', context, classes) || classes);
 	if(arguments.length > 1) {
 		// If attrs is not the start of children, then apply the dictionary as attributes
@@ -162,6 +162,7 @@ function _createElement(tagIdClasses, attrs) {
 			i = 2;
 			// Copy attrs to prevent side-effects
 			attrs = _copyObj(attrs);
+			delete attrs.id, delete attrs.className;
 			attrs = this._callPlugins('attrs', context, attrs) || attrs;
 			for(var attr in attrs) {
 				if(attrs.hasOwnProperty(attr))
