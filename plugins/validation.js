@@ -16,7 +16,7 @@ Backbone.Cord.validate = function(value, rule) {
 		return rule.required ? 'required' : true;
 	if((type === 'string' && typeof(value) !== 'string') ||
 		(type === 'date' && !(value instanceof Date)) ||
-		(type === 'int' && !(+value === value && !(value % 1))) ||
+		(type === 'int' && !(+value === value && (value % 1) === 0)) ||
 		(type === 'float' && typeof(value) !== 'number') ||
 		(type === 'bool' && typeof(value) !== 'boolean') ||
 		(type === 'array' && !Array.isArray(value)) ||
@@ -159,7 +159,7 @@ Backbone.Cord.mixins.validateOnBlur = {
 
 Backbone.Cord.mixins.validateOnSubmit = {
 	events: {
-		'submit form': function(e) {
+		'submit form': function() {
 			if(this.model.isValid())
 				this._onValid(this.model, []);
 			else
@@ -187,7 +187,7 @@ Backbone.Model.prototype.validate = function(attributes) {
 		this.extendedValidate(errors);
 	if(Object.keys(errors).length)
 		return errors;
-}
+};
 
 Backbone.Cord.plugins.push({
 	name: 'validation',
