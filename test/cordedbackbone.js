@@ -23,5 +23,6 @@ if(!global.window) {
 	require('../plugins/replacements');
 	require('../plugins/styles');
 	require('../plugins/sharedscope');
+	require('../plugins/validation');
 }
 module.exports = require('backbone');
