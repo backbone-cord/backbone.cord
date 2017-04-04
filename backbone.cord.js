@@ -145,6 +145,14 @@ function _callPlugins(name, context) {
 // Generate an arbitrary DOM node given a tag[id][classes] string, [attributes] dictionary, and [child nodes...]
 // If #id is given it must appear before the .classes, e.g. #id.class1.class2 or span#id.class1.class2
 function _createElement(tagIdClasses, attrs) {
+	if(typeof tagIdClasses !== 'string') {
+		var component = tagIdClasses;
+		// A function with an extend method will be a Backbone view
+		if(typeof component === 'function' && !component.extend)
+			return component.apply(this, Array.prototype.slice.call(arguments, 1));
+		else
+			return _createSubview.apply(this, arguments);
+	}
 	tagIdClasses = tagIdClasses.split('.');
 	var context = { isView: this instanceof Backbone.Cord.View };
 	var tagId = tagIdClasses[0].split('#');
@@ -162,7 +170,7 @@ function _createElement(tagIdClasses, attrs) {
 			i = 2;
 			// Copy attrs to prevent side-effects
 			attrs = _copyObj(attrs);
-			delete attrs.id, delete attrs.className;
+			delete attrs.id; delete attrs.className;
 			attrs = this._callPlugins('attrs', context, attrs) || attrs;
 			for(var attr in attrs) {
 				if(attrs.hasOwnProperty(attr))
