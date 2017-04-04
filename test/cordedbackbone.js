@@ -19,8 +19,7 @@ if(!global.window) {
 	require('../plugins/hidden');
 	require('../plugins/interpolation');
 	require('../plugins/math');
-	require('../plugins/modeltracking');
-	require('../plugins/replacements');
+	require('../plugins/render');
 	require('../plugins/styles');
 	require('../plugins/sharedscope');
 	require('../plugins/validation');
