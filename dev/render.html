@@ -11,7 +11,7 @@
 			el: function(h) {
 				return h('b', h('i', 'Static layout'));
 			},
-			render: function(h, s, data) {
+			render: function(h, data) {
 				var nodes = [];
 				for(var i = 0; i < data.length; ++i)
 					nodes.push(h('p', '{value} ', data[i]));

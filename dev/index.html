@@ -60,10 +60,11 @@
 	<script type="text/javascript" src="/backbone.cord.js"></script>
 	<script type="text/javascript">
 	$(function() {
+
 		window.Circle = Backbone.Cord.View.extend({
 			el: function(el, view) {
 				return el('._',
-						el('#circle.circle', {style: {top: '{top}px', left: '{left}px'}}, '{model.lastName}'));
+						el('#circle.circle', {style: {top: '{top}px', left: '{left}px'}}, el('br'), '{model.lastName}'));
 			},
 			properties: {
 				top: 0,
@@ -153,12 +154,18 @@
 				paddingLeft: '50px',
 				border: '2px dotted {borderColor}',
 				boxShadow: '1px 2px 2px black',
+				'&.state, table': {
+					backgroundColor: 'blue',
+				},
 				'#container': {
 					borderLeft: '10px solid black',
 					borderBottom: ':={left}*1.5=:px solid purple'
 				},
 				p: {
-					color: 'olive'
+					color: 'olive',
+					'&.state': {
+						backgroundColor: 'blue'
+					}
 				},
 				'@tablet': {
 					backgroundColor: 'orange',
@@ -189,7 +196,7 @@
 						h('input#range', {type: 'range', min: 0, max: 100, change: 'left', observe: 'left'}),
 						h('#container.square.red(red)', {style: {borderTop: '{left}px solid {unmanaged.color}', top: '{top}px', left: '{left}px'}}),
 						h('p',
-							'Click the button below to change the color.', 'Distance is {distance}.'),
+							'Click the button below to change the color. Distance is {distance}.'),
 						h('button#button', {onclick: 'onButtonClick'}, 'Click Me'),
 						h('p.red-{red}',
 							'Red is: {red}'),
@@ -201,6 +208,7 @@
 						h('a', {href: 'http://backbonejs.org', target: '_blank', onclick: function() { return false; } }, 'backbonejs.org'),
 						s(Circle, '#circle', {style: {marginLeft: '{left}px'}, top: 'onCircleTop'}, {top: 100}),
 						s(Circle, '#circle2', {invisible: 'red', onclick: 'onButtonClick'}),
+						h('p', 'Page loaded ', '???'),
 						s(Backbone.Cord.EmptyView, '#emptyView')
 					);
 			},
@@ -220,6 +228,7 @@
 				test: {
 					value: new Backbone.Model({fizz: new Backbone.Model({fuzz: 'buzz'})})
 				},
+				loadDate: new Date(),
 				distance: function(top, left) { return top + left; },
 				inherited: null,
 				inheritedLastName: function(inherited, model__lastName) { return inherited || model__lastName; }
