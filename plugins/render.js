@@ -63,6 +63,20 @@ function _updateChildren(parent, vchildren) {
 	return parent;
 }
 
+function _createSubview() {
+	// Just add to a list of subviews for cleanup on next render
+	var args;
+	if(bindings.render) {
+		args = bindings.render;
+		delete bindings.render;
+	}
+	var subview = this.createSubview.apply(this, arguments);
+	this._renderedSubviews.push(subview);
+	if(args)
+		subview.render(args);
+	return subview;
+}
+
 function _once(func) {
 	// Call the inner function only once by tracking a single tid
 	var tid;
@@ -81,14 +95,14 @@ Backbone.Cord.Render = {
 // Plugin to detect and wrap a render function if defined on a Cord View
 // The render function, like the el function will have the createElement method always provided as the first argument
 // The different is though that additional arguments can be given to the render function and they will be reused when automatic rerenders happen
-// The render method must return a single element or an array of elements
-// Subviews are not allowed inside render
+// The render method must return a single element or subview or an array of mixed elements and subviews
 // The returned value from render will then be added to the DOM appended to the view's root el or a #container element if specified
 // The new wrapped render function gets set on the view instance and can be given the additional arguments directly. e.g. render(arg1, arg2)
 // The new wrapped render() method returns this, so that it can be chained
 // The new wrapped render() needs to be explicity called, it does not get called automatically unless some binding has changed within it
 // Dynamically created event handlers and reverse binding will not work inside rendered elements because they are not transferable on the virtual-dom update
 // Do not use expressions inside render, simply write out the code needed
+// Do not reuse subviews inside render, instead create new subview on each render - but then state is not transferred
 Backbone.Cord.plugins.push({
 	name: 'render',
 	config: {
@@ -99,42 +113,45 @@ Backbone.Cord.plugins.push({
 			var __render = this.render.bind(this, this.createElement.bind(this));
 			this._renderedObservers = {};
 			this.render = function() {
-				var key, rendered, container = this.getChildById(Backbone.Cord.config.renderContainerId) || this.el;
-				var firstRender = !container.children.length;
+				var i, key, rendered, container;
 
-				// Cleanup all rendered observers
+				// Clean previously rendered subviews
+				// TODO: if subview has an id do not remove it, but keep it and return it from _createSubview()
+				for(i = 0; i < this._renderedSubviews.length; ++i) {
+					// Set the el to null so that remove does not remove the rendered dom
+					this._renderedSubviews[i].el = null;
+					this._renderedSubviews[i].remove();
+				}
+				this._renderedSubviews = [];
+
 				for(key in this._renderedObservers) {
 					if(this._renderedObservers.hasOwnProperty(key))
 						this.unobserve(key, this._renderedObservers[key]);
 				}
 				this._renderedObservers = {};
-
 				// Check to see if arguments have been updated and save them to be used when calling the __render method
 				// The initial setImmediate and observer method both use setImmediate with no arguments, so the arguments should be empty through those calls
 				if(arguments.length)
 					this._renderedArgs = Array.prototype.slice.call(arguments);
-
 				// Render and replace the observe method while rendering, so that observers bound to elements etc aren't saved
 				// Instead just a single immediate callback and the actual observer is a debounced render
 				this._renderedObserver = _once(this.render.bind(this));
 				this.observe = function(key, observer) {
-					if(firstRender)
+					if(!this._renderCount)
 						Backbone.Cord.View.prototype.observe.call(this, '%' + key, observer);
 					else
 						observer.call(this, key, this.getValueForKey(key));
 					if(!this._renderedObservers[key])
 						Backbone.Cord.View.prototype.observe.call(this, key, this._renderedObservers[key] = this._renderedObserver);
 				};
-				this._createSubview = function() { console.error('Subviews not allowed inside render()'); };
-
-				// Render with _createSubview function blocked and observer function wrapped
+				this._createSubview = _createSubview;
 				rendered = __render.apply(this, this._renderedArgs) || [];
+				delete this._createSubview;
 				if(!(rendered instanceof Array))
 					rendered = [rendered];
 				delete this.observe;
-				delete this._createSubview;
 
-				// Update the DOM
+				container = this.getChildById(Backbone.Cord.config.renderContainerId) || this.el;
 				_updateChildren(container, rendered);
 				this.trigger('render', this);
 				return this;
@@ -142,9 +159,8 @@ Backbone.Cord.plugins.push({
 		}
 	},
 	binding: function(context, bindings) {
-		// Shortcut to render a subview after placement in a layout
 		if(bindings.render) {
-			Backbone.Cord.setImmediate(context.subview.render.bind(context.subview, bindings.render));
+			Backbone.Cord.setImmediate(subview.render.bind(subview, bindings.render));
 			delete bindings.render;
 		}
 	}
