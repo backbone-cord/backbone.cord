@@ -918,6 +918,12 @@ var __extend = Backbone.Cord.View.extend;
 Backbone.Cord.View.extend = function(protoProps, staticProps) {
 	protoProps = protoProps || {};
 	staticProps = staticProps || {};
+	if(protoProps.mixins) {
+		var mixArgs = protoProps.mixins;
+		delete protoProps.mixins;
+		mixArgs.push(protoProps);
+		protoProps = _mixProto.apply(Backbone.Cord, mixArgs);
+	}
 	// Create a unique view id for this view class. Can set a static vuid for debugging
 	protoProps.vuid = protoProps.vuid || Backbone.Cord.randomUID();
 	// Call all of the plugins

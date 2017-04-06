@@ -12,7 +12,8 @@
 				return h('li', '{model.value} ', h('a', {href:'#', onclick: this.remove.bind(this)}, '[x]'));
 			}
 		});
-		var TodoView = Backbone.View.extend(Backbone.Cord.mixProto('collection', {
+		var TodoView = Backbone.View.extend({
+			mixins: ['collection'],
 			el: function(h) {
 				return h('',
 							h('h3', 'TODO'),
@@ -29,7 +30,7 @@
 				this.todo.value = '';
 				return false;
 			}
-		}));
+		});
 		$(document.body).append((new TodoView({collection: new Backbone.Collection()})).el);
 	});
 	</script>

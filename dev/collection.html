@@ -45,7 +45,8 @@
 				return h('p', {hidden:'!model.firstName'}, 'The selected first name is: {model.firstName}. The selected last name is: {model.lastName}.');
 			}
 		});
-		var CollectionView = Backbone.View.extend(Backbone.Cord.mixProto('collection', {
+		var CollectionView = Backbone.View.extend({
+			mixins: ['collection'],
 			el: function(h, s) {
 				return h('',
 							h('table',
@@ -70,7 +71,7 @@
 				this.collection.comparator = comparator;
 				this.collection.sort();
 			}
-		}));
+		});
 		window.collection = new Backbone.Collection([
 			{firstName:'Marca', lastName:'Tofu', version: 3},
 			{firstName:'Macro', lastName:'Soft', version: 13},
