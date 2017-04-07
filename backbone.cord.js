@@ -207,12 +207,10 @@ function _createSubview(instanceClass, idClasses, bindings, keyValues) {
 		subview = new instanceClass();
 	else
 		subview = instanceClass;
-	// Init the subview's model - blocking the _invokeObservers method to prevent unnecessary observer invocations
+	// Set the subview's model
 	if(this.model !== Backbone.Cord.EmptyModel && subview.model === Backbone.Cord.EmptyModel && !subview.collection && subview instanceof Backbone.Cord.View) {
-		subview._invokeObservers = function() {};
 		if(!subview.cascade || subview.cascade(this.model) !== false)
 			subview.setModel(this.model);
-		delete subview._invokeObservers;
 	}
 	// Create the plugin context - isView should always be true, this method should never be called any other way
 	context = { el: subview.el, isView: this instanceof Backbone.Cord.View, subview: subview };
@@ -393,9 +391,7 @@ Backbone.Cord = {
 		// (new View) create, initialize, and remove apply to all views
 		create: [],
 		initialize: [],
-		remove: [],
-		// plugin callback to be used adhoc for processing strings from other plugins
-		strings: []
+		remove: []
 	}
 };
 if(typeof exports === 'object')
@@ -483,13 +479,11 @@ function _regexPropertyDescriptor(name) {
 }
 Object.defineProperties(Backbone.Cord.regex, {
 	variable: _regexPropertyDescriptor('variable'),
-	conditional: _regexPropertyDescriptor('conditional'),
-	expression: _regexPropertyDescriptor('expression')
+	conditional: _regexPropertyDescriptor('conditional')
 });
 // Regex patterns can be configured by setting prefix/suffix values through these properties
 Backbone.Cord.regex.variable = {prefix: '{', suffix: '}'};
 Backbone.Cord.regex.conditional = {prefix: '(', suffix: ')'};
-Backbone.Cord.regex.expression = {prefix: ':=', suffix: '=:'};
 
 Backbone.Cord.plugins._check = function() {
 	var i, j, plugin, loaded = {};
@@ -739,7 +733,7 @@ Backbone.Cord.View.prototype.observe = function(key, observer, immediate) {
 	// Doesn't include the key on callback since this is used only for binding straight to some output
 	if(key[0] === '%') {
 		key = key.substr(1);
-		Backbone.Cord.setImmediate(function() { observer.call(this, null, this.getValueForKey.call(this, key)); }.bind(this));
+		observer.call(this, null, this.getValueForKey.call(this, key));
 		return this;
 	}
 	path = Backbone.Cord.parseKeyPath(key);
@@ -753,7 +747,7 @@ Backbone.Cord.View.prototype.observe = function(key, observer, immediate) {
 	scope.observe.call(this, key, observer, immediate);
 	this._addObserver(namespace, key, observer);
 	if(immediate)
-		Backbone.Cord.setImmediate(function() { observer.call(this, key, scope.getValue.call(this, key)); }.bind(this));
+		observer.call(this, key, scope.getValue.call(this, key));
 	return this;
 };
 Backbone.Cord.View.prototype.unobserve = function(key, observer) {

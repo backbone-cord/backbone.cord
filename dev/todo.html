@@ -7,12 +7,15 @@
 	<script type="text/javascript" src="/backbone.cord.js"></script>
 	<script type="text/javascript">
 	$(function() {
-		var TodoItemView = Backbone.View.extend({
+		var View = Backbone.View;
+		Backbone.Cord.filters.plusOne = function(value) { return value + 1; };
+
+		var TodoItemView = View.extend({
 			el: function(h) {
 				return h('li', '{model.value} ', h('a', {href:'#', onclick: this.remove.bind(this)}, '[x]'));
 			}
 		});
-		var TodoView = Backbone.View.extend({
+		var TodoView = View.extend({
 			mixins: ['collection'],
 			el: function(h) {
 				return h('',
@@ -20,7 +23,7 @@
 							h('ul#container'),
 							h('form', {onsubmit: '_onSubmit'},
 								h('input#todo', {placeholder: 'Your next todo'}),
-								h('button', 'Add #:={length} + 1=:')
+								h('button', 'Add #{length|plusOne}')
 							)
 						);
 			},

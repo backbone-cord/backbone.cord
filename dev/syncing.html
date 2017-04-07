@@ -7,11 +7,15 @@
 	<script type="text/javascript" src="/backbone.cord.js"></script>
 	<script type="text/javascript">
 	$(function() {
-		var TestModel = Backbone.Model.extend({
+		var View = Backbone.View;
+		var Model = Backbone.Model;
+		Backbone.Cord.filters.percent = function(value) { return value * 100; };
+
+		var TestModel = Model.extend({
 			url: 'http://jsonplaceholder.typicode.com/posts/1'
 		});
-		window.model = new TestModel();
-		var View = Backbone.View.extend({
+
+		var SyncView = View.extend({
 			className: 'syncView',
 			styles: {
 				'#status': {
@@ -24,13 +28,15 @@
 			},
 			el: function(h) {
 				return h('',
-						h('p#status', {hidden: '!syncing'}, 'Syncing started - :={syncProgress} * 100=:%'),
+						h('p#status', {hidden: '!syncing'}, 'Syncing started - {syncProgress|percent}%'),
 						h('p', h('button', {type: 'button', onclick: 'fetch'}, 'Fetch'))
 					);
 			},
 			fetch: function() { this.model.fetch(); }
 		});
-		$(document.body).append((new View({model: window.model})).el);
+
+		window.model = new TestModel();
+		$(document.body).append((new SyncView({model: window.model})).el);
 	});
 	</script>
 </body>

@@ -193,8 +193,6 @@ function _styles(context, attrs) {
 			styles = this[styles];
 		}
 		if(typeof styles === 'object') {
-			// The math plugin doesn't do a deep process of the attributes so invoke string processing here
-			this._callPlugins('strings', context, styles);
 			for(var style in styles) {
 				if(styles.hasOwnProperty(style)) {
 					if(styles[style].match(Backbone.Cord.regex.variableSearch) && context.isView)
@@ -655,11 +653,10 @@ Backbone.Cord.plugins.push({
 		}
 		context.protoProps._styles = _styles;
 	},
-	initialize: function(context) {
+	initialize: function() {
 		if(this._styles && this._styles[_THIS_ID]) {
 			var styles = Backbone.Cord.copyObj(this._styles[_THIS_ID]);
 			Backbone.Cord.log(styles);
-			this._callPlugins('strings', context, styles);
 			for(var style in styles) {
 				if(styles.hasOwnProperty(style))
 					this.observeFormat(styles[style], _createStyleObserver(this.el, style), true);
@@ -672,7 +669,6 @@ Backbone.Cord.plugins.push({
 		if(this._styles && context.id && this._styles[context.id]) {
 			var styles = Backbone.Cord.copyObj(this._styles[context.id]);
 			Backbone.Cord.log(styles);
-			this._callPlugins('strings', context, styles);
 			for(var style in styles) {
 				if(styles.hasOwnProperty(style))
 					this.observeFormat(styles[style], _createStyleObserver(context.el, style), true);

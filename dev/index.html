@@ -159,7 +159,7 @@
 				},
 				'#container': {
 					borderLeft: '10px solid black',
-					borderBottom: ':={left}*1.5=:px solid purple'
+					borderBottom: '{left}px solid purple'
 				},
 				p: {
 					color: 'olive',
@@ -200,7 +200,7 @@
 						h('button#button', {onclick: 'onButtonClick'}, 'Click Me'),
 						h('p.red-{red}',
 							'Red is: {red}'),
-						h('.hi', {style: {paddingLeft: ':={input_cursorX}-200=:px', paddingTop: ':={input_cursorY}/2=:px'}},
+						h('.hi', {style: {paddingLeft: '{input_cursorX}px', paddingTop: '{input_cursorY}px'}},
 							'Hi {model.firstName}, Blue is: {blue}'),
 						h('p#thankyou', {invisible: 'red'},
 							'Thank you much, {model.firstName} {model.lastName} aka {model.nickName}!'),
@@ -236,7 +236,7 @@
 			onButtonClick: function() {
 				this.red = !this.red;
 				this.blue = Math.floor(Math.random() * 100);
-				this.el.appendChild(this.createElement('p', 'Thank you much, blue * 11 is :={blue} * 11 - 5.6=: {model.lastName}! {inheritedLastName}'));
+				this.el.appendChild(this.createElement('p', 'Thank you much, blue is {blue} {model.lastName}! {inheritedLastName}'));
 			},
 			onCircleTop: function(key, value) {
 				console.log('onCircleTop ' + value);

@@ -9,32 +9,37 @@
 	<script type="text/javascript" src="https://rawgit.com/backbone-cord/backbone.cord.clock/master/backbone.cord.clock.js"></script>
 	<script type="text/javascript" src="https://rawgit.com/EvanHahn/HumanizeDuration.js/master/humanize-duration.js"></script>
 	<script type="text/javascript">
-		Backbone.Cord.filters.ago = function(duration) {
-			return humanizeDuration(duration, {largest: 1, round: true, units: ['y', 'mo', 'w', 'd', 'h', 'm']}) + ' ago';
-		}
 		$(function() {
-			var AgoView = Backbone.View.extend({
+			var View = Backbone.View;
+			Backbone.Cord.filters.ago = function(duration) {
+				return humanizeDuration(duration, {largest: 1, round: true, units: ['y', 'mo', 'w', 'd', 'h', 'm']}) + ' ago';
+			};
+
+			var AgoView = View.extend({
 				el: function(h) {
-					return h('p', 'Page loaded: :={clock.time} - {loadDate}|ago=:');
+					return h('p', 'Page loaded: {duration|ago}');
 				},
 				properties: {
-					loadDate: new Date()
+					loadDate: new Date(),
+					duration: function(loadDate, clock__time) {
+						return clock__time - loadDate;
+					}
 				}
 			});
 
-			var ClockView = Backbone.View.extend({
+			var ClockView = View.extend({
 				el: function(h) {
 					return h('p', 'Current time: {clock.year}/{clock.month}/{clock.day} {clock.hours}:{clock.minutes}');
 				}
 			});
 
-			var SecondView = Backbone.View.extend({
+			var SecondView = View.extend({
 				el: function(h) {
 					return h('p', 'Seconds: {clock.seconds}');
 				}
 			});
 
-			var MilliSecondView = Backbone.View.extend({
+			var MilliSecondView = View.extend({
 				el: function(h) {
 					return h('p', 'Milliseconds: {clock.milliseconds}');
 				}

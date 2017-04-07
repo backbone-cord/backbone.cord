@@ -18,7 +18,6 @@ if(!global.window) {
 	require('../plugins/events');
 	require('../plugins/hidden');
 	require('../plugins/interpolation');
-	require('../plugins/math');
 	require('../plugins/render');
 	require('../plugins/styles');
 	require('../plugins/sharedscope');
