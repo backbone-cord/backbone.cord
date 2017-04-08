@@ -1,10 +1,13 @@
 ;(function(Backbone) {
 'use strict';
 
+var Cord = Backbone.Cord;
+var convertToBool = Cord.convertToBool;
+
 function _createObserver(el) {
 	var previousDisplay = null;
 	return function(key, value) {
-		var hidden = Backbone.Cord.convertToBool(value);
+		var hidden = convertToBool(value);
 		// On the first call, store the original display value
 		if(previousDisplay === null)
 			previousDisplay = el.style.display;
@@ -14,7 +17,7 @@ function _createObserver(el) {
 
 function _createInvisibleObserver(el) {
 	return function(key, value) {
-		el.style.visibility = Backbone.Cord.convertToBool(value) ? 'hidden' : 'visible';
+		el.style.visibility = convertToBool(value) ? 'hidden' : 'visible';
 	};
 }
 
@@ -34,7 +37,7 @@ function _hidden(context, attrs) {
 // Hide or show an element by setting display none on a truthy value of a bound variable specified as the hidden attribute
 // Not very compatible with other code that sets the display with javascript
 // Will cache and restore the display value before changing to hidden
-Backbone.Cord.plugins.push({
+Cord.plugins.push({
 	name: 'hidden',
 	attrs: _hidden,
 	bindings: _hidden

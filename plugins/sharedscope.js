@@ -1,6 +1,8 @@
 ;(function(Backbone) {
 'use strict';
 
+var Cord = Backbone.Cord;
+
 function _modelObserver(model) {
 	var key, changed = model.changedAttributes();
 	if(!changed)
@@ -11,30 +13,31 @@ function _modelObserver(model) {
 	}
 }
 
-Backbone.Cord.SharedScope = {
+Cord.SharedScope = {
 	model: new Backbone.Model()
 };
 
+var sharedModel = Cord.SharedScope.model;
+
 // Scope for a single globally shared Backbone model
-// Listeners on the model are automatically added and removed
 // Final cleanup is automatic on remove() when backbone calls stopListening()
-Backbone.Cord.plugins.push({
+Cord.plugins.push({
 	name: 'sharedscope',
 	scope: {
 		namespace: 'shared',
 		observe: function() {
 			if(!this._hasObservers('shared'))
-				this.listenTo(Backbone.Cord.SharedScope.model, 'change', _modelObserver);
+				this.listenTo(sharedModel, 'change', _modelObserver);
 		},
 		unobserve: function() {
 			if(!this._hasObservers('shared'))
-				this.stopListening(Backbone.Cord.SharedScope.model, 'change', _modelObserver);
+				this.stopListening(sharedModel, 'change', _modelObserver);
 		},
 		getValue: function(key) {
-			return Backbone.Cord.SharedScope.model.get(key);
+			return sharedModel.get(key);
 		},
 		setValue: function(key, value) {
-			Backbone.Cord.SharedScope.model.set(key, value);
+			sharedModel.set(key, value);
 		}
 	}
 });

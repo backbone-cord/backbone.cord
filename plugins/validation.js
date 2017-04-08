@@ -1,7 +1,12 @@
 ;(function(Backbone) {
 'use strict';
 
-Backbone.Cord.formats = {
+var Cord = Backbone.Cord;
+var Model = Backbone.Model;
+var EmptyModel = Cord.EmptyModel;
+var ForceValue = Cord.ForceValue;
+
+Cord.formats = {
 	url: /^(https?:\/\/(?:www\.|(?!www))[^\s\.]+\.[^\s]{2,}|www\.[^\s]+\.[^\s]{2,})/i,
 	ip: /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/i,
 	email: /^[a-z0-9!#$%&'*+\/=?^_`{|}~.-]+@[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$/i,
@@ -10,7 +15,7 @@ Backbone.Cord.formats = {
 	color: /^#?([a-f0-9]{6}|[a-f0-9]{3})$/i
 };
 
-Backbone.Cord.validate = function(value, rule) {
+Cord.validate = function(value, rule) {
 	var i, format, formats, type = rule.type.split(' ')[0];
 	if(value === null || (value === '' && rule.type === 'string'))
 		return rule.required ? 'required' : true;
@@ -20,7 +25,7 @@ Backbone.Cord.validate = function(value, rule) {
 		(type === 'float' && typeof(value) !== 'number') ||
 		(type === 'bool' && typeof(value) !== 'boolean') ||
 		(type === 'array' && !Array.isArray(value)) ||
-		(type === 'model' && !(value instanceof Backbone.Model))
+		(type === 'model' && !(value instanceof Model))
 	)
 			return 'type';
 	if(rule.equals !== null && rule.equals !== void(0)) {
@@ -47,7 +52,7 @@ Backbone.Cord.validate = function(value, rule) {
 				for(i = 0; i < formats.length; ++i) {
 					format = formats[i];
 					if(typeof(format) === 'string')
-						format = Backbone.Cord.formats[format];
+						format = Cord.formats[format];
 					if((typeof(format) === 'function' && !format(value)) ||
 						(format instanceof RegExp && !format.test(value))
 					)
@@ -65,7 +70,7 @@ Backbone.Cord.validate = function(value, rule) {
 	return true;
 };
 
-Backbone.Cord.parseValidationError = function(value, rule, error, title) {
+Cord.parseValidationError = function(value, rule, error, title) {
 	// Override to provide custom error messages based on error strings
 	var len = rule.type === 'string' ? 'The length of ' : '';
 	switch(error) {
@@ -80,14 +85,15 @@ Backbone.Cord.parseValidationError = function(value, rule, error, title) {
 	}
 };
 
-Backbone.Cord.mixins.validation = {
+Cord.mixins.validation = {
+	errors: EmptyModel,
 	properties: {
 		allErrors: { readonly: true },
 		latestError: { readonly: true },
 		isValid: function(allErrors) { return !allErrors || !allErrors.length; }
 	},
 	initialize: function() {
-		this.errors = new Backbone.Model();
+		this.errors = new Model();
 		this.listenTo(this.errors, 'change', function(model) {
 			var key, changed = model.changedAttributes();
 			if(!changed)
@@ -103,7 +109,7 @@ Backbone.Cord.mixins.validation = {
 		this._addInvalidListener(newModel);
 	},
 	_addInvalidListener: function(model) {
-		if(model !== Backbone.Cord.EmptyModel)
+		if(model !== EmptyModel)
 			this.listenTo(model, 'invalid', this._onInvalid);
 	},
 	_onInvalid: function(model, validationErrors) {
@@ -115,7 +121,7 @@ Backbone.Cord.mixins.validation = {
 				if(validationErrors[attr] === 'format' && this.model.formats && this.model.formats[attr])
 					latestError = this.model.formats[attr];
 				else
-					latestError = Backbone.Cord.parseValidationError(this.model.get(attr), this.model.rules[attr], validationErrors[attr], this.model.titles[attr], attr);
+					latestError = Cord.parseValidationError(this.model.get(attr), this.model.rules[attr], validationErrors[attr], this.model.titles[attr], attr);
 				this.errors.set(attr, latestError);
 			}
 		}
@@ -131,8 +137,8 @@ Backbone.Cord.mixins.validation = {
 			if(errors.hasOwnProperty(attr))
 				allErrors.push(errors[attr]);
 		}
-		this.allErrors = new Backbone.Cord.ForceValue(allErrors);
-		this.latestError = new Backbone.Cord.ForceValue(latestError);
+		this.allErrors = new ForceValue(allErrors);
+		this.latestError = new ForceValue(latestError);
 	},
 	_onValid: function() {
 		// Use code within _onInvalid to clear previous error messages
@@ -140,7 +146,7 @@ Backbone.Cord.mixins.validation = {
 	}
 };
 
-Backbone.Cord.mixins.validateOnBlur = {
+Cord.mixins.validateOnBlur = {
 	initialize: function() {
 		this._addBlurListener(this.model);
 	},
@@ -148,7 +154,7 @@ Backbone.Cord.mixins.validateOnBlur = {
 		this._addBlurListener(newModel);
 	},
 	_addBlurListener: function(model) {
-		if(model !== Backbone.Cord.EmptyModel) {
+		if(model !== EmptyModel) {
 			model.listen('change', function() {
 				if(this.model.validate(this.model.changedAttributes()))
 					this._onValid(this.model, []);
@@ -157,7 +163,7 @@ Backbone.Cord.mixins.validateOnBlur = {
 	}
 };
 
-Backbone.Cord.mixins.validateOnSubmit = {
+Cord.mixins.validateOnSubmit = {
 	events: {
 		'submit form': function() {
 			if(this.model.isValid())
@@ -168,7 +174,7 @@ Backbone.Cord.mixins.validateOnSubmit = {
 	}
 };
 
-Backbone.Model.prototype.validate = function(attributes) {
+Model.prototype.validate = function(attributes) {
 	var attr, rule, ret, errors = {};
 	for(attr in attributes) {
 		if(attributes.hasOwnProperty(attr)) {
@@ -176,7 +182,7 @@ Backbone.Model.prototype.validate = function(attributes) {
 			if(rule) {
 				if(rule.equals === null && rule.equals === void(0))
 					rule.equals = this.choices && this.choices[attr];
-				ret = Backbone.Cord.validate(attributes[attr], rule);
+				ret = Cord.validate(attributes[attr], rule);
 				if(ret !== true)
 					errors[attr] = ret;
 			}
@@ -189,7 +195,7 @@ Backbone.Model.prototype.validate = function(attributes) {
 		return errors;
 };
 
-Backbone.Cord.plugins.push({
+Cord.plugins.push({
 	name: 'validation',
 	scope: {
 		namespace: 'errors',

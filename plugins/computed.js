@@ -1,6 +1,9 @@
 ;(function(Backbone) {
 'use strict';
 
+var Cord = Backbone.Cord;
+var Model = Backbone.Model;
+
 function _getFunctionArgs(func) {
 	// Get all argument names for a function
 	// Based on http://stackoverflow.com/questions/1007981/how-to-get-function-parameter-names-values-dynamically-from-javascript
@@ -28,7 +31,7 @@ function _detectComputedChanges() {
 		}
 	}
 	// To not interefer with the current change event, use setImmediate to modify the changed object
-	Backbone.Cord.setImmediate(function() {
+	Cord.setImmediate(function() {
 		this.changed = newChanged;
 		this.trigger('change', this, {});
 	}.bind(this), 0);
@@ -44,7 +47,7 @@ function _wrapComputedFunc(func, args) {
 }
 
 // Extend computed attribute capabilities to Backbone models
-Backbone.Model.prototype._addComputed = function(key, func) {
+Model.prototype._addComputed = function(key, func) {
 	var __get, i, arg, args = _getFunctionArgs(func);
 	if(!this._computed) {
 		this._computed = {};
@@ -68,11 +71,11 @@ Backbone.Model.prototype._addComputed = function(key, func) {
 };
 
 // Wrap extend to wrap the initialize method
-var __extend = Backbone.Model.extend;
-Backbone.Model.extend = function(properties) {
+var __extend = Model.extend;
+Model.extend = function(properties) {
 	var __initialize;
 	if(properties.computed) {
-		__initialize = properties.initialize || Backbone.Model.prototype.initialize;
+		__initialize = properties.initialize || Model.prototype.initialize;
 		properties.initialize = function() {
 			if(this.computed) {
 				for(var attr in this.computed) {
@@ -91,11 +94,11 @@ function _createArgObserver(key, getFunc, args) {
 		var i, values = [];
 		for(i = 0; i < args.length; ++i)
 			values.push(this.getValueForKey(args[i]));
-		this[key] = new Backbone.Cord.ForceValue(getFunc.apply(this, values));
+		this[key] = new Cord.ForceValue(getFunc.apply(this, values));
 	};
 }
 
-Backbone.Cord.plugins.push({
+Cord.plugins.push({
 	name: 'computed',
 	extend: function(context) {
 		// Set all computed properties to be readonly
@@ -108,7 +111,7 @@ Backbone.Cord.plugins.push({
 					if(typeof definition === 'function' && _getFunctionArgs(definition).length) {
 						properties[key] = {get: definition, readonly: true};
 					}
-					else if(Backbone.Cord.isPlainObj(definition) && definition.get && _getFunctionArgs(definition.get).length) {
+					else if(Cord.isPlainObj(definition) && definition.get && _getFunctionArgs(definition.get).length) {
 						definition.readonly = true;
 					}
 				}

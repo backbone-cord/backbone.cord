@@ -1,6 +1,9 @@
 ;(function(Backbone) {
 'use strict';
 
+var Cord = Backbone.Cord;
+var _scopes = Cord._scopes;
+
 function _createUnmanagedScope(namespace, model) {
 	var _modelObserver = function(model) {
 		var key, changed = model.changedAttributes();
@@ -31,18 +34,18 @@ function _createUnmanagedScope(namespace, model) {
 	};
 }
 
-Backbone.Cord.UnmanagedScopes = {
+Cord.UnmanagedScopes = {
 	set: function(namespace, model) {
 		namespace = namespace.toLowerCase();
-		if(Backbone.Cord._scopes[namespace])
+		if(_scopes[namespace])
 			throw new Error('Attempting to override an existing scope.');
-		Backbone.Cord._scopes[namespace] = _createUnmanagedScope(namespace, model);
+		_scopes[namespace] = _createUnmanagedScope(namespace, model);
 	}
 };
 
 // Plugin for adding scopes into models not managed by views
 // Does not supporting setting an already created namespace
 // i.e. don't set a namespace to a new model there currently isn't a way to notify all views observering the scope
-Backbone.Cord.plugins.push({ name: 'unmanagedscopes' });
+Cord.plugins.push({ name: 'unmanagedscopes' });
 
 })(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone || require('backbone'));

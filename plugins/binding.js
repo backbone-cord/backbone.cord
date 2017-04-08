@@ -1,6 +1,14 @@
 ;(function(Backbone) {
 'use strict';
 
+var Cord = Backbone.Cord;
+var convertToString = Cord.convertToString;
+var encodeValue = Cord.encodeValue;
+var decodeValue = Cord.decodeValue;
+var randomUID = Cord.randomUID;
+var setImmediate = Cord.setImmediate;
+var regex = Cord.regex;
+
 var _ATTR_PROPERTIES = {
 	innerHTML: true,
 	value: true,
@@ -13,19 +21,19 @@ function _createAttrObserver(el, attr) {
 	if(_ATTR_PROPERTIES[attr])
 		return function(key, formatted) {
 			if(attr !== 'innerHTML')
-				Backbone.Cord.encodeValue(el, formatted);
+				encodeValue(el, formatted);
 			else
-				el[attr] = Backbone.Cord.convertToString(formatted);
+				el[attr] = convertToString(formatted);
 		};
 	else
 		return function(key, formatted) {
-			el.setAttribute(attr, Backbone.Cord.convertToString(formatted));
+			el.setAttribute(attr, convertToString(formatted));
 		};
 }
 
 function _createChildObserver(el) {
 	return function(key, value) {
-		el.textContent = Backbone.Cord.convertToString(value);
+		el.textContent = convertToString(value);
 	};
 }
 
@@ -46,7 +54,7 @@ function _createValueObserver(el) {
 	return function(key, value) {
 		if(_testBindingFeedback(el))
 			return;
-		Backbone.Cord.encodeValue(el, value);
+		encodeValue(el, value);
 	};
 }
 
@@ -54,7 +62,7 @@ function _createValueListener(el, key) {
 	return function() {
 		if(_testBindingFeedback(el))
 			return;
-		this.setValueForKey(key, Backbone.Cord.decodeValue(el));
+		this.setValueForKey(key, decodeValue(el));
 	};
 }
 
@@ -69,7 +77,7 @@ Backbone.Cord.plugins.push({
 		for(var attr in attrs) {
 			if(attrs.hasOwnProperty(attr)) {
 				format = attrs[attr];
-				if(typeof format === 'string' && format.match(Backbone.Cord.regex.variableSearch)) {
+				if(typeof format === 'string' && format.match(regex.variableSearch)) {
 					this.observeFormat(format, _createAttrObserver(context.el, attr), true);
 					delete attrs[attr];
 				}
@@ -90,7 +98,7 @@ Backbone.Cord.plugins.push({
 		if(attrs.observe) {
 			if(attrs.observe === attrs.change || attrs.observe === attrs.input) {
 				twoWay = true;
-				attrs[_DATA_BINDING_ATTR] = 'binding-' + Backbone.Cord.randomUID();
+				attrs[_DATA_BINDING_ATTR] = 'binding-' + randomUID();
 			}
 			this.observe(attrs.observe, _createValueObserver(context.el), true);
 			delete attrs.observe;
@@ -108,7 +116,7 @@ Backbone.Cord.plugins.push({
 		}
 		// Invoke the reverse listener with the initial value if an initial change event is not expected from an observer
 		if(listener && !twoWay)
-			Backbone.Cord.setImmediate(listener);
+			setImmediate(listener);
 	},
 	children: function(context, children) {
 		var i, j, child, strings, matches, spliceArgs, node;
@@ -117,15 +125,15 @@ Backbone.Cord.plugins.push({
 		for(i = children.length - 1; i >= 0; --i) {
 			child = children[i];
 			if(typeof child === 'string') {
-				strings = child.split(Backbone.Cord.regex.variableSearch);
+				strings = child.split(regex.variableSearch);
 				if(strings.length > 1) {
 					spliceArgs = [i, 1];
-					matches = child.match(Backbone.Cord.regex.variableSearch);
+					matches = child.match(regex.variableSearch);
 					for(j = 0; j < matches.length; ++j) {
 						if(strings[j].length)
 							spliceArgs.push(document.createTextNode(strings[j]));
 						node = document.createTextNode('');
-						this.observe(Backbone.Cord.regex.variableValue.exec(matches[j])[1], _createChildObserver(node), true);
+						this.observe(regex.variableValue.exec(matches[j])[1], _createChildObserver(node), true);
 						spliceArgs.push(node);
 					}
 					if(strings[j].length)

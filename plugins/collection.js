@@ -1,8 +1,11 @@
 ;(function(Backbone) {
 'use strict';
 
-Backbone.Cord.mixins.collection = {
-	collection: Backbone.Cord.EmptyCollection,
+var Cord = Backbone.Cord;
+var ForceValue = Cord.ForceValue;
+
+Cord.mixins.collection = {
+	collection: Cord.EmptyCollection,
 	properties: {
 		length: {
 			readonly: true,
@@ -86,12 +89,12 @@ Backbone.Cord.mixins.collection = {
 				this.listenTo(newCollection, 'reset', this._onResetCollection);
 			}
 			// Reset everything after the parent setCollection actually sets this.collection
-			Backbone.Cord.setImmediate(this._onResetCollection.bind(this));
+			Cord.setImmediate(this._onResetCollection.bind(this));
 		}
 	},
 	getCollectionContainer: function() {
 		// Look for a child with the container id, but default to the view's el
-		return this.getChildById(Backbone.Cord.config.collectionContainerId) || this.el;
+		return this.getChildById(Cord.config.collectionContainerId) || this.el;
 	},
 	createItemView: function(model) {
 		var view = new this.itemView({model: model});
@@ -147,7 +150,7 @@ Backbone.Cord.mixins.collection = {
 	},
 	_onAddItem: function(model, collection, options) {
 		var view, container, sibling, index;
-		this.length = new Backbone.Cord.ForceValue(collection.length);
+		this.length = new ForceValue(collection.length);
 		container = this.getCollectionContainer();
 		if(!container)
 			return;
@@ -174,7 +177,7 @@ Backbone.Cord.mixins.collection = {
 	_onRemoveItem: function(model, collection, options) {
 		var view, container;
 		var more = this._more;
-		this.length = new Backbone.Cord.ForceValue(collection.length);
+		this.length = new ForceValue(collection.length);
 		container = this.getCollectionContainer();
 		if(!container)
 			return;
@@ -253,7 +256,7 @@ Backbone.Cord.mixins.collection = {
 		// When resetting, no other add, remove, or update events are triggered
 		var i, view, fragment, container;
 		this._removeAllItems();
-		this.length = new Backbone.Cord.ForceValue(this.collection.length);
+		this.length = new ForceValue(this.collection.length);
 		container = this.getCollectionContainer();
 		if(!container || !this._length)
 			return;
@@ -268,7 +271,7 @@ Backbone.Cord.mixins.collection = {
 	}
 };
 
-Backbone.Cord.plugins.push({
+Cord.plugins.push({
 	name: 'collection',
 	requirements: ['computed'],
 	config: {
