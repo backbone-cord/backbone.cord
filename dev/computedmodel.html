@@ -7,7 +7,12 @@
 	<script type="text/javascript" src="/backbone.cord.js"></script>
 	<script type="text/javascript">
 	$(function() {
-		var TestModel = Backbone.Model.extend({
+		var Cord = Backbone.Cord;
+		var View = Backbone.View;
+		var Model = Backbone.Model;
+		var h = Cord.h;
+
+		var TestModel = Model.extend({
 			computed: {
 				name: function(firstName, lastName) {
 					return firstName + ' ' + lastName;
@@ -18,10 +23,11 @@
 		window.model._addComputed('nick', function(nickName, lastName) {
 			return nickName + ' ' + lastName;
 		})
-		var View = Backbone.View.extend({
-			el: function(h) { return h('p', 'My name is [model.name] and my nickname is [model.nick]'); },
+
+		var TestView = View.extend({
+			el: function() { return h('p', 'My name is [model.name] and my nickname is [model.nick]'); },
 		});
-		$(document.body).append((new View({model: window.model})).el);
+		$(document.body).append((new TestView({model: window.model})).el);
 	});
 	</script>
 </body>

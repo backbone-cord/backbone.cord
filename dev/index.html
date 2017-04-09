@@ -51,7 +51,6 @@
 </head>
 <body>
 	<script type="text/javascript">
-		window.cordCompatibilityMode = true;
 		window.cordDebug = true;
 	</script>
 	<script type="text/javascript" src="/underscore/underscore.js"></script>
@@ -61,10 +60,17 @@
 	<script type="text/javascript">
 	$(function() {
 
-		window.Circle = Backbone.Cord.View.extend({
-			el: function(el, view) {
-				return el('._',
-						el('#circle.circle', {style: {top: '[top]px', left: '[left]px'}}, el('br'), '[model.lastName]'));
+		var Cord = Backbone.Cord;
+		var View = Backbone.View;
+		var Model = Backbone.Model;
+		var h = Backbone.Cord.h;
+
+		window.Circle = View.extend({
+			el: function() {
+				return h('._',
+						h('#circle.circle', {style: {top: '[top]px', left: '[left]px'}},
+						h('br'), '[model.lastName]')
+				);
 			},
 			properties: {
 				top: 0,
@@ -72,16 +78,16 @@
 			}
 		});
 
-		var Parent = Backbone.Cord.View.extend({
+		var Parent = View.extend({
 			styles: {
 				backgroundColor: '#999',
 				color: '#333'
 			}
 		});
 
-		Backbone.Cord.UnmanagedScopes.set('unmanaged', new Backbone.Model({color: 'pink'}));
+		Cord.UnmanagedScopes.set('unmanaged', new Model({color: 'pink'}));
 
-		Backbone.Cord.Styles.addAnimation({
+		Cord.Styles.addAnimation({
 			fadeIn: {
 				from: {
 					opacity: '0',
@@ -147,7 +153,7 @@
 			}
 		});
 
-		function Hello(h, attrs) {
+		function Hello(attrs) {
 			return h('p', 'Hello ' + attrs.who);
 		}
 
@@ -189,7 +195,7 @@
 					options: {duration: '0.5s', count: 'infinite'}
 				}
 			},
-			el: function(h) {
+			el: function() {
 				return h('', {onkeyup: 'alertKey'},
 						h('select', {bind: 'unmanaged.color'},
 							h('option', {value: 'purple'}, 'Purple'),
@@ -230,7 +236,7 @@
 				left: 10,
 				borderColor: '#CCC',
 				test: {
-					value: new Backbone.Model({fizz: new Backbone.Model({fuzz: 'buzz'})})
+					value: new Model({fizz: new Model({fuzz: 'buzz'})})
 				},
 				loadDate: new Date(),
 				distance: function(top, left) { return top + left; },
@@ -267,7 +273,7 @@
 				}
 			}
 		});
-		window.squareModel = new Backbone.Model({firstName:'Carl', lastName:'Awesome', nickName:'Car'});
+		window.squareModel = new Model({firstName:'Carl', lastName:'Awesome', nickName:'Car'});
 		window.square = new Square({model: squareModel});
 		$(document.body).append(square.el);
 		square.focus();

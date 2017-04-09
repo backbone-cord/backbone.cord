@@ -145,12 +145,17 @@ function _callPlugins(name, context) {
 // Generate an arbitrary DOM node given a tag[id][classes] string, [attributes] dictionary, and [child nodes...]
 // If #id is given it must appear before the .classes, e.g. #id.class1.class2 or span#id.class1.class2
 function _createElement(tagIdClasses, attrs) {
+	if(Backbone.Cord._viewContext && this !== Backbone.Cord._viewContext)
+		return _createElement.apply(Backbone.Cord._viewContext, arguments);
 	if(typeof tagIdClasses !== 'string') {
 		var component = tagIdClasses;
 		// A function with an extend method will be a Backbone view
 		if(typeof component === 'function' && !component.extend) {
 			var args = Array.prototype.slice.call(arguments);
-			args[0] = this._createElement;
+			if(Backbone.Cord.config.prefixCreateElement)
+				args[0] = this._createElement;
+			else
+				args.shift();
 			return component.apply(this, args);
 		}
 		else {
@@ -300,7 +305,8 @@ function _createText(str) {
 Backbone.Cord = {
 	VERSION: '1.0.12',
 	config: {
-		idProperties: true
+		idProperties: true,
+		prefixCreateElement: false
 	},
 	// Collection of reusable regular expression objects
 	// NOTE: Do not use the regex functions test/exec when the global flag is set because it is stateful (lastIndex). Instead use string methods search/match
@@ -372,6 +378,7 @@ Backbone.Cord = {
 	EmptyView: Backbone.View.extend({ tagName: 'meta' }),
 	EmptyCollection: new (Backbone.Collection.extend({add: function() { return this; }, reset: function() { return this; }, set: function() { return this; }, toString: function() { return ''; }}))(),
 	// Layout creation methods
+	h: _createElement,
 	createElement: _createElement,
 	createSubview: _createSubview,
 	createText: _createText,
@@ -980,13 +987,16 @@ Backbone.Cord.View.prototype._ensureElement = function() {
 	// Bind the el method with prefixed args
 	// _createElement is added to override Backbone's _createElement when el is not a function
 	this._createElement = this.createElement.bind(this);
-	if(typeof this.el === 'function')
+	if(typeof this.el === 'function' && Backbone.Cord.config.prefixCreateElement)
 		this.el = this.el.bind(this, this._createElement);
 	// Start listening to the model
 	if(this.model !== Backbone.Cord.EmptyModel)
 		this.listenTo(this.model, 'change', this._modelObserver);
 	// Use backbone to actually create the element
+	var prevContext = Backbone.Cord._viewContext;
+	Backbone.Cord._viewContext = this;
 	var ret = __ensureElement.apply(this, arguments);
+	Backbone.Cord._viewContext = prevContext;
 	// Travel the prototype chain and apply all the classNames found, join into a single space separated string because some values might be space separated
 	Backbone.Cord.addClass(this.el, _getPrototypeValuesForKey(this, 'className').join(' '));
 	this.el.setAttribute('data-vuid', this.vuid);

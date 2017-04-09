@@ -27,8 +27,13 @@
 	<script type="text/javascript" src="/backbone.cord.js"></script>
 	<script type="text/javascript">
 	$(function() {
-		var ItemView = Backbone.View.extend({
-			el: function(h) {
+		var Cord = Backbone.Cord;
+		var View = Backbone.View;
+		var Collection = Backbone.Collection;
+		var h = Cord.h;
+
+		var ItemView = View.extend({
+			el: function() {
 				return h('tr.is-selected(selected)', {onclick: '_onClick'},
 							h('td', '[model.firstName]'),
 							h('td', '[model.lastName]'),
@@ -40,14 +45,14 @@
 			},
 			_onClick: function() { this.trigger('select', this); }
 		});
-		var DetailsView = Backbone.View.extend({
-			el: function(h) {
+		var DetailsView = View.extend({
+			el: function() {
 				return h('p', {hidden:'!model.firstName'}, 'The selected first name is: [model.firstName]. The selected last name is: [model.lastName].');
 			}
 		});
-		var CollectionView = Backbone.View.extend({
+		var CollectionView = View.extend({
 			mixins: ['collection'],
-			el: function(h) {
+			el: function() {
 				return h('',
 							h('table',
 								h('thead',
@@ -72,7 +77,7 @@
 				this.collection.sort();
 			}
 		});
-		window.collection = new Backbone.Collection([
+		window.collection = new Collection([
 			{firstName:'Marca', lastName:'Tofu', version: 3},
 			{firstName:'Macro', lastName:'Soft', version: 13},
 			{firstName:'Marcb', lastName:'The Great', version: 5},

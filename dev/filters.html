@@ -8,9 +8,15 @@
 	<script type="text/javascript" src="https://raw.githubusercontent.com/HubSpot/humanize/master/dist/humanize.min.js"></script>
 	<script type="text/javascript">
 	$(function() {
-		Backbone.Cord.filters['filesize'] = Humanize.fileSize;
-		var FileSizeView = Backbone.View.extend({
-			el: function(h) {
+		var Cord = Backbone.Cord;
+		var View = Backbone.View;
+		var h = Cord.h;
+		var filters = Cord.filters;
+
+		filters['filesize'] = Humanize.fileSize;
+
+		var FileSizeView = View.extend({
+			el: function() {
 				return h('p',
 						h('input', {input: 'bytes'}),
 						' bytes is equal to [bytes|filesize].'

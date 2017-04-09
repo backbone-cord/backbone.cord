@@ -8,8 +8,11 @@
 	<script type="text/javascript" src="https://rawgit.com/chjj/marked/v0.3.5/marked.min.js"></script>
 	<script type="text/javascript">
 	$(function() {
-		var MarkdownView = Backbone.View.extend({
-			el: function(h) {
+		var View = Backbone.View;
+		var h = Backbone.Cord.h;
+
+		var MarkdownView = View.extend({
+			el: function() {
 				return h('',
 							h('h3', 'Input'),
 							h('textarea', {rows:20, cols:50, input: 'markdown'}, 'Type some *markdown* here!'),

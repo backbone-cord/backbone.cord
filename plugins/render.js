@@ -2,6 +2,7 @@
 'use strict';
 
 var Cord = Backbone.Cord;
+var config = Backbone.Cord.config;
 
 function _updateNode(parent, node, vnode) {
 	var i, attr, children, removal;
@@ -96,7 +97,7 @@ Cord.plugins.push({
 	},
 	initialize: function() {
 		if(this.render !== Backbone.View.prototype.render) {
-			var __render = this.render.bind(this, this.createElement.bind(this));
+			var __render = config.prefixCreateElement ? this.render.bind(this, this._createElement) : this.render;
 			var __observe = this.observe;
 			var _renderedObserver;
 			var _renderedObservers = {};
@@ -104,6 +105,7 @@ Cord.plugins.push({
 			this.render = function() {
 				var key, rendered, container = this.getChildById(Cord.config.renderContainerId) || this.el;
 				var firstRender = !container.children.length;
+				var prevContext;
 
 				// Cleanup all rendered observers
 				for(key in _renderedObservers) {
@@ -131,11 +133,14 @@ Cord.plugins.push({
 				this.createSubview = function() { console.error('Subviews not allowed inside render()'); };
 
 				// Render with createSubview function blocked and observer function wrapped
+				prevContext = Cord._viewContext;
+				Cord._viewContext = this;
 				rendered = __render.apply(this, _renderedArgs) || [];
 				if(!(rendered instanceof Array))
 					rendered = [rendered];
 				delete this.observe;
 				delete this.createSubview;
+				Cord._viewContext = prevContext;
 
 				// Update the DOM
 				_updateChildren(container, rendered);

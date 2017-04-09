@@ -9,7 +9,13 @@
 	<link rel="stylesheet" href="http://dbushell.github.io/Pikaday/css/pikaday.css">
 	<script type="text/javascript">
 	$(function() {
-		Backbone.Cord.Replacements.add({
+		var Cord = Backbone.Cord;
+		var View = Backbone.View;
+		var Model = Backbone.Model;
+		var h = Cord.h;
+		var Replacements = Cord.Replacements;
+
+		Replacements.add({
 			'input[type="date"]': function(el) {
 				var picker = new Pikaday({ field: el });
 				this.once('remove', function() { picker.destroy(); });
@@ -18,8 +24,9 @@
 				return this.createElement('img', {src: 'http://lorempixel.com/400/200/animals'});
 			}
 		});
-		var SamplesView = Backbone.View.extend({
-			el: function(h) {
+
+		var SamplesView = View.extend({
+			el: function() {
 				return h('',
 						'Choose a date: ', h('input', {type: 'date', change: 'value'}),
 						h('br'),

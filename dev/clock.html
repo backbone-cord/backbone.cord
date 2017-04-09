@@ -10,13 +10,16 @@
 	<script type="text/javascript" src="https://rawgit.com/EvanHahn/HumanizeDuration.js/master/humanize-duration.js"></script>
 	<script type="text/javascript">
 		$(function() {
+			var Cord = Backbone.Cord;
 			var View = Backbone.View;
-			Backbone.Cord.filters.ago = function(duration) {
+			var h = Cord.h;
+
+			Cord.filters.ago = function(duration) {
 				return humanizeDuration(duration, {largest: 1, round: true, units: ['y', 'mo', 'w', 'd', 'h', 'm']}) + ' ago';
 			};
 
 			var AgoView = View.extend({
-				el: function(h) {
+				el: function() {
 					return h('p', 'Page loaded: [duration|ago]');
 				},
 				properties: {
@@ -28,19 +31,19 @@
 			});
 
 			var ClockView = View.extend({
-				el: function(h) {
+				el: function() {
 					return h('p', 'Current time: [clock.year]/[clock.month]/[clock.day] [clock.hours]:[clock.minutes]');
 				}
 			});
 
 			var SecondView = View.extend({
-				el: function(h) {
+				el: function() {
 					return h('p', 'Seconds: [clock.seconds]');
 				}
 			});
 
 			var MilliSecondView = View.extend({
-				el: function(h) {
+				el: function() {
 					return h('p', 'Milliseconds: [clock.milliseconds]');
 				}
 			});

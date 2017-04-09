@@ -7,9 +7,13 @@
 	<script type="text/javascript" src="/backbone.cord.js"></script>
 	<script type="text/javascript">
 	$(function() {
+		var Cord = Backbone.Cord;
 		var View = Backbone.View;
 		var Model = Backbone.Model;
-		Backbone.Cord.filters.percent = function(value) { return value * 100; };
+		var h = Cord.h;
+		var filters = Cord.filters;
+
+		filters.percent = function(value) { return value * 100; };
 
 		var TestModel = Model.extend({
 			url: 'http://jsonplaceholder.typicode.com/posts/1'
@@ -26,7 +30,7 @@
 					padding: '10px'
 				}
 			},
-			el: function(h) {
+			el: function() {
 				return h('',
 						h('p#status', {hidden: '!syncing'}, 'Syncing started - [syncProgress|percent]%'),
 						h('p', h('button', {type: 'button', onclick: 'fetch'}, 'Fetch'))
