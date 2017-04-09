@@ -1,30 +1,49 @@
 ;(function(Backbone) {
 'use strict';
 
+var Cord = Backbone.Cord;
+var View = Cord.View;
+var config = Cord.config;
+var regex = Cord.regex;
+var mixObj = Cord.mixObj;
+var copyObj = Cord.copyObj;
+var isPlainObj = Cord.isPlainObj;
+var convertToString = Cord.convertToString;
+var log = Cord.log;
+
 var _THIS_ID = '(this)';
 var _ua = navigator.userAgent.toLowerCase();
 var _browser = (/(chrome|safari)/.exec(_ua) || /firefox/.exec(_ua) || /msie/.exec(_ua) || /trident/.exec(_ua) || /opera/.exec(_ua) || '')[0];
 var _stylePrefix = ({ chrome: 'webkit', firefox: 'Moz', msie: 'ms', opera: 'O', safari: 'webkit', trident: 'ms' })[_browser] || '';
 var _eventPrefix = ({ chrome: 'webkit', opera: 'webkit', safari: 'webkit' })[_browser] || '';
 var _cssPrefix = '-' + _stylePrefix.toLowerCase() + '-';
+var _styleSheets = {};
+var _animations = {};
+var _mediaQueries = {
+	all: '',
+	animations: '',
+	hd: 'only screen and (max-width: 1200px)',
+	desktop: 'only screen and (max-width: 992px)',
+	tablet: 'only screen and (max-width: 768px)',
+	phablet: 'only screen and (max-width: 480px)',
+	mobile: 'only screen and (max-width: 320px)'
+};
 
 function _createStyleSheets() {
 	var el, key;
-	var mediaQueries = Backbone.Cord.Styles.mediaQueries;
-	Backbone.Cord._styleSheets = {};
-	for(key in mediaQueries) {
-		if(mediaQueries.hasOwnProperty(key)) {
+	for(key in _mediaQueries) {
+		if(_mediaQueries.hasOwnProperty(key)) {
 			// Note: cannot use id on stlye tags, but could add a data attribute for identifying
 			// https://developer.mozilla.org/en-US/docs/Web/HTML/Element/style
 			// https://davidwalsh.name/add-rules-stylesheets
 			el = document.createElement('style');
 			el.type = 'text/css';
-			if(mediaQueries[key])
-				el.media = mediaQueries[key];
+			if(_mediaQueries[key])
+				el.media = _mediaQueries[key];
 			// Webkit hack
 			el.appendChild(document.createTextNode(''));
 			document.head.appendChild(el);
-			Backbone.Cord._styleSheets[key] = el.sheet;
+			_styleSheets[key] = el.sheet;
 		}
 	}
 }
@@ -70,16 +89,16 @@ function _camelCaseToDash(str) {
 function _addRules(vuid, rules, _styles, selector, media, id) {
 	var key, sheet, query, mediaQuery, idQuery, separator;
 	media = media || 'all';
-	sheet = Backbone.Cord._styleSheets[media];
+	sheet = _styleSheets[media];
 	for(key in rules) {
 		if(rules.hasOwnProperty(key)) {
 			if(typeof rules[key] === 'object') {
 				mediaQuery = idQuery = null;
 				separator = '>';
 				query = key;
-				if(query.indexOf(Backbone.Cord.config.mediaQueryPrefix) === 0) {
-					mediaQuery = query.substr(Backbone.Cord.config.mediaQueryPrefix.length);
-					if(!Backbone.Cord.Styles.mediaQueries[mediaQuery])
+				if(query.indexOf(config.mediaQueryPrefix) === 0) {
+					mediaQuery = query.substr(config.mediaQueryPrefix.length);
+					if(!_mediaQueries[mediaQuery])
 						return;
 				}
 				if(!mediaQuery) {
@@ -95,29 +114,29 @@ function _addRules(vuid, rules, _styles, selector, media, id) {
 						separator = query[0];
 						query = query.substr(1);
 					}
-					else if(query.indexOf(Backbone.Cord.config.allSelectorPrefix) === 0) {
+					else if(query.indexOf(config.allSelectorPrefix) === 0) {
 						separator = ' ';
-						query = query.substr(Backbone.Cord.config.allSelectorPrefix.length);
+						query = query.substr(config.allSelectorPrefix.length);
 					}
-					else if(query.indexOf(Backbone.Cord.config.parentSelectorPrefix) === 0) {
+					else if(query.indexOf(config.parentSelectorPrefix) === 0) {
 						separator = '';
-						query = query.substr(Backbone.Cord.config.parentSelectorPrefix.length);
+						query = query.substr(config.parentSelectorPrefix.length);
 					}
 					if(query[0] === '#')
 						idQuery = query.substr(1);
-					if(idQuery && !Backbone.Cord.regex.testIdProperty(idQuery, true))
+					if(idQuery && !regex.testIdProperty(idQuery, true))
 						idQuery = null;
 				}
 				if(mediaQuery)
 					_addRules(vuid, rules[key], _styles, selector, mediaQuery);
 				else if(idQuery)
-					_addRules(vuid, rules[key], _styles, selector + separator + Backbone.Cord.regex.replaceIdSelectors('#' + idQuery, vuid), media, idQuery);
+					_addRules(vuid, rules[key], _styles, selector + separator + regex.replaceIdSelectors('#' + idQuery, vuid), media, idQuery);
 				else
-					_addRules(vuid, rules[key], _styles, selector + separator + Backbone.Cord.regex.replaceIdSelectors(query, vuid), media);
+					_addRules(vuid, rules[key], _styles, selector + separator + regex.replaceIdSelectors(query, vuid), media);
 			}
 			else {
 				var value = rules[key].toString();
-				if(value.search(Backbone.Cord.regex.variableSearch) !== -1) {
+				if(value.search(regex.variableSearch) !== -1) {
 					var scope = id || _THIS_ID;
 					if(!_styles[scope])
 						_styles[scope] = {};
@@ -125,7 +144,7 @@ function _addRules(vuid, rules, _styles, selector, media, id) {
 				}
 				else {
 					var rule = selector + '{' + _getStylePrefix(key, true) + _camelCaseToDash(key) + ':' + value + ';}';
-					Backbone.Cord.log('@' + media,  rule);
+					log('@' + media,  rule);
 					sheet.insertRule(rule, sheet.cssRules.length);
 				}
 			}
@@ -136,7 +155,7 @@ function _addRules(vuid, rules, _styles, selector, media, id) {
 var _atKeyframes = '@' + _getStylePrefix('animationName', true) + 'keyframes ';
 
 function _addAnimations(vuid, animations) {
-	var sheet = Backbone.Cord._styleSheets.animations;
+	var sheet = _styleSheets.animations;
 	var key, animation, keyframe, temp, step, i, rule, style, keystyles;
 	for(key in animations) {
 		if(animations.hasOwnProperty(key)) {
@@ -151,7 +170,7 @@ function _addAnimations(vuid, animations) {
 					animation[Math.ceil(step * i) + '%'] = temp[i];
 				animations[key] = animation;
 			}
-			if(Backbone.Cord.isPlainObj(animation)) {
+			if(isPlainObj(animation)) {
 				// Skip already processed animations, from mixins etc
 				if(animation.name)
 					continue;
@@ -172,7 +191,7 @@ function _addAnimations(vuid, animations) {
 				else
 					animation.name = key;
 				rule = _atKeyframes + animation.name + '{' + rule + '}';
-				Backbone.Cord.log(rule);
+				log(rule);
 				sheet.insertRule(rule, sheet.cssRules.length);
 			}
 		}
@@ -182,7 +201,7 @@ function _addAnimations(vuid, animations) {
 function _createStyleObserver(node, style) {
 	style = _addStylePrefix(style);
 	return function(key, formatted) {
-		node.style[style] = Backbone.Cord.convertToString(formatted);
+		node.style[style] = convertToString(formatted);
 	};
 }
 
@@ -195,7 +214,7 @@ function _styles(context, attrs) {
 		if(typeof styles === 'object') {
 			for(var style in styles) {
 				if(styles.hasOwnProperty(style)) {
-					if(styles[style].match(Backbone.Cord.regex.variableSearch) && context.isView)
+					if(styles[style].match(regex.variableSearch) && context.isView)
 						this.observeFormat(styles[style], _createStyleObserver(context.el, style), true);
 					else
 						context.el.style[_addStylePrefix(style)] = styles[style];
@@ -239,7 +258,7 @@ function _parseAnimationSelector(animationSelector, options) {
 	var animations, elements;
 	if(components.length > 1) {
 		animations = components[1].split(/, */);
-		elements = this.el.querySelectorAll(Backbone.Cord.regex.replaceIdSelectors(components[0].trim(), this.vuid));
+		elements = this.el.querySelectorAll(regex.replaceIdSelectors(components[0].trim(), this.vuid));
 	}
 	else {
 		animations = components[0].split(/, */);
@@ -247,10 +266,10 @@ function _parseAnimationSelector(animationSelector, options) {
 	}
 	for(i = 0; i < animations.length; ++i) {
 		key = animations[i];
-		animation = this.animations[key] || Backbone.Cord.Styles.animations[key] || {name: key};
+		animation = this.animations[key] || _animations[key] || {name: key};
 		animations[i] = animation.name;
 		if(animation.options)
-			options = Backbone.Cord.mixObj(animation.options, options);
+			options = mixObj(animation.options, options);
 	}
 	return {animations: animations, elements: elements, options: options};
 }
@@ -290,7 +309,7 @@ function _alterStyleList(list, indices, value) {
 
 // animationSelector is a selector: animation names string or array of strings e.g. 'p: one, two'
 // TODO: make a better scoped selector syntax like the styles dictionary has
-Backbone.Cord.View.prototype.beginAnimation = function(animationSelector, options, callback) {
+View.prototype.beginAnimation = function(animationSelector, options, callback) {
 	var parsed, animations, separator, pointerEvents, elements, el, i, j;
 	var iteration, iterationListener, cancelable, endListener;
 	if(!options || typeof options === 'function') {
@@ -307,7 +326,7 @@ Backbone.Cord.View.prototype.beginAnimation = function(animationSelector, option
 	elements = parsed.elements;
 	if(!elements.length)
 		return this;
-	options = Backbone.Cord.mixObj(_DEFAULT_ANIMATION_OPTIONS, parsed.options);
+	options = mixObj(_DEFAULT_ANIMATION_OPTIONS, parsed.options);
 	pointerEvents = options.interactive ? '' : 'none';
 	for(i = 0; i < elements.length; ++i) {
 		el = elements[i];
@@ -355,7 +374,7 @@ Backbone.Cord.View.prototype.beginAnimation = function(animationSelector, option
 };
 
 // Use with caution, updating running animations can be strange
-Backbone.Cord.View.prototype._updateAnimation = function(animationSelector, property, value) {
+View.prototype._updateAnimation = function(animationSelector, property, value) {
 	var parsed, animations, elements, el, i, prevAnimations, indices;
 	parsed = _parseAnimationSelector.call(this, animationSelector);
 	animations = parsed.animations;
@@ -373,15 +392,15 @@ Backbone.Cord.View.prototype._updateAnimation = function(animationSelector, prop
 	return this;
 };
 
-Backbone.Cord.View.prototype.pauseAnimation = function(animationSelector) {
+View.prototype.pauseAnimation = function(animationSelector) {
 	return this._updateAnimation(animationSelector, _animationPlayState, 'paused');
 };
 
-Backbone.Cord.View.prototype.resumeAnimation = function(animationSelector) {
+View.prototype.resumeAnimation = function(animationSelector) {
 	return this._updateAnimation(animationSelector, _animationPlayState, 'running');
 };
 
-Backbone.Cord.View.prototype.cancelAnimation = function(animationSelector) {
+View.prototype.cancelAnimation = function(animationSelector) {
 	var parsed, animations, elements, el, i, prevAnimations, indices;
 	parsed = _parseAnimationSelector.call(this, animationSelector);
 	animations = parsed.animations;
@@ -408,9 +427,9 @@ Backbone.Cord.View.prototype.cancelAnimation = function(animationSelector) {
 };
 
 // Same arguments as beginAnimation but only used for permanent transitions of styles and apply to a single selector only
-Backbone.Cord.View.prototype.beginTransition = function(selector, styles, options, callback) {
+View.prototype.beginTransition = function(selector, styles, options, callback) {
 	var elements, i, el, separator, style, listener;
-	if(Backbone.Cord.isPlainObj(selector)) {
+	if(isPlainObj(selector)) {
 		callback = options;
 		options = styles;
 		styles = selector;
@@ -420,9 +439,9 @@ Backbone.Cord.View.prototype.beginTransition = function(selector, styles, option
 		callback = options;
 		options = {};
 	}
-	options = Backbone.Cord.mixObj(_DEFAULT_ANIMATION_OPTIONS, options);
+	options = mixObj(_DEFAULT_ANIMATION_OPTIONS, options);
 	if(selector)
-		elements = this.el.querySelectorAll(Backbone.Cord.regex.replaceIdSelectors(selector, this.vuid));
+		elements = this.el.querySelectorAll(regex.replaceIdSelectors(selector, this.vuid));
 	else
 		elements = [this.el];
 	if(!elements.length)
@@ -468,14 +487,14 @@ Backbone.Cord.View.prototype.beginTransition = function(selector, styles, option
 	return this;
 };
 
-Backbone.Cord.View.prototype.applyStyles = function(selector, styles) {
+View.prototype.applyStyles = function(selector, styles) {
 	var elements, i, el, style;
-	if(Backbone.Cord.isPlainObj(selector)) {
+	if(isPlainObj(selector)) {
 		styles = selector;
 		selector = null;
 	}
 	if(selector)
-		elements = this.el.querySelectorAll(Backbone.Cord.regex.replaceIdSelectors(selector, this.vuid));
+		elements = this.el.querySelectorAll(regex.replaceIdSelectors(selector, this.vuid));
 	else
 		elements = [this.el];
 	if(!elements.length)
@@ -491,12 +510,12 @@ Backbone.Cord.View.prototype.applyStyles = function(selector, styles) {
 	return this;
 };
 
-Backbone.Cord.View.prototype.clearStyles = function(selector, styles) {
-	if(Backbone.Cord.isPlainObj(selector)) {
+View.prototype.clearStyles = function(selector, styles) {
+	if(isPlainObj(selector)) {
 		styles = selector;
 		selector = null;
 	}
-	styles = Backbone.Cord.copyObj(styles);
+	styles = copyObj(styles);
 	for(var style in styles) {
 		if(styles.hasOwnProperty(style))
 			styles[style] = '';
@@ -510,13 +529,13 @@ var _DEFAULT_KEYFRAME_ALIASES = {'0%': 'from', 'from': '0%', '100%': 'to', 'to':
 // Get styles for a keyframe from an animation with a keyframe key
 // Animation properties such as animation-timing-function are excluded
 // Every animation has at least 2 keyframes from/to or 0%/100%, if keyframe is excluded 0% is the default
-Backbone.Cord.View.prototype.getKeyframe = function(animation, keyframe, clear) {
+View.prototype.getKeyframe = function(animation, keyframe, clear) {
 	var aliases, style, styles;
-	animation = this.animations[animation] || Backbone.Cord.Styles.animations[animation];
+	animation = this.animations[animation] || _animations[animation];
 	keyframe = keyframe || '0%';
 	aliases = animation.aliases || {};
 	styles = animation[keyframe] || animation[_DEFAULT_KEYFRAME_ALIASES[keyframe] || aliases[keyframe]];
-	styles = Backbone.Cord.copyObj(styles);
+	styles = copyObj(styles);
 	for(style in styles) {
 		if(style.indexOf('animation') === 0 && styles.hasOwnProperty(style))
 			delete styles[style];
@@ -530,9 +549,9 @@ Backbone.Cord.View.prototype.getKeyframe = function(animation, keyframe, clear) 
 	return styles;
 };
 
-Backbone.Cord.View.prototype.beginKeyframeTransition = function(selector, animation, keyframe, options, callback) {
+View.prototype.beginKeyframeTransition = function(selector, animation, keyframe, options, callback) {
 	var styles;
-	if(this.animations[selector] || Backbone.Cord.Styles.animations[selector]) {
+	if(this.animations[selector] || _animations[selector]) {
 		callback = options;
 		options = keyframe;
 		keyframe = animation;
@@ -553,14 +572,14 @@ Backbone.Cord.View.prototype.beginKeyframeTransition = function(selector, animat
 	if(!selector) {
 		var clearKeyframe = this._appliedKeyframes[animation];
 		if(clearKeyframe)
-			styles = Backbone.Cord.mixObj(this.getKeyframe(animation, clearKeyframe, true), styles);
+			styles = mixObj(this.getKeyframe(animation, clearKeyframe, true), styles);
 		this._appliedKeyframes[animation] = keyframe;
 	}
 	return this.beginTransition(selector, styles, options, callback);
 };
 
-Backbone.Cord.View.prototype.applyKeyframe = function(selector, animation, keyframe) {
-	if(this.animations[selector] || Backbone.Cord.Styles.animations[selector]) {
+View.prototype.applyKeyframe = function(selector, animation, keyframe) {
+	if(this.animations[selector] || _animations[selector]) {
 		keyframe = animation;
 		animation = selector;
 		selector = null;
@@ -571,8 +590,8 @@ Backbone.Cord.View.prototype.applyKeyframe = function(selector, animation, keyfr
 	return this.applyStyles(selector, this.getKeyframe(animation, keyframe));
 };
 
-Backbone.Cord.View.prototype.clearKeyframe = function(selector, animation, keyframe) {
-	if(this.animations[selector] || Backbone.Cord.Styles.animations[selector]) {
+View.prototype.clearKeyframe = function(selector, animation, keyframe) {
+	if(this.animations[selector] || _animations[selector]) {
 		keyframe = animation;
 		animation = selector;
 		selector = null;
@@ -586,26 +605,18 @@ Backbone.Cord.View.prototype.clearKeyframe = function(selector, animation, keyfr
 };
 
 // Expose useful functions, media queries which can be modified, and some browser info
-Backbone.Cord.Styles = {
+Cord.Styles = {
 	userAgent: _ua,
 	browser: _browser,
 	addStylePrefix: _addStylePrefix,
 	addEventPrefix: _addEventPrefix,
 	getCSSPrefix: function(style) { return _getStylePrefix(style, true); },
 	camelCaseToDash: _camelCaseToDash,
-	mediaQueries: {
-		all: '',
-		animations: '',
-		hd: 'only screen and (max-width: 1200px)',
-		desktop: 'only screen and (max-width: 992px)',
-		tablet: 'only screen and (max-width: 768px)',
-		phablet: 'only screen and (max-width: 480px)',
-		mobile: 'only screen and (max-width: 320px)'
-	},
-	animations: {},
+	animations: _animations,
+	mediaQueries: _mediaQueries,
 	addAnimation: function(nameAnimations, animation) {
 		var animations;
-		if(!Backbone.Cord.isPlainObj(nameAnimations)) {
+		if(!isPlainObj(nameAnimations)) {
 			animations = {};
 			animations[nameAnimations] = animation;
 		}
@@ -613,7 +624,7 @@ Backbone.Cord.Styles = {
 			animations = nameAnimations;
 		}
 		_addAnimations(null, animations);
-		Backbone.Cord.Styles.animations = Backbone.Cord.mixObj(Backbone.Cord.Styles.animations, animations);
+		_animations = mixObj(_animations, animations);
 	}
 };
 
@@ -625,7 +636,7 @@ Backbone.Cord.Styles = {
 // When interpolating variables into styles, use this over an interpolated attribute string value
 // because the interpolated string value will overwrite any changes to styles on the node made through javascript e.g. the hidden plugin
 // Note: interpolated styles are not supported under media queries and require idProperties to be true
-Backbone.Cord.plugins.push({
+Cord.plugins.push({
 	name: 'styles',
 	requirements: ['interpolation'],
 	config: {
@@ -641,9 +652,9 @@ Backbone.Cord.plugins.push({
 		if(context.protoProps.styles || context.protoProps.animations) {
 			if(!context.protoProps.className)
 				context.protoProps.className = 'view-' + context.protoProps.vuid;
-			if(!Backbone.Cord._styleSheets)
+			if(!Object.keys(_styleSheets).length)
 				_createStyleSheets();
-			classNames = Backbone.Cord.getPrototypeValuesForKey(this, 'className', true);
+			classNames = Cord.getPrototypeValuesForKey(this, 'className', true);
 			classNames.push(context.protoProps.className);
 			classNames = classNames.join(' ');
 			if(context.protoProps.styles)
@@ -655,8 +666,8 @@ Backbone.Cord.plugins.push({
 	},
 	initialize: function() {
 		if(this._styles && this._styles[_THIS_ID]) {
-			var styles = Backbone.Cord.copyObj(this._styles[_THIS_ID]);
-			Backbone.Cord.log(styles);
+			var styles = copyObj(this._styles[_THIS_ID]);
+			log(styles);
 			for(var style in styles) {
 				if(styles.hasOwnProperty(style))
 					this.observeFormat(styles[style], _createStyleObserver(this.el, style), true);
@@ -667,8 +678,8 @@ Backbone.Cord.plugins.push({
 	complete: function(context) {
 		// Apply any dynamic class styles detected from the initial extend
 		if(this._styles && context.id && this._styles[context.id]) {
-			var styles = Backbone.Cord.copyObj(this._styles[context.id]);
-			Backbone.Cord.log(styles);
+			var styles = copyObj(this._styles[context.id]);
+			log(styles);
 			for(var style in styles) {
 				if(styles.hasOwnProperty(style))
 					this.observeFormat(styles[style], _createStyleObserver(context.el, style), true);
