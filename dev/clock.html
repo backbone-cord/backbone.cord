@@ -17,7 +17,7 @@
 
 			var AgoView = View.extend({
 				el: function(h) {
-					return h('p', 'Page loaded: {duration|ago}');
+					return h('p', 'Page loaded: [duration|ago]');
 				},
 				properties: {
 					loadDate: new Date(),
@@ -29,19 +29,19 @@
 
 			var ClockView = View.extend({
 				el: function(h) {
-					return h('p', 'Current time: {clock.year}/{clock.month}/{clock.day} {clock.hours}:{clock.minutes}');
+					return h('p', 'Current time: [clock.year]/[clock.month]/[clock.day] [clock.hours]:[clock.minutes]');
 				}
 			});
 
 			var SecondView = View.extend({
 				el: function(h) {
-					return h('p', 'Seconds: {clock.seconds}');
+					return h('p', 'Seconds: [clock.seconds]');
 				}
 			});
 
 			var MilliSecondView = View.extend({
 				el: function(h) {
-					return h('p', 'Milliseconds: {clock.milliseconds}');
+					return h('p', 'Milliseconds: [clock.milliseconds]');
 				}
 			});
 

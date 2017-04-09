@@ -12,7 +12,7 @@
 
 		var TodoItemView = View.extend({
 			el: function(h) {
-				return h('li', '{model.value} ', h('a', {href:'#', onclick: this.remove.bind(this)}, '[x]'));
+				return h('li', '[model.value] ', h('a', {href:'#', onclick: this.remove.bind(this)}, '(x)'));
 			}
 		});
 		var TodoView = View.extend({
@@ -23,7 +23,7 @@
 							h('ul#container'),
 							h('form', {onsubmit: '_onSubmit'},
 								h('input#todo', {placeholder: 'Your next todo'}),
-								h('button', 'Add #{length|plusOne}')
+								h('button', 'Add #[length|plusOne]')
 							)
 						);
 			},

@@ -6,10 +6,10 @@ describe('binding plugin', function() {
 	before(function() {
 		view = new (Backbone.View.extend({
 			el: function(h) {
-				return h('', '{value}',
-						h('#onevalue', '{value}'),
-						h('#withattrs', {'data-value': '{value}'}),
-						h('#twovalues', '{value1} {value2}')
+				return h('', '[value]',
+						h('#onevalue', '[value]'),
+						h('#withattrs', {'data-value': '[value]'}),
+						h('#twovalues', '[value1] [value2]')
 						);
 			},
 			properties: {

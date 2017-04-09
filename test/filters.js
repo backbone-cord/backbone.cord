@@ -12,7 +12,7 @@ describe('filters', function() {
 		};
 		view = new (Backbone.View.extend({
 			el: function(h) {
-				return h('', {'data-reverse': '{name|reverse}', 'data-lower': '{name|lower}', 'data-upper': '{name|upper}', 'data-title': '{name|title}'}, '{value|abs} {value|plus100}');
+				return h('', {'data-reverse': '[name|reverse]', 'data-lower': '[name|lower]', 'data-upper': '[name|upper]', 'data-title': '[name|title]'}, '[value|abs] [value|plus100]');
 			},
 			properties: {
 				value: 1,

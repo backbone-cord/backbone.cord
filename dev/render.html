@@ -14,7 +14,7 @@
 			render: function(h, data) {
 				var nodes = [];
 				for(var i = 0; i < data.length; ++i)
-					nodes.push(h('p', '{value} ', data[i]));
+					nodes.push(h('p', '[value] ', data[i]));
 				return nodes;
 			},
 			properties: { value: 0 }

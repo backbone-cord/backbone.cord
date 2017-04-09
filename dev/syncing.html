@@ -28,7 +28,7 @@
 			},
 			el: function(h) {
 				return h('',
-						h('p#status', {hidden: '!syncing'}, 'Syncing started - {syncProgress|percent}%'),
+						h('p#status', {hidden: '!syncing'}, 'Syncing started - [syncProgress|percent]%'),
 						h('p', h('button', {type: 'button', onclick: 'fetch'}, 'Fetch'))
 					);
 			},

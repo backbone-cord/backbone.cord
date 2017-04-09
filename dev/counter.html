@@ -8,7 +8,7 @@
 	<script type="text/javascript">
 	$(function() {
 		var Counter = Backbone.View.extend({
-			el: function(h) { return h('', 'Seconds Elapsed: {secondsElapsed}'); },
+			el: function(h) { return h('', 'Seconds Elapsed: [secondsElapsed]'); },
 			properties: { secondsElapsed: 0 },
 			initialize: function() {
 				this.interval = setInterval(function(){ ++this.secondsElapsed; }.bind(this), 1000);

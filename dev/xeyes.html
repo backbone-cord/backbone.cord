@@ -23,7 +23,7 @@
 				var svg = this.createSVGElement.bind(this);
 				return svg('svg', {width: 110, height: 160},
 						svg('ellipse', {cx: 55, cy: 80, rx: 50, ry: 75, style: 'fill: white; stroke: black; stroke-width: 10;'}),
-						svg('circle#pupil', {cx: '{cx}', cy: '{cy}', r: 7, style: 'fill: black; stroke: black;'})
+						svg('circle#pupil', {cx: '[cx]', cy: '[cy]', r: 7, style: 'fill: black; stroke: black;'})
 					);
 			},
 			properties: {

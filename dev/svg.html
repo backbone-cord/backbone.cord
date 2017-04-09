@@ -12,7 +12,7 @@
 			el: function() {
 				var svg = this.createSVGElement.bind(this);
 				return svg('svg', {width: 400, height: 400},
-						svg('rect', {x: 50, y: '{secondsElapsed}', width: 150, height: 150, style: 'fill: blue; stroke: pink; stroke-width: 5; fill-opacity: 0.1; stroke-opacity: 0.9;'})
+						svg('rect', {x: 50, y: '[secondsElapsed]', width: 150, height: 150, style: 'fill: blue; stroke: pink; stroke-width: 5; fill-opacity: 0.1; stroke-opacity: 0.9;'})
 					);
 			},
 			properties: { secondsElapsed: 0 },

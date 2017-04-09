@@ -491,7 +491,7 @@ Object.defineProperties(Backbone.Cord.regex, {
 	conditional: _regexPropertyDescriptor('conditional')
 });
 // Regex patterns can be configured by setting prefix/suffix values through these properties
-Backbone.Cord.regex.variable = {prefix: '{', suffix: '}'};
+Backbone.Cord.regex.variable = {prefix: '[', suffix: ']'};
 Backbone.Cord.regex.conditional = {prefix: '(', suffix: ')'};
 
 Backbone.Cord.plugins._check = function() {

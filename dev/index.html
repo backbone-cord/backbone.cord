@@ -64,7 +64,7 @@
 		window.Circle = Backbone.Cord.View.extend({
 			el: function(el, view) {
 				return el('._',
-						el('#circle.circle', {style: {top: '{top}px', left: '{left}px'}}, el('br'), '{model.lastName}'));
+						el('#circle.circle', {style: {top: '[top]px', left: '[left]px'}}, el('br'), '[model.lastName]'));
 			},
 			properties: {
 				top: 0,
@@ -156,14 +156,14 @@
 				userSelect: 'none',
 				backgroundColor: '#DDD',
 				paddingLeft: '50px',
-				border: '2px dotted {borderColor}',
+				border: '2px dotted [borderColor]',
 				boxShadow: '1px 2px 2px black',
 				'&.state, table': {
 					backgroundColor: 'blue',
 				},
 				'#container': {
 					borderLeft: '10px solid black',
-					borderBottom: '{left}px solid purple'
+					borderBottom: '[left]px solid purple'
 				},
 				p: {
 					color: 'olive',
@@ -198,21 +198,21 @@
 						),
 						h('input', {type: 'checkbox', change: 'message'}),
 						h('input#range', {type: 'range', min: 0, max: 100, change: 'left', observe: 'left'}),
-						h('#container.square.red(red)', {style: {borderTop: '{left}px solid {unmanaged.color}', top: '{top}px', left: '{left}px'}}),
+						h('#container.square.red(red)', {style: {borderTop: '[left]px solid [unmanaged.color]', top: '[top]px', left: '[left]px'}}),
 						h('p',
-							'Click the button below to change the color. Distance is {distance}.'),
+							'Click the button below to change the color. Distance is [distance].'),
 						h('button#button', {onclick: 'onButtonClick'}, 'Click Me'),
-						h('p.red-{red}',
-							'Red is: {red}'),
-						h('.hi', {style: {paddingLeft: '{input_cursorX}px', paddingTop: '{input_cursorY}px'}},
-							'Hi {model.firstName}, Blue is: {blue}'),
+						h('p.red-[red]',
+							'Red is: [red]'),
+						h('.hi', {style: {paddingLeft: '[input_cursorX]px', paddingTop: '[input_cursorY]px'}},
+							'Hi [model.firstName], Blue is: [blue]'),
 						h('p#thankyou', {invisible: 'red'},
-							'Thank you much, {model.firstName} {model.lastName} aka {model.nickName}!'),
-						h('input', {value: ' this is {shared.shared} world {blue} hello {model.firstName}', change: 'message'}),
+							'Thank you much, [model.firstName] [model.lastName] aka [model.nickName]!'),
+						h('input', {value: ' this is [shared.shared] world [blue] hello [model.firstName]', change: 'message'}),
 						h('a', {href: 'http://backbonejs.org', target: '_blank', onclick: function() { return false; } }, 'backbonejs.org'),
 						h(Circle, '#circle', {style: {marginLeft: '{left}px'}, top: 'onCircleTop'}, {top: 100}),
 						h(Circle, '#circle2', {invisible: 'red', onclick: 'onButtonClick'}),
-						h(Hello, {who: '{model.firstName}'}),
+						h(Hello, {who: '[model.firstName]'}),
 						h(Backbone.Cord.EmptyView, '#emptyView')
 					);
 			},
@@ -240,7 +240,7 @@
 			onButtonClick: function() {
 				this.red = !this.red;
 				this.blue = Math.floor(Math.random() * 100);
-				this.el.appendChild(this.createElement('p', 'Thank you much, blue is {blue} {model.lastName}! {inheritedLastName}'));
+				this.el.appendChild(this.createElement('p', 'Thank you much, blue is [blue] [model.lastName]! [inheritedLastName]'));
 			},
 			onCircleTop: function(key, value) {
 				console.log('onCircleTop ' + value);
