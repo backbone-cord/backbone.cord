@@ -147,6 +147,10 @@
 			}
 		});
 
+		function Hello(h, attrs) {
+			return h('p', 'Hello ' + attrs.who);
+		}
+
 		var Square = Parent.extend({
 			styles: {
 				userSelect: 'none',
@@ -185,7 +189,7 @@
 					options: {duration: '0.5s', count: 'infinite'}
 				}
 			},
-			el: function(h, s) {
+			el: function(h) {
 				return h('', {onkeyup: 'alertKey'},
 						h('select', {bind: 'unmanaged.color'},
 							h('option', {value: 'purple'}, 'Purple'),
@@ -206,10 +210,10 @@
 							'Thank you much, {model.firstName} {model.lastName} aka {model.nickName}!'),
 						h('input', {value: ' this is {shared.shared} world {blue} hello {model.firstName}', change: 'message'}),
 						h('a', {href: 'http://backbonejs.org', target: '_blank', onclick: function() { return false; } }, 'backbonejs.org'),
-						s(Circle, '#circle', {style: {marginLeft: '{left}px'}, top: 'onCircleTop'}, {top: 100}),
-						s(Circle, '#circle2', {invisible: 'red', onclick: 'onButtonClick'}),
-						h('p', 'Page loaded ', '???'),
-						s(Backbone.Cord.EmptyView, '#emptyView')
+						h(Circle, '#circle', {style: {marginLeft: '{left}px'}, top: 'onCircleTop'}, {top: 100}),
+						h(Circle, '#circle2', {invisible: 'red', onclick: 'onButtonClick'}),
+						h(Hello, {who: '{model.firstName}'}),
+						h(Backbone.Cord.EmptyView, '#emptyView')
 					);
 			},
 			properties: {

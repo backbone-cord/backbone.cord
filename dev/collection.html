@@ -47,7 +47,7 @@
 		});
 		var CollectionView = Backbone.View.extend({
 			mixins: ['collection'],
-			el: function(h, s) {
+			el: function(h) {
 				return h('',
 							h('table',
 								h('thead',
@@ -61,7 +61,7 @@
 									h('p', {hidden: 'length'}, 'There are no more entries!')
 								)
 							),
-							s(DetailsView),
+							h(DetailsView),
 							h('', 'Viewing {start} - {end} out of {length}.')
 						);
 			},

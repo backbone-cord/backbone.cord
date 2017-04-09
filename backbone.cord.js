@@ -148,10 +148,14 @@ function _createElement(tagIdClasses, attrs) {
 	if(typeof tagIdClasses !== 'string') {
 		var component = tagIdClasses;
 		// A function with an extend method will be a Backbone view
-		if(typeof component === 'function' && !component.extend)
-			return component.apply(this, Array.prototype.slice.call(arguments, 1));
-		else
+		if(typeof component === 'function' && !component.extend) {
+			var args = Array.prototype.slice.call(arguments);
+			args[0] = this._createElement;
+			return component.apply(this, args);
+		}
+		else {
 			return _createSubview.apply(this, arguments);
+		}
 	}
 	tagIdClasses = tagIdClasses.split('.');
 	var context = { isView: this instanceof Backbone.Cord.View };
@@ -288,6 +292,11 @@ function _createText(str) {
 	return document.createTextNode(str);
 }
 
+/*
+ * Main Cord object.
+ * Do NOT overwrite any top-level members, only modify sub objects such as Cord.regex.x
+ * Inside modules, only alias top-level members not the modifiable nested because those may change, for example var regex = Cord.regex
+ */
 Backbone.Cord = {
 	VERSION: '1.0.12',
 	config: {
@@ -525,12 +534,10 @@ Backbone.Cord.plugins.push = function(plugin) {
 
 // Expose createElement and createSubview on the View object as well
 // _callPlugins is added because this._callPlugins is used for callbacks
-// _createElement is added to override Backbone's _createElement when el is not a function
 Backbone.Cord.View.prototype.createElement = _createElement;
 Backbone.Cord.View.prototype.createSubview = _createSubview;
 Backbone.Cord.View.prototype.createText = _createText;
 Backbone.Cord.View.prototype._callPlugins = _callPlugins;
-Backbone.Cord.View.prototype._createElement = _createElement;
 
 // Built-in view property scope for observing view properties
 // Observe to add observer methods for existing view properties first and model attributes second
@@ -971,9 +978,10 @@ Backbone.Cord.View.prototype._ensureElement = function() {
 				this._synthesizeProperty(key, properties[key]);
 	}
 	// Bind the el method with prefixed args
-	var isFun = (typeof this.el === 'function');
-	if(isFun)
-		this.el = this.el.bind(this, this.createElement.bind(this), this.createSubview.bind(this));
+	// _createElement is added to override Backbone's _createElement when el is not a function
+	this._createElement = this.createElement.bind(this);
+	if(typeof this.el === 'function')
+		this.el = this.el.bind(this, this._createElement);
 	// Start listening to the model
 	if(this.model !== Backbone.Cord.EmptyModel)
 		this.listenTo(this.model, 'change', this._modelObserver);
