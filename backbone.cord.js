@@ -327,15 +327,19 @@ Backbone.Cord = {
 	decoders: {
 		range: function(el) { return parseInt(el.value); },
 		number: function(el) { return Number(el.value); },
+		int: function(el) { return parseInt(el.value); },
 		integer: function(el) { return parseInt(el.value); },
+		float: function(el) { return parseFloat(el.value); },
 		decimal: function(el) { return parseFloat(el.value); },
 		date: function(el) { return new Date(el.value); },
 		datetime: function(el) { return new Date(el.value); },
+		bool: function(el) { return el.checked; },
 		checkbox: function(el) { return el.checked; }
 	},
 	encoders: {
 		date: function(el, value) { el.value = value.toDateString(); },
 		datetime: function(el, value) { el.value = value.toString(); },
+		bool: function(el, value) { el.checked = Backbone.Cord.convertToBool(value); },
 		checkbox: function(el, value) { el.checked = Backbone.Cord.convertToBool(value); }
 	},
 	decodeValue: function(el) {
