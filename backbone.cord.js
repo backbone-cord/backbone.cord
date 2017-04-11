@@ -340,6 +340,8 @@ Backbone.Cord = {
 	},
 	decodeValue: function(el) {
 		var decoder = Backbone.Cord.decoders[el.getAttribute('data-type') || el.getAttribute('type')];
+		if(el.hasAttribute('data-null') && !el.value)
+			return null;
 		return decoder ? decoder(el) : el.value;
 	},
 	encodeValue: function(el, value) {
