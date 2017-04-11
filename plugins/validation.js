@@ -121,7 +121,7 @@ Cord.mixins.validation = {
 				if(validationErrors[attr] === 'format' && this.model.formats && this.model.formats[attr])
 					latestError = this.model.formats[attr];
 				else
-					latestError = Cord.parseValidationError(this.model.get(attr), this.model.rules[attr], validationErrors[attr], this.model.titles[attr], attr);
+					latestError = Cord.parseValidationError(this.model.get(attr), this.model.rules[attr], validationErrors[attr], this.model.titles[attr] || 'This field', attr);
 				this.errors.set(attr, latestError);
 			}
 		}
