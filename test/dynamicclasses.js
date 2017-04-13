@@ -1,11 +1,12 @@
-var assert = require('assert');
-var Backbone = require('./cordedbackbone');
+const assert = require('assert');
+const Backbone = require('./cordedbackbone');
+const h = Backbone.Cord.h;
 
-describe('dynamic classes', function() {
-	var view;
-	before(function() {
+describe('dynamic classes', () => {
+	let view;
+	before(() => {
 		view = new (Backbone.View.extend({
-			el: function(h) {
+			el() {
 				return h('.[value]');
 			},
 			properties: {
@@ -13,12 +14,12 @@ describe('dynamic classes', function() {
 			}
 		}))();
 	});
-	describe('value is "one"', function() {
-		before(function() { view.value = 'one'; });
-		it('el.className should contain one', function() { assert.notEqual(view.el.className.indexOf('one'), -1); });
+	describe('value is "one"', () => {
+		before(() => { view.value = 'one'; });
+		it('el.className should contain one', () => assert.notEqual(view.el.className.indexOf('one'), -1));
 	});
-	describe('value is "two"', function() {
-		before(function() { view.value = 'two'; });
-		it('el.className should contain two', function() { assert.notEqual(view.el.className.indexOf('two'), -1); });
+	describe('value is "two"', () => {
+		before(() => { view.value = 'two'; });
+		it('el.className should contain two', () => assert.notEqual(view.el.className.indexOf('two'), -1));
 	});
 });

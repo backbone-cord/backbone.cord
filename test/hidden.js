@@ -1,11 +1,12 @@
-var assert = require('assert');
-var Backbone = require('./cordedbackbone');
+const assert = require('assert');
+const Backbone = require('./cordedbackbone');
+const h = Backbone.Cord.h;
 
-describe('hidden plugin', function() {
-	var view;
-	before(function() {
+describe('hidden plugin', () => {
+	let view;
+	before(() => {
 		view = new (Backbone.View.extend({
-			el: function(h) {
+			el() {
 				return h('',
 						h('#whenfalse', {hidden: '!value'}, 'Visible when false'),
 						h('#whentrue', {hidden: 'value'}, 'Visible when true')
@@ -16,13 +17,13 @@ describe('hidden plugin', function() {
 			}
 		}))();
 	});
-	describe('HiddenElementsView value false', function() {
-		it('#whenfalse should be hidden', function() { assert.equal(view.whenfalse.style.display, 'none'); });
-		it('#whentrue should not be hidden', function() { assert.notEqual(view.whentrue.style.display, 'none'); });
+	describe('HiddenElementsView value false', () => {
+		it('#whenfalse should be hidden', () => assert.equal(view.whenfalse.style.display, 'none'));
+		it('#whentrue should not be hidden', () => assert.notEqual(view.whentrue.style.display, 'none'));
 	});
-	describe('HiddenElementsView value true', function() {
-		before(function() { view.value = true; });
-		it('#whenfalse should not be hidden', function() { assert.notEqual(view.whenfalse.style.display, 'none'); });
-		it('#whentrue should be hidden', function() { assert.equal(view.whentrue.style.display, 'none'); });
+	describe('HiddenElementsView value true', () => {
+		before(() => { view.value = true; });
+		it('#whenfalse should not be hidden', () => assert.notEqual(view.whenfalse.style.display, 'none'));
+		it('#whentrue should be hidden', () => assert.equal(view.whentrue.style.display, 'none'));
 	});
 });

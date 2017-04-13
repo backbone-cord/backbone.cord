@@ -1,11 +1,12 @@
-var assert = require('assert');
-var Backbone = require('./cordedbackbone');
+const assert = require('assert');
+const Backbone = require('./cordedbackbone');
+const h = Backbone.Cord.h;
 
-describe('subkeys', function() {
-	var view;
-	before(function() {
+describe('subkeys', () => {
+	let view;
+	before(() => {
 		view = new (Backbone.View.extend({
-			el: function(h) {
+			el() {
 				return h('', '[obj.a] [obj.b]');
 			},
 			properties: {
@@ -15,7 +16,7 @@ describe('subkeys', function() {
 			}
 		}))();
 	});
-	describe('obj.a and obj.b is 1 and 2', function() {
-		it('textContent should be "1 2"', function() { assert.equal(view.el.textContent, '1 2'); });
+	describe('obj.a and obj.b is 1 and 2', () => {
+		it('textContent should be "1 2"', () => assert.equal(view.el.textContent, '1 2'));
 	});
 });

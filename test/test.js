@@ -1,99 +1,99 @@
-var assert = require('assert');
-var jsdom = require('jsdom');
-var _ = require('lodash');
-var cord = require('../backbone.cord');
+const assert = require('assert');
+const jsdom = require('jsdom');
+const _ = require('lodash');
+const cord = require('../backbone.cord');
 
-assert.element = function(el, tagName, id, classes, attrs) {
+assert.element = (el, tagName, id, classes, attrs) => {
 	assert.equal(el.nodeType, 1);
 	assert.equal(el.tagName.toLowerCase(), tagName.toLowerCase());
 	if(id)
 		assert.equal(el.getAttribute('data-id'), id);
 	if(classes) {
-		_.each(classes, function(cls) {
+		_.each(classes, (cls) => {
 			assert(el.classList.contains(cls));
 		});
 	}
 };
 
-assert.text = function(e, text) {
+assert.text = (e, text) => {
 	assert.equal(e.nodeType, 3);
 	assert.equal(e.data, text);
 };
 
-describe('copy methods', function() {
-	describe('copyObj({})', function() {
-		var orig = {};
-		var copy = cord.copyObj(orig);
-		it('copy should not be original', function() { assert.notStrictEqual(orig, copy); });
-		it('copy should be equal to original', function() { assert.deepEqual(orig, copy); });
-		it('copy should be empty', function() { assert.ok(!Object.keys(copy).length); });
+describe('copy methods', () => {
+	describe('copyObj({})', () => {
+		let orig = {};
+		let copy = cord.copyObj(orig);
+		it('copy should not be original', () => assert.notStrictEqual(orig, copy));
+		it('copy should be equal to original', () => assert.deepEqual(orig, copy));
+		it('copy should be empty', () => assert.ok(!Object.keys(copy).length));
 	});
-	describe('copyObj({a:123, b: [], c: "string", sub: {}})', function() {
-		var orig = {a:123, b: [], c: "string", sub: {}};
-		var copy = cord.copyObj(orig);
-		it('copy should not be original', function() { assert.notStrictEqual(orig, copy); });
-		it('copy should be equal to original', function() { assert.deepEqual(orig, copy); });
-		it('copy should have the same primitive keys and values', function() {
+	describe('copyObj({a:123, b: [], c: "string", sub: {}})', () => {
+		let orig = {a:123, b: [], c: "string", sub: {}};
+		let copy = cord.copyObj(orig);
+		it('copy should not be original', () => assert.notStrictEqual(orig, copy));
+		it('copy should be equal to original', () => assert.deepEqual(orig, copy));
+		it('copy should have the same primitive keys and values', () => {
 			assert.strictEqual(orig.a, copy.a);
 			assert.strictEqual(orig.b, copy.b);
 			assert.strictEqual(orig.c, copy.c);
 		});
-		it('copy sub object should not be the original sub object', function() {
+		it('copy sub object should not be the original sub object', () => {
 			assert.notStrictEqual(orig.sub, copy.sub);
 		});
-		it('altering copy primitive should not alter original', function() {
+		it('altering copy primitive should not alter original', () => {
 			copy.a = 'hello';
 			assert.notEqual(orig.a, copy.a);
 		});
-		it('altering copy arrays should alter original', function() {
+		it('altering copy arrays should alter original', () => {
 			copy.b.push('hello');
 			assert.deepEqual(orig.b, copy.b);
 		});
 	});
-	describe('copyObj({a:{a:123, b:456, c:789}, b:{a:901}})', function() {
-		var orig = {a:{a:123, b:456, c:789}, b:{a:901}};
-		var copy = cord.copyObj(orig);
-		it('copy should not be original', function() { assert.notStrictEqual(orig, copy); });
-		it('copy should be equal to original', function() { assert.deepEqual(orig, copy); });
-		it('copy sub object should not be the original sub object', function() {
+	describe('copyObj({a:{a:123, b:456, c:789}, b:{a:901}})', () => {
+		let orig = {a:{a:123, b:456, c:789}, b:{a:901}};
+		let copy = cord.copyObj(orig);
+		it('copy should not be original', () => assert.notStrictEqual(orig, copy));
+		it('copy should be equal to original', () => assert.deepEqual(orig, copy));
+		it('copy sub object should not be the original sub object', () => {
 			assert.notStrictEqual(orig.a, copy.a);
 			assert.notStrictEqual(orig.b, copy.b);
 		});
-		it('sub objects should equal the original sub objects', function() {
+		it('sub objects should equal the original sub objects', () => {
 			assert.deepEqual(orig.a, copy.a);
 			assert.deepEqual(orig.b, copy.b);
 		});
 	});
-	describe('copyObj({a:subclass})', function() {
-		var Subclass = function() { this.a = 123; this.b = 456; };
-		var orig = {sub:new Subclass()};
-		var copy = cord.copyObj(orig);
-		it('copy should not be original', function() { assert.notStrictEqual(orig, copy); });
-		it('copy should be equal to original', function() { assert.deepEqual(orig, copy); });
-		it('altering copy.sub should alter original.sub', function() {
+	describe('copyObj({a:subclass})', () => {
+		let Subclass = function() { this.a = 123; this.b = 456; };
+		let orig = {sub:new Subclass()};
+		let copy = cord.copyObj(orig);
+		it('copy should not be original', () => assert.notStrictEqual(orig, copy));
+		it('copy should be equal to original', () => assert.deepEqual(orig, copy));
+		it('altering copy.sub should alter original.sub', () => {
 			copy.sub.a = 'hello';
 			assert.deepEqual(orig.sub, copy.sub);
 		});
 	});
 });
 
-describe('mix methods', function() {
-	describe('mixObj()', function() {
-		var combined = cord.mixObj(
+describe('mix methods', () => {
+	describe('mixObj()', () => {
+		let combined = cord.mixObj(
 			{a: 2, styles: {cursor: 'pointer', div: { display: 'block'}}},
 			{b: 3, styles: {color: 'blue', font: 'times'}},
 			{c: 4, styles: {color: 'red', div: { textAlign: 'center'}}}
 		);
-		var chained = cord.mixObj(
-			{a: 2, foo: function() { ++this.a; return this.a; }},
-			{b: 3, foo: function() { ++this.b; return this.b; }},
-			{c: 4, foo: function() { ++this.c; return this.c; }}
+		let chained = cord.mixObj(
+			{a: 2, foo() { ++this.a; return this.a; }},
+			{b: 3, foo() { ++this.b; return this.b; }},
+			{c: 4, foo() { ++this.c; return this.c; }}
 		);
-		it('combined should have a, b, c, and styles subobject combined', function() {
+		it('combined should have a, b, c, and styles subobject combined', () => {
 			assert.deepEqual({a: 2, b: 3, c: 4, styles: { cursor: 'pointer', color: 'red', font: 'times', div: {textAlign: 'center', display: 'block'}}}, combined);
 		});
-		it('chained.foo should increment a, b, and c, and return c', function() {
-			var ret = chained.foo();
+		it('chained.foo should increment a, b, and c, and return c', () => {
+			let ret = chained.foo();
 			assert.equal(ret, chained.c);
 			assert.equal(chained.a, 3);
 			assert.equal(chained.b, 4);
@@ -102,66 +102,66 @@ describe('mix methods', function() {
 	});
 });
 
-describe('convert methods', function() {
-	describe('convertToString(5)', function() {
-		var str = cord.convertToString(5);
-		it('should be 5', function() { assert.equal(str, '5'); });
-		it('should be a string', function() { assert.equal(typeof str, 'string'); });
+describe('convert methods', () => {
+	describe('convertToString(5)', () => {
+		let str = cord.convertToString(5);
+		it('should be 5', () => assert.equal(str, '5'));
+		it('should be a string', () => assert.equal(typeof str, 'string'));
 	});
-	describe('convertToString(null)', function() {
-		var str = cord.convertToString(null);
-		it('should be empty', function() { assert.equal(str, ''); });
-		it('should be a string', function() { assert.equal(typeof str, 'string'); });
+	describe('convertToString(null)', () => {
+		let str = cord.convertToString(null);
+		it('should be empty', () => assert.equal(str, ''));
+		it('should be a string', () => assert.equal(typeof str, 'string'));
 	});
-	describe('convertToBool("string")', function() {
-		var b = cord.convertToBool('string');
-		it('should be true', function() { assert.equal(b, true); });
+	describe('convertToBool("string")', () => {
+		let b = cord.convertToBool('string');
+		it('should be true', () => assert.equal(b, true));
 	});
-	describe('convertToBool(5)', function() {
-		var b = cord.convertToBool(5);
-		it('should be true', function() { assert.equal(b, true); });
+	describe('convertToBool(5)', () => {
+		let b = cord.convertToBool(5);
+		it('should be true', () => assert.equal(b, true));
 	});
-	describe('convertToBool({})', function() {
-		var b = cord.convertToBool({});
-		it('should be true', function() { assert.equal(b, true); });
+	describe('convertToBool({})', () => {
+		let b = cord.convertToBool({});
+		it('should be true', () => assert.equal(b, true));
 	});
-	describe('convertToBool(null)', function() {
-		var b = cord.convertToBool(null);
-		it('should be false', function() { assert.equal(b, false); });
+	describe('convertToBool(null)', () => {
+		let b = cord.convertToBool(null);
+		it('should be false', () => assert.equal(b, false));
 	});
-	describe('convertToBool([])', function() {
-		var b = cord.convertToBool([]);
-		it('should be false', function() { assert.equal(b, false); });
+	describe('convertToBool([])', () => {
+		let b = cord.convertToBool([]);
+		it('should be false', () => assert.equal(b, false));
 	});
-	describe('convertToBool("")', function() {
-		var b = cord.convertToBool('');
-		it('should be false', function() { assert.equal(b, false); });
+	describe('convertToBool("")', () => {
+		let b = cord.convertToBool('');
+		it('should be false', () => assert.equal(b, false));
 	});
 });
 
-describe('EmptyModel', function() {
-	describe('set(key, value) should be a noop', function() {
+describe('EmptyModel', () => {
+	describe('set(key, value) should be a noop', () => {
 		cord.EmptyModel.set('key', 'value');
-		var value = cord.EmptyModel.get('key');
-		it('get(key) should be undefined', function() { assert.equal(value, undefined); });
+		let value = cord.EmptyModel.get('key');
+		it('get(key) should be undefined', () => assert.equal(value, undefined));
 	});
 });
 
-describe('events', function() {
-	var View;
-	before(function() {
+describe('events', () => {
+	let View;
+	before(() => {
 		View = cord.View.extend({
 			events: {
 				'click #element': true
 			}
 		});
 	});
-	it('should replace id selectors on extend', function() {
+	it('should replace id selectors on extend', () => {
 		assert.equal(View.prototype.events['click [data-id="element-' + View.prototype.vuid + '"]'], true);
 	});
 });
 
-describe('createElement', function() {
+describe('createElement', () => {
 	before(function(done) {
 		// Run the tests with a document
 		jsdom.env('', function (err, window) {
@@ -169,20 +169,20 @@ describe('createElement', function() {
 			done(err);
 		});
 	});
-	describe('createElement(tag#id.classes)', function() {
-		it('should return <div></div>', function() { assert.element(cord.createElement(''), 'div'); });
-		it('should return <div id="dog"></div>', function() { assert.element(cord.createElement('#dog'), 'div', 'dog'); });
-		it('should return <input id="dog" class="black fluffy"></div>', function() { assert.element(cord.createElement('input#dog.black.fluffy'), 'input', 'dog', ['black', 'fluffy']); });
-		it('should return <div id="dog">jumped over the fence</div>', function() {
-			var el = cord.createElement('#dog', 'jumped over the fence');
+	describe('createElement(tag#id.classes)', () => {
+		it('should return <div></div>', () => assert.element(cord.createElement(''), 'div'));
+		it('should return <div id="dog"></div>', () => assert.element(cord.createElement('#dog'), 'div', 'dog'));
+		it('should return <input id="dog" class="black fluffy"></div>', () => assert.element(cord.createElement('input#dog.black.fluffy'), 'input', 'dog', ['black', 'fluffy']));
+		it('should return <div id="dog">jumped over the fence</div>', () => {
+			let el = cord.createElement('#dog', 'jumped over the fence');
 			assert.equal(el.outerHTML, '<div data-id="dog">jumped over the fence</div>');
 			assert.element(el, 'div', 'dog');
 			assert.text(el.childNodes[0], 'jumped over the fence');
 		});
 		// JSX compatible id and class as attributes
-		it('should apply id and class from attrs <div id="dog" class="fluffy"></div>', function() { assert.element(cord.createElement('div', {id: 'dog', class:'fluffy'}), 'div', 'dog', ['fluffy']); });
+		it('should apply id and class from attrs <div id="dog" class="fluffy"></div>', () => assert.element(cord.createElement('div', {id: 'dog', class:'fluffy'}), 'div', 'dog', ['fluffy']));
 	});
 });
 
 // TODO: maybe prevent the createSubview method from being called outside of a View
-describe('createSubview', function() {});
+describe('createSubview', () => {});

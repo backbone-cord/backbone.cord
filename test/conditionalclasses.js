@@ -1,11 +1,12 @@
-var assert = require('assert');
-var Backbone = require('./cordedbackbone');
+const assert = require('assert');
+const Backbone = require('./cordedbackbone');
+const h = Backbone.Cord.h;
 
-describe('conditional classes', function() {
-	var view;
-	before(function() {
+describe('conditional classes', () => {
+	let view;
+	before(() => {
 		view = new (Backbone.View.extend({
-			el: function(h) {
+			el() {
 				return h('.red(value)');
 			},
 			properties: {
@@ -13,27 +14,27 @@ describe('conditional classes', function() {
 			}
 		}))();
 	});
-	describe('value is "one"', function() {
-		it('el.className should contain red', function() { assert.notEqual(view.el.className.indexOf('red'), -1); });
+	describe('value is "one"', () => {
+		it('el.className should contain red', () => assert.notEqual(view.el.className.indexOf('red'), -1));
 	});
-	describe('value is 2', function() {
-		before(function() { view.value = 2; });
-		it('el.className should contain red', function() { assert.notEqual(view.el.className.indexOf('red'), -1); });
+	describe('value is 2', () => {
+		before(() => { view.value = 2; });
+		it('el.className should contain red', () => assert.notEqual(view.el.className.indexOf('red'), -1));
 	});
-	describe('value is {}', function() {
-		before(function() { view.value = {}; });
-		it('el.className should contain red', function() { assert.notEqual(view.el.className.indexOf('red'), -1); });
+	describe('value is {}', () => {
+		before(() => { view.value = {}; });
+		it('el.className should contain red', () => assert.notEqual(view.el.className.indexOf('red'), -1));
 	});
-	describe('value is null', function() {
-		before(function() { view.value = null; });
-		it('el.className should not contain red', function() { assert.equal(view.el.className.indexOf('red'), -1); });
+	describe('value is null', () => {
+		before(() => { view.value = null; });
+		it('el.className should not contain red', () => assert.equal(view.el.className.indexOf('red'), -1));
 	});
-	describe('value is []', function() {
-		before(function() { view.value = []; });
-		it('el.className should not contain red', function() { assert.equal(view.el.className.indexOf('red'), -1); });
+	describe('value is []', () => {
+		before(() => { view.value = []; });
+		it('el.className should not contain red', () => assert.equal(view.el.className.indexOf('red'), -1));
 	});
-	describe('value is ""', function() {
-		before(function() { view.value = ''; });
-		it('el.className should not contain red', function() { assert.equal(view.el.className.indexOf('red'), -1); });
+	describe('value is ""', () => {
+		before(() => { view.value = ''; });
+		it('el.className should not contain red', () => assert.equal(view.el.className.indexOf('red'), -1));
 	});
 });

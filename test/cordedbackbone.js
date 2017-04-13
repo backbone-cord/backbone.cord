@@ -1,26 +1,26 @@
 if(!global.window) {
-	var jsdom = require('jsdom');
-	var window = jsdom.jsdom().defaultView;
+	const jsdom = require('jsdom');
+	const window = jsdom.jsdom().defaultView;
 	global.window = window;
 	global.document = window.document;
 	global.navigator = window.navigator;
 	global.Node = window.Node;
-	var Backbone = require('backbone');
+	const Backbone = require('backbone');
 	// jquery needs to be initialized outside of backbone for some strange reason
 	// http://stackoverflow.com/questions/20380958/browserify-with-jquery-2-produces-jquery-requires-a-window-with-a-document
 	window.$ = Backbone.$ = require('jquery');
-	var Cord = require('../backbone.cord');
+	const Cord = require('../backbone.cord');
 	// require all of the plugins to activate them
-	require('../plugins/binding');
-	require('../plugins/classes');
-	require('../plugins/collection');
-	require('../plugins/computed');
-	require('../plugins/events');
-	require('../plugins/hidden');
-	require('../plugins/interpolation');
-	require('../plugins/render');
-	require('../plugins/styles');
-	require('../plugins/sharedscope');
-	require('../plugins/validation');
+	require('../lib/plugins/binding');
+	require('../lib/plugins/classes');
+	require('../lib/mixins/collection');
+	require('../lib/plugins/computed');
+	require('../lib/plugins/events');
+	require('../lib/plugins/hidden');
+	require('../lib/plugins/interpolation');
+	require('../lib/plugins/render');
+	require('../lib/plugins/styles');
+	require('../lib/scopes/sharedscope');
+	require('../lib/mixins/validation');
 }
 module.exports = require('backbone');
