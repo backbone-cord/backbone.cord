@@ -6,7 +6,7 @@ var Model = Backbone.Model;
 var EmptyModel = Cord.EmptyModel;
 var ForceValue = Cord.ForceValue;
 
-Cord.formats = {
+var _formats = {
 	url: /^(https?:\/\/(?:www\.|(?!www))[^\s\.]+\.[^\s]{2,}|www\.[^\s]+\.[^\s]{2,})/i,
 	ip: /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/i,
 	email: /^[a-z0-9!#$%&'*+\/=?^_`{|}~.-]+@[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$/i,
@@ -52,7 +52,7 @@ Cord.validate = function(value, rule) {
 				for(i = 0; i < formats.length; ++i) {
 					format = formats[i];
 					if(typeof(format) === 'string')
-						format = Cord.formats[format];
+						format = _formats[format];
 					if((typeof(format) === 'function' && !format(value)) ||
 						(format instanceof RegExp && !format.test(value))
 					)
@@ -194,6 +194,10 @@ Model.prototype.validate = function(attributes) {
 	if(Object.keys(errors).length)
 		return errors;
 };
+
+Cord.Validation = {
+	formats: _formats
+}
 
 Cord.plugins.push({
 	name: 'validation',
