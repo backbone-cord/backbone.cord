@@ -180,6 +180,10 @@ function _createElement(tagIdClasses, attrs) {
 			// Copy attrs to prevent side-effects
 			attrs = _copyObj(attrs);
 			delete attrs.id; delete attrs.className;
+			if(attrs.htmlFor) {
+				attrs['for'] = attrs.htmlFor;
+				delete attrs.htmlFor;
+			}
 			attrs = this._callPlugins('attrs', context, attrs) || attrs;
 			for(var attr in attrs) {
 				if(attrs.hasOwnProperty(attr))
