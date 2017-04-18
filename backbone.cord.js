@@ -159,7 +159,7 @@ function _createElement(tagIdClasses, attrs) {
 			return component.apply(this, args);
 		}
 		else {
-			return _createSubview.apply(this, arguments);
+			return _createSubview.apply(this, arguments).el;
 		}
 	}
 	tagIdClasses = tagIdClasses.split('.');
@@ -302,7 +302,9 @@ function _createText(str) {
 }
 
 function _render(element, container) {
-	if(element instanceof Backbone.View)
+	if(typeof element === 'function')
+		element = (new element()).el;
+	else if(element instanceof Backbone.View)
 		element = element.el;
 	else if(typeof element === 'string')
 		element = this.createText(element);
