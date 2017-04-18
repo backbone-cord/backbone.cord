@@ -151,11 +151,14 @@ function _createElement(tagIdClasses, attrs) {
 		var component = tagIdClasses;
 		// A function with an extend method will be a Backbone view
 		if(typeof component === 'function' && !component.extend) {
-			var args = Array.prototype.slice.call(arguments);
-			if(Backbone.Cord.config.prefixCreateElement)
-				args[0] = this._createElement;
+			var args = Array.prototype.slice.call(arguments, 1);
+			if(!_isPlainObj(attrs))
+				args.unshift({});
 			else
-				args.shift();
+				args[0] = _copyObj(args[0]);
+			args[0].children = (args.length > 2) ? args.slice(1) : args[1];
+			if(Backbone.Cord.config.prefixCreateElement)
+				args.unshift(this._createElement);
 			return component.apply(this, args);
 		}
 		else {

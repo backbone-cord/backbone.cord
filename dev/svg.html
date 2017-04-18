@@ -8,16 +8,18 @@
 	<script type="text/javascript" src="https://rawgit.com/backbone-cord/backbone.cord.svg/master/backbone.cord.svg.js"></script>
 	<script type="text/javascript">
 	$(function() {
-		var RectView = Backbone.View.extend({
+		var View = Backbone.View;
+		var h = Backbone.Cord.h;
+
+		var RectView = View.extend({
 			el: function() {
-				var svg = this.createSVGElement.bind(this);
-				return svg('svg', {width: 400, height: 400},
-						svg('rect', {x: 50, y: '[secondsElapsed]', width: 150, height: 150, style: 'fill: blue; stroke: pink; stroke-width: 5; fill-opacity: 0.1; stroke-opacity: 0.9;'})
+				return h('svg', {width: 400, height: 400},
+						h('rect', {x: 50, y: '[secondsElapsed]', width: 150, height: 150, style: 'fill: blue; stroke: pink; stroke-width: 5; fill-opacity: 0.1; stroke-opacity: 0.9;'})
 					);
 			},
 			properties: { secondsElapsed: 0 },
 			initialize: function() {
-				this.interval = setInterval(function(){ ++this.secondsElapsed; }.bind(this), 1000);
+				this.interval = setInterval(function(){ this.secondsElapsed += 5; }.bind(this), 1000);
 				this.listenTo(this, 'remove', function() { clearInterval(this.interval); });
 			}
 		});

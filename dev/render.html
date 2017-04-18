@@ -9,6 +9,7 @@
 	$(function() {
 		var View = Backbone.View;
 		var h = Backbone.Cord.h;
+		var render = Backbone.Cord.render;
 
 		var RenderView = View.extend({
 			el: function() {
@@ -22,8 +23,14 @@
 			},
 			properties: { value: 0 }
 		});
-		window.view = new RenderView();
-		$(document.body).append(view.render(['1', '2', '3']).el);
+
+		var MainView  = View.extend({
+			el: function() {
+				return h('div', h(RenderView, {render: ['1', '2', '3']}));
+			}
+		});
+
+		render(MainView, document.body);
 	});
 	</script>
 </body>
