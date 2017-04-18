@@ -150,7 +150,7 @@ function _createElement(tagIdClasses, attrs) {
 	if(typeof tagIdClasses !== 'string') {
 		var component = tagIdClasses;
 		// A function with an extend method will be a Backbone view
-		if(typeof component === 'function' && !component.extend) {
+		if(typeof component === 'function' && !(component.prototype instanceof Backbone.View)) {
 			var args = Array.prototype.slice.call(arguments, 1);
 			if(!_isPlainObj(attrs))
 				args.unshift({});
@@ -306,7 +306,7 @@ function _createText(str) {
 
 function _render(element, container) {
 	if(typeof element === 'function')
-		element = (new element()).el;
+		element = (element.prototype instanceof Backbone.View) ? (new element()).el : element();
 	else if(element instanceof Backbone.View)
 		element = element.el;
 	else if(typeof element === 'string')
@@ -1053,5 +1053,39 @@ Backbone.Cord.View.prototype.remove = function() {
 	this.trigger('remove', this);
 	return __remove.apply(this, arguments);
 };
+
+Backbone.Cord.Router = Backbone.Router.extend({
+	route: function(route, name, callback)  {
+		if(!callback) {
+			callback = name;
+			name = '';
+		}
+		// Allow callback to be a View instance or class and set key/values depending on the matching route params
+		if(typeof callback === 'function' && callback.prototype instanceof Backbone.View)
+			callback = new callback();
+		if(callback instanceof Backbone.View)
+			callback = this.createViewCallback(route, callback);
+		return Backbone.Router.prototype.route.call(this, route, name, callback);
+	},
+	execute: function(callback, args) {
+		// If there is a return value and a container render it
+		if(callback) {
+			var ret = callback.apply(this, args);
+			if(ret && this.container)
+				Backbone.Cord.render(ret, this.container);
+		}
+	},
+	createViewCallback: function(route, view) {
+		var i, keys = route.match(/(\(\?)?:\w+/g) || [];
+		for(i = 0; i < keys.length; ++i)
+			keys[i] = keys[i].substr(1);
+		return function() {
+			var i, values = {};
+			for(i = 0; i < keys.length; ++i)
+				values[keys[i]] = arguments[i];
+			view.setValuesForKeys(values);
+		};
+	}
+});
 
 })(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)));
