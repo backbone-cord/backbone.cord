@@ -1,7 +1,7 @@
 {
   "name": "backbone.cord",
-  "version": "1.0.12",
-  "description": "Backbone addition that enables the easy creation of reactive connected views with two-way data binding and Jade-like declarative syntax.",
+  "version": "1.0.13",
+  "description": "backbone.cord is a Backbone library for data binding and a JSX-compatible declarative layout pipeline.",
   "keywords": [
     "backbone",
     "reactive",
