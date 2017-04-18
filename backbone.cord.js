@@ -301,6 +301,16 @@ function _createText(str) {
 	return document.createTextNode(str);
 }
 
+function _render(element, container) {
+	if(element instanceof Backbone.View)
+		element = element.el;
+	else if(typeof element === 'string')
+		element = this.createText(element);
+	else if(!(element instanceof Node))
+		element = this.createElement(element);
+	container.appendChild(element);
+}
+
 /*
  * Main Cord object.
  * Do NOT overwrite any top-level members, only modify sub objects such as Cord.regex.x
@@ -387,11 +397,6 @@ Backbone.Cord = {
 	EmptyModel: new (Backbone.Model.extend({set: function() { return this; }, toString: function() { return ''; }}))(),
 	EmptyView: Backbone.View.extend({ tagName: 'meta' }),
 	EmptyCollection: new (Backbone.Collection.extend({add: function() { return this; }, reset: function() { return this; }, set: function() { return this; }, toString: function() { return ''; }}))(),
-	// Layout creation methods
-	h: _createElement,
-	createElement: _createElement,
-	createSubview: _createSubview,
-	createText: _createText,
 	// Unique internal subview id, this unifies how subviews with and without ids are stored
 	_sid: 1,
 	_pluginsChecked: false,
@@ -431,6 +436,11 @@ Backbone.Cord.log = (debug ? function() {
 	args.unshift(format.join(' | '));
 	console.log.apply(console, args);
 } : function(){});
+
+// Layout creation methods should be bound to allow importing of each individually
+Backbone.Cord.h = Backbone.Cord.createElement = _createElement.bind(Backbone.Cord);
+Backbone.Cord.createText = _createText.bind(Backbone.Cord);
+Backbone.Cord.render = _render.bind(Backbone.Cord);
 
 // Override or wrap to provide different keyPath processing, different prefixes, or shorthands
 // The return value must be an array of the different key path components, with the first being the namespace normalized to lowercase
