@@ -313,7 +313,23 @@ function _render(element, container) {
 		element = this.createText(element);
 	else if(!(element instanceof Node))
 		element = this.createElement(element);
+	if(typeof container === 'string')
+		container = document.querySelector(container);
 	container.appendChild(element);
+}
+
+function _replace(child, element, container) {
+	if(child === element)
+		return;
+	if(typeof container === 'string')
+		container = document.querySelector(container);
+	if(child) {
+		if(child instanceof Backbone.View)
+			child.remove();
+		else
+			container.removeChild(child);
+	}
+	this.render(element, container);
 }
 
 /*
@@ -446,6 +462,7 @@ Backbone.Cord.log = (debug ? function() {
 Backbone.Cord.h = Backbone.Cord.createElement = _createElement.bind(Backbone.Cord);
 Backbone.Cord.createText = _createText.bind(Backbone.Cord);
 Backbone.Cord.render = _render.bind(Backbone.Cord);
+Backbone.Cord.replace = _replace.bind(Backbone.Cord);
 
 // Override or wrap to provide different keyPath processing, different prefixes, or shorthands
 // The return value must be an array of the different key path components, with the first being the namespace normalized to lowercase
@@ -958,7 +975,7 @@ Backbone.Cord.View.extend = function(protoProps, staticProps) {
 		protoProps = _mixProto.apply(Backbone.Cord, mixArgs);
 	}
 	// Create a unique view id for this view class. Can set a static vuid for debugging
-	protoProps.vuid = protoProps.vuid || Backbone.Cord.randomUID();
+	protoProps.vuid = protoProps.vuid || Backbone.Cord.randomUID() + Backbone.Cord.randomUID();
 	// Call all of the plugins
 	_callPlugins.call(this, 'extend', {protoProps: protoProps, staticProps: staticProps});
 	// Replace all of the id selectors in the event delegation
@@ -1060,19 +1077,19 @@ Backbone.Cord.Router = Backbone.Router.extend({
 			callback = name;
 			name = '';
 		}
-		// Allow callback to be a View instance or class and set key/values depending on the matching route params
-		if(typeof callback === 'function' && callback.prototype instanceof Backbone.View)
-			callback = new callback();
-		if(callback instanceof Backbone.View)
+		// Allow callback to be a View class or instance and set key/values depending on the matching route params
+		if((typeof callback === 'function' && callback.prototype instanceof Backbone.View) || callback instanceof Backbone.View)
 			callback = this.createViewCallback(route, callback);
 		return Backbone.Router.prototype.route.call(this, route, name, callback);
 	},
 	execute: function(callback, args) {
-		// If there is a return value and a container render it
+		// If there is a return value and a container render it, replacing any previously rendered contents
 		if(callback) {
 			var ret = callback.apply(this, args);
-			if(ret && this.container)
-				Backbone.Cord.render(ret, this.container);
+			if(ret && this.container) {
+				Backbone.Cord.replace(this.rendered, ret, this.container);
+				this.rendered = ret;
+			}
 		}
 	},
 	createViewCallback: function(route, view) {
@@ -1080,10 +1097,17 @@ Backbone.Cord.Router = Backbone.Router.extend({
 		for(i = 0; i < keys.length; ++i)
 			keys[i] = keys[i].substr(1);
 		return function() {
-			var i, values = {};
+			var i, values = {}, result = view;
+			if(typeof view === 'function' && view.prototype instanceof Backbone.View) {
+				if(this.rendered && Object.getPrototypeOf(this.rendered) === view.prototype)
+					result = this.rendered;
+				else
+					result = new view();
+			}
 			for(i = 0; i < keys.length; ++i)
 				values[keys[i]] = arguments[i];
-			view.setValuesForKeys(values);
+			result.setValuesForKeys(values);
+			return result;
 		};
 	}
 });

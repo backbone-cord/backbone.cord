@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<body>
+	<script type="text/javascript" src="/underscore/underscore.js"></script>
+	<script type="text/javascript" src="/jquery/dist/jquery.js"></script>
+	<script type="text/javascript" src="/backbone/backbone.js"></script>
+	<script type="text/javascript" src="/backbone.cord.js"></script>
+	<script type="text/javascript">
+	$(function() {
+		var Cord = Backbone.Cord;
+		var View = Backbone.View;
+		var Router = Backbone.Cord.Router;
+		var h = Cord.h;
+
+		var PageView = View.extend({
+			el: function() {
+				return h('div',
+						'The current page is: [page]',
+						h('hr'),
+						'OK'
+					);
+			},
+			properties: { page: 0 }
+		});
+
+		var DefaultView = View.extend({
+			el: function() {
+				return h('p', h('b', 'This is the default view!!!'));
+			}
+		});
+
+		var PageRouter = Router.extend({
+			container: '#container',
+			routes: {
+				'': DefaultView,
+				'pp:page': PageView,
+				'page:page': PageView
+			}
+		});
+
+		new PageRouter();
+		Backbone.history.start();
+	});
+	</script>
+	<div id="container"></div>
+</body>
+</html>
