@@ -1035,10 +1035,14 @@ Backbone.Cord.View.prototype._ensureElement = function() {
 	if(this.model !== Backbone.Cord.EmptyModel)
 		this.listenTo(this.model, 'change', this._modelObserver);
 	// Use backbone to actually create the element
-	var prevContext = Backbone.Cord._viewContext;
+	var ret, prevContext = Backbone.Cord._viewContext;
 	Backbone.Cord._viewContext = this;
-	var ret = __ensureElement.apply(this, arguments);
-	Backbone.Cord._viewContext = prevContext;
+	try {
+		ret = __ensureElement.apply(this, arguments);
+	}
+	finally {
+		Backbone.Cord._viewContext = prevContext;
+	}
 	// Travel the prototype chain and apply all the classNames found, join into a single space separated string because some values might be space separated
 	Backbone.Cord.addClass(this.el, _getPrototypeValuesForKey(this, 'className').join(' '));
 	this.el.setAttribute('data-vuid', this.vuid);
@@ -1083,13 +1087,33 @@ Backbone.Cord.Router = Backbone.Router.extend({
 		return Backbone.Router.prototype.route.call(this, route, name, callback);
 	},
 	execute: function(callback, args) {
-		// If there is a return value and a container render it, replacing any previously rendered contents
-		if(callback) {
-			var ret = callback.apply(this, args);
-			if(ret && this.container) {
-				Backbone.Cord.replace(this.rendered, ret, this.container);
-				this.rendered = ret;
+		if(!Backbone.Cord._executeRouters) {
+			// Backbone.history by default only calls the first matching router, execute all other routers with matching patterns here
+			var i, handler, hist = Backbone.history;
+			var fragment = hist.fragment;
+			Backbone.Cord._executeRouters = true;
+			try {
+				for(i = 0; i < hist.handlers.length; ++i) {
+					handler = hist.handlers[i];
+					if(handler.route.test(fragment))
+						handler.callback(fragment);
+				}
 			}
+			finally {
+				Backbone.Cord._executeRouters = false;
+			}
+		}
+		else {
+			// If there is a return value and a container render it, replacing any previously rendered contents
+			if(callback) {
+				var ret = callback.apply(this, args);
+				if(ret && this.container) {
+					Backbone.Cord.replace(this.rendered, ret, this.container);
+					this.rendered = ret;
+				}
+			}
+			// return false - Backbone.Router.route() will prevent duplicate routing triggers as this execute path is nested inside the single for-loop above
+			return false;
 		}
 	},
 	createViewCallback: function(route, view) {

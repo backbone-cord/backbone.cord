@@ -38,10 +38,21 @@
 			}
 		});
 
+		var PageRouter2 = Router.extend({
+			container: '#container2',
+			routes: {
+				'': DefaultView,
+				'pp:page': PageView,
+				'page:page': PageView
+			}
+		});
+
 		new PageRouter();
+		new PageRouter2();
 		Backbone.history.start();
 	});
 	</script>
 	<div id="container"></div>
+	<div id="container2"></div>
 </body>
 </html>
