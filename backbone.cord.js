@@ -173,7 +173,9 @@ function _createElement(tagIdClasses, attrs) {
 	var id = context.id = tagId[1] || (attrs && attrs.id);
 	if(id)
 		Backbone.Cord.setId(el, id, this.vuid);
-	var classes = tagIdClasses.slice(1) || (attrs && attrs.className);
+	var classes = tagIdClasses.slice(1);
+	if(!classes.length && (attrs && attrs.className))
+		classes = attrs.className.split(' ');
 	Backbone.Cord.addClass(el, this._callPlugins('classes', context, classes) || classes);
 	if(arguments.length > 1) {
 		// If attrs is not the start of children, then apply the dictionary as attributes

@@ -157,7 +157,7 @@
 			return h('p', 'Hello ' + attrs.who);
 		}
 
-		var Square = Parent.extend({
+		window.Square = Parent.extend({
 			styles: {
 				userSelect: 'none',
 				backgroundColor: '#DDD',
@@ -212,7 +212,7 @@
 							'Red is: [red]'),
 						h('.hi', {style: {paddingLeft: '[input_cursorX]px', paddingTop: '[input_cursorY]px'}},
 							'Hi [model.firstName], Blue is: [blue]'),
-						h('p#thankyou', {invisible: 'red'},
+						h('p', {id: 'thankyou', className: 'thanks', invisible: 'red'},
 							'Thank you much, [model.firstName] [model.lastName] aka [model.nickName]!'),
 						h('input', {value: ' this is [shared.shared] world [blue] hello [model.firstName]', change: 'message'}),
 						h('a', {href: 'http://backbonejs.org', target: '_blank', onclick: function() { return false; } }, 'backbonejs.org'),
