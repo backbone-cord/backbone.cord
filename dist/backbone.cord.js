@@ -197,6 +197,8 @@ function _createElement(tagIdClasses, attrs) {
 		}
 		// Copy arguments to prevent side-effects
 		var child, children = Array.prototype.slice.call(arguments, i);
+		if(Array.isArray(children[0]))
+			children = children[0];
 		children = this._callPlugins('children', context, children) || children;
 		for(i = 0; i < children.length; ++i) {
 			child = children[i];
@@ -340,7 +342,7 @@ function _replace(child, element, container) {
  * Inside modules, only alias top-level members not the modifiable nested because those may change, for example var regex = Cord.regex
  */
 Backbone.Cord = {
-	VERSION: '1.0.15',
+	VERSION: '1.0.16',
 	config: {
 		idProperties: true,
 		prefixCreateElement: false
