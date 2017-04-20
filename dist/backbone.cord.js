@@ -173,7 +173,9 @@ function _createElement(tagIdClasses, attrs) {
 	var id = context.id = tagId[1] || (attrs && attrs.id);
 	if(id)
 		Backbone.Cord.setId(el, id, this.vuid);
-	var classes = tagIdClasses.slice(1) || (attrs && attrs.className);
+	var classes = tagIdClasses.slice(1);
+	if(!classes.length && (attrs && attrs.className))
+		classes = attrs.className.split(' ');
 	Backbone.Cord.addClass(el, this._callPlugins('classes', context, classes) || classes);
 	if(arguments.length > 1) {
 		// If attrs is not the start of children, then apply the dictionary as attributes
@@ -338,7 +340,7 @@ function _replace(child, element, container) {
  * Inside modules, only alias top-level members not the modifiable nested because those may change, for example var regex = Cord.regex
  */
 Backbone.Cord = {
-	VERSION: '1.0.14',
+	VERSION: '1.0.15',
 	config: {
 		idProperties: true,
 		prefixCreateElement: false
@@ -1598,13 +1600,14 @@ Cord.validate = function(value, rule) {
 Cord.parseValidationError = function(value, rule, error, title) {
 	// Override to provide custom error messages based on error strings
 	var len = rule.type === 'string' ? 'The length of ' : '';
+	var chars = rule.type === 'string' ? ' characters' : '';
 	switch(error) {
 		case 'required':
 			return title + ' is required';
 		case 'min':
-			return len + title + ' must be greater than or equal to ' + rule.min;
+			return len + title + ' must be greater than or equal to ' + rule.min + chars;
 		case 'max':
-			return len + title + ' must be less than or equal to ' + rule.max;
+			return len + title + ' must be less than or equal to ' + rule.max + chars;
 		default:
 			return title + ' is not valid';
 	}
@@ -1643,8 +1646,8 @@ Cord.mixins.validation = {
 		for(attr in validationErrors) {
 			if(validationErrors.hasOwnProperty(attr)) {
 				// Convert all validationErrors to error messages
-				if(validationErrors[attr] === 'format' && this.model.formats && this.model.formats[attr])
-					latestError = this.model.formats[attr];
+				if(validationErrors[attr] === 'format' && this.model.instructions && this.model.instructions[attr])
+					latestError = this.model.instructions[attr];
 				else
 					latestError = Cord.parseValidationError(this.model.get(attr), this.model.rules[attr], validationErrors[attr], this.model.titles[attr] || 'This field', attr);
 				this.errors.set(attr, latestError);
@@ -1734,104 +1737,6 @@ Cord.plugins.push({
 		setValue: function() {}
 	}
 });
-
-})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone || require('backbone'));
-
-;(function(Backbone) {
-'use strict';
-
-var Cord = Backbone.Cord;
-
-function _modelObserver(model) {
-	var key, changed = model.changedAttributes();
-	if(!changed)
-		return;
-	for(key in changed) {
-		if(changed.hasOwnProperty(key))
-			this._invokeObservers('shared', key, changed[key]);
-	}
-}
-
-Cord.SharedScope = {
-	model: new Backbone.Model()
-};
-
-var sharedModel = Cord.SharedScope.model;
-
-// Scope for a single globally shared Backbone model
-// Final cleanup is automatic on remove() when backbone calls stopListening()
-Cord.plugins.push({
-	name: 'sharedscope',
-	scope: {
-		namespace: 'shared',
-		observe: function() {
-			if(!this._hasObservers('shared'))
-				this.listenTo(sharedModel, 'change', _modelObserver);
-		},
-		unobserve: function() {
-			if(!this._hasObservers('shared'))
-				this.stopListening(sharedModel, 'change', _modelObserver);
-		},
-		getValue: function(key) {
-			return sharedModel.get(key);
-		},
-		setValue: function(key, value) {
-			sharedModel.set(key, value);
-		}
-	}
-});
-
-})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone || require('backbone'));
-
-;(function(Backbone) {
-'use strict';
-
-var Cord = Backbone.Cord;
-var _scopes = Cord._scopes;
-
-function _createUnmanagedScope(namespace, model) {
-	var _modelObserver = function(model) {
-		var key, changed = model.changedAttributes();
-		if(!changed)
-			return;
-		for(key in changed) {
-			if(changed.hasOwnProperty(key))
-				this._invokeObservers(namespace, key, changed[key]);
-		}
-	};
-	return {
-		namespace: namespace,
-		model: model,
-		observe: function() {
-			if(!this._hasObservers(namespace))
-				this.listenTo(model, 'change', _modelObserver);
-		},
-		unobserve: function() {
-			if(!this._hasObservers(namespace))
-				this.stopListening(model, 'change', _modelObserver);
-		},
-		getValue: function(key) {
-			return model.get(key);
-		},
-		setValue: function(key, value) {
-			model.set(key, value);
-		}
-	};
-}
-
-Cord.UnmanagedScopes = {
-	set: function(namespace, model) {
-		namespace = namespace.toLowerCase();
-		if(_scopes[namespace])
-			throw new Error('Attempting to override an existing scope.');
-		_scopes[namespace] = _createUnmanagedScope(namespace, model);
-	}
-};
-
-// Plugin for adding scopes into models not managed by views
-// Does not supporting setting an already created namespace
-// i.e. don't set a namespace to a new model there currently isn't a way to notify all views observering the scope
-Cord.plugins.push({ name: 'unmanagedscopes' });
 
 })(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone || require('backbone'));
 
@@ -3360,5 +3265,103 @@ Backbone.Cord.plugins.push({
 		}
 	}
 });
+
+})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone || require('backbone'));
+
+;(function(Backbone) {
+'use strict';
+
+var Cord = Backbone.Cord;
+
+function _modelObserver(model) {
+	var key, changed = model.changedAttributes();
+	if(!changed)
+		return;
+	for(key in changed) {
+		if(changed.hasOwnProperty(key))
+			this._invokeObservers('shared', key, changed[key]);
+	}
+}
+
+Cord.SharedScope = {
+	model: new Backbone.Model()
+};
+
+var sharedModel = Cord.SharedScope.model;
+
+// Scope for a single globally shared Backbone model
+// Final cleanup is automatic on remove() when backbone calls stopListening()
+Cord.plugins.push({
+	name: 'sharedscope',
+	scope: {
+		namespace: 'shared',
+		observe: function() {
+			if(!this._hasObservers('shared'))
+				this.listenTo(sharedModel, 'change', _modelObserver);
+		},
+		unobserve: function() {
+			if(!this._hasObservers('shared'))
+				this.stopListening(sharedModel, 'change', _modelObserver);
+		},
+		getValue: function(key) {
+			return sharedModel.get(key);
+		},
+		setValue: function(key, value) {
+			sharedModel.set(key, value);
+		}
+	}
+});
+
+})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone || require('backbone'));
+
+;(function(Backbone) {
+'use strict';
+
+var Cord = Backbone.Cord;
+var _scopes = Cord._scopes;
+
+function _createUnmanagedScope(namespace, model) {
+	var _modelObserver = function(model) {
+		var key, changed = model.changedAttributes();
+		if(!changed)
+			return;
+		for(key in changed) {
+			if(changed.hasOwnProperty(key))
+				this._invokeObservers(namespace, key, changed[key]);
+		}
+	};
+	return {
+		namespace: namespace,
+		model: model,
+		observe: function() {
+			if(!this._hasObservers(namespace))
+				this.listenTo(model, 'change', _modelObserver);
+		},
+		unobserve: function() {
+			if(!this._hasObservers(namespace))
+				this.stopListening(model, 'change', _modelObserver);
+		},
+		getValue: function(key) {
+			return model.get(key);
+		},
+		setValue: function(key, value) {
+			model.set(key, value);
+		}
+	};
+}
+
+Cord.UnmanagedScopes = {
+	set: function(namespace, model) {
+		namespace = namespace.toLowerCase();
+		if(_scopes[namespace])
+			throw new Error('Attempting to override an existing scope.');
+		_scopes[namespace] = _createUnmanagedScope(namespace, model);
+	}
+};
+
+// Plugin for adding scopes into models not managed by views
+// Does not supporting setting an already created namespace
+// i.e. don't set a namespace to a new model there currently isn't a way to notify all views observering the scope
+Cord.plugins.push({ name: 'unmanagedscopes' });
 
 })(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone || require('backbone'));
