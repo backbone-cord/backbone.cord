@@ -197,11 +197,11 @@
 			},
 			el: function() {
 				return h('', {onkeyup: 'alertKey'},
-						h('select', {bind: 'unmanaged.color'},
+						h('select', {bind: 'unmanaged.color'}, [
 							h('option', {value: 'purple'}, 'Purple'),
 							h('option', {value: 'grey'}, 'Grey'),
 							h('option', {value: 'blue'}, 'Blue')
-						),
+						]),
 						h('input', {type: 'checkbox', change: 'message'}),
 						h('input#range', {type: 'range', min: 0, max: 100, change: 'left', observe: 'left'}),
 						h('#container.square.red(red)', {style: {borderTop: '[left]px solid [unmanaged.color]', top: '[top]px', left: '[left]px'}}),

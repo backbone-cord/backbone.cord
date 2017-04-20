@@ -197,6 +197,8 @@ function _createElement(tagIdClasses, attrs) {
 		}
 		// Copy arguments to prevent side-effects
 		var child, children = Array.prototype.slice.call(arguments, i);
+		if(Array.isArray(children[0]))
+			children = children[0];
 		children = this._callPlugins('children', context, children) || children;
 		for(i = 0; i < children.length; ++i) {
 			child = children[i];
