@@ -1,6 +1,6 @@
 {
   "name": "backbone.cord",
-  "version": "1.0.16",
+  "version": "1.0.17",
   "description": "backbone.cord is a Backbone library for data binding and a JSX-compatible declarative layout pipeline.",
   "keywords": [
     "backbone",

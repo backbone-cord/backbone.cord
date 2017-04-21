@@ -152,7 +152,10 @@ function _createElement(tagIdClasses, attrs) {
 		// A function with an extend method will be a Backbone view
 		if(typeof component === 'function' && !(component.prototype instanceof Backbone.View)) {
 			var args = Array.prototype.slice.call(arguments, 1);
-			if(!_isPlainObj(attrs))
+			// When attrs (args[0]) is null, is a child, else just copy
+			if(!args[0])
+				args[0] = {};
+			else if(!_isPlainObj(args[0]))
 				args.unshift({});
 			else
 				args[0] = _copyObj(args[0]);
@@ -342,7 +345,7 @@ function _replace(child, element, container) {
  * Inside modules, only alias top-level members not the modifiable nested because those may change, for example var regex = Cord.regex
  */
 Backbone.Cord = {
-	VERSION: '1.0.16',
+	VERSION: '1.0.17',
 	config: {
 		idProperties: true,
 		prefixCreateElement: false
@@ -598,6 +601,8 @@ Backbone.Cord.View.prototype._callPlugins = _callPlugins;
 // If wrapping properties, be sure to set configurable: true and (recommended) enumerable: true
 function _propertyObserver(key, prevSet) {
 	var newSet = function(value) {
+		if(this['_' + key] === value)
+			return;
 		if(prevSet)
 			prevSet.call(this, value);
 		else
@@ -1057,7 +1062,7 @@ Backbone.Cord.View.prototype._ensureElement = function() {
 		var observers = this.observers;
 		for(key in observers)
 			if(observers.hasOwnProperty(key))
-				this.observe(key, observers[key], true);
+				this.observe(key, observers[key], false);
 	}
 	return ret;
 };

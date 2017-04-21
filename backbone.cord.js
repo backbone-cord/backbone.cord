@@ -345,7 +345,7 @@ function _replace(child, element, container) {
  * Inside modules, only alias top-level members not the modifiable nested because those may change, for example var regex = Cord.regex
  */
 Backbone.Cord = {
-	VERSION: '1.0.16',
+	VERSION: '1.0.17',
 	config: {
 		idProperties: true,
 		prefixCreateElement: false
