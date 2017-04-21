@@ -152,7 +152,10 @@ function _createElement(tagIdClasses, attrs) {
 		// A function with an extend method will be a Backbone view
 		if(typeof component === 'function' && !(component.prototype instanceof Backbone.View)) {
 			var args = Array.prototype.slice.call(arguments, 1);
-			if(!_isPlainObj(attrs))
+			// When attrs (args[0]) is null, is a child, else just copy
+			if(!args[0])
+				args[0] = {};
+			else if(!_isPlainObj(args[0]))
 				args.unshift({});
 			else
 				args[0] = _copyObj(args[0]);
