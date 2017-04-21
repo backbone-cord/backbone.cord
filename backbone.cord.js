@@ -598,6 +598,8 @@ Backbone.Cord.View.prototype._callPlugins = _callPlugins;
 // If wrapping properties, be sure to set configurable: true and (recommended) enumerable: true
 function _propertyObserver(key, prevSet) {
 	var newSet = function(value) {
+		if(this['_' + key] === value)
+			return;
 		if(prevSet)
 			prevSet.call(this, value);
 		else
@@ -1057,7 +1059,7 @@ Backbone.Cord.View.prototype._ensureElement = function() {
 		var observers = this.observers;
 		for(key in observers)
 			if(observers.hasOwnProperty(key))
-				this.observe(key, observers[key], true);
+				this.observe(key, observers[key], false);
 	}
 	return ret;
 };
