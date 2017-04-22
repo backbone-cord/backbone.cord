@@ -345,7 +345,7 @@ function _replace(child, element, container) {
  * Inside modules, only alias top-level members not the modifiable nested because those may change, for example var regex = Cord.regex
  */
 Backbone.Cord = {
-	VERSION: '1.0.17',
+	VERSION: '1.0.18',
 	config: {
 		idProperties: true,
 		prefixCreateElement: false
@@ -1084,68 +1084,76 @@ Backbone.Cord.View.prototype.remove = function() {
 	return __remove.apply(this, arguments);
 };
 
-Backbone.Cord.Router = Backbone.Router.extend({
+})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)));
+
+;(function(Backbone) {
+'use strict';
+
+var Cord = Backbone.Cord;
+var mixObj = Cord.mixObj;
+
+var namedPart = /(\(\?)?:\w+/g;
+var splatPart = /\*\w+/g;
+var normalPart = /\w+/g;
+
+Cord.Router = Backbone.Router.extend({
 	route: function(route, name, callback)  {
-		if(!callback) {
+		var i, match, part, parts = route.split('/');
+		var key = this.key;
+		var components = {};
+		var params = {};
+		for(i = 0; i < parts.length; ++i) {
+			part = parts[i];
+			if(!part.length)
+				continue;
+			match = part.match(namedPart) || part.match(splatPart);
+			if(match) {
+				params[i] = match[0].substr(1);
+			}
+			else {
+				match = part.match(normalPart);
+				if(match) {
+					components[key] = match[0];
+					key = 'sub' + key;
+				}
+			}
+		}
+		if(typeof name === 'function') {
 			callback = name;
 			name = '';
 		}
-		// Allow callback to be a View class or instance and set key/values depending on the matching route params
-		if((typeof callback === 'function' && callback.prototype instanceof Backbone.View) || callback instanceof Backbone.View)
-			callback = this.createViewCallback(route, callback);
-		return Backbone.Router.prototype.route.call(this, route, name, callback);
+		return Backbone.Router.prototype.route.call(this, route, name, this.wrapCallback(name, callback, components, params));
 	},
-	execute: function(callback, args) {
-		if(!Backbone.Cord._executeRouters) {
-			// Backbone.history by default only calls the first matching router, execute all other routers with matching patterns here
-			var i, handler, hist = Backbone.history;
-			var fragment = hist.fragment;
-			Backbone.Cord._executeRouters = true;
-			try {
-				for(i = 0; i < hist.handlers.length; ++i) {
-					handler = hist.handlers[i];
-					if(handler.route.test(fragment))
-						handler.callback(fragment);
-				}
-			}
-			finally {
-				Backbone.Cord._executeRouters = false;
-			}
-		}
-		else {
-			// If there is a return value and a container render it, replacing any previously rendered contents
-			if(callback) {
-				var ret = callback.apply(this, args);
-				if(ret && this.container) {
-					Backbone.Cord.replace(this.rendered, ret, this.container);
-					this.rendered = ret;
-				}
-			}
-			// return false - Backbone.Router.route() will prevent duplicate routing triggers as this execute path is nested inside the single for-loop above
-			return false;
-		}
-	},
-	createViewCallback: function(route, view) {
-		var i, keys = route.match(/(\(\?)?:\w+/g) || [];
-		for(i = 0; i < keys.length; ++i)
-			keys[i] = keys[i].substr(1);
+	wrapCallback: function(name, callback, components, params) {
+		// components is a mapping of keys: component values, params is a mapping of argument index positions (0, 1, 2 etc.) to key names
 		return function() {
-			var i, values = {}, result = view;
-			if(typeof view === 'function' && view.prototype instanceof Backbone.View) {
-				if(this.rendered && Object.getPrototypeOf(this.rendered) === view.prototype)
-					result = this.rendered;
-				else
-					result = new view();
+			var i, values = {};
+			var model = Cord.UnmanagedScopes.route;
+			var existingKeys = Object.keys(model.attributes);
+			// null all current values
+			for(i = 0; i < existingKeys.length; ++i)
+				values[existingKeys[i]] = null;
+			// set the name of the current route
+			values.name = name || '';
+			// add in the named params of the route - unmatched params are null, also appears last argument is also null
+			for(i = 0; i < arguments.length; ++i) {
+				if(arguments[i] !== null)
+					values[params[i]] = arguments[i];
 			}
-			for(i = 0; i < keys.length; ++i)
-				values[keys[i]] = arguments[i];
-			result.setValuesForKeys(values);
-			return result;
+			// add in the components of the path
+			values = mixObj(values, components);
+			// invoke observers by setting the model and then do the callback if provided
+			model.set(values);
+			console.log(model.attributes);
+			if(callback)
+				return callback.apply(this, arguments);
 		};
 	}
 });
 
-})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)));
+Cord.plugins.push({ name: 'router', requirements: ['unmanagedscopes'] });
+
+})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone || require('backbone'));
 
 ;(function(Backbone) {
 'use strict';
@@ -3279,52 +3287,7 @@ Backbone.Cord.plugins.push({
 'use strict';
 
 var Cord = Backbone.Cord;
-
-function _modelObserver(model) {
-	var key, changed = model.changedAttributes();
-	if(!changed)
-		return;
-	for(key in changed) {
-		if(changed.hasOwnProperty(key))
-			this._invokeObservers('shared', key, changed[key]);
-	}
-}
-
-Cord.SharedScope = {
-	model: new Backbone.Model()
-};
-
-var sharedModel = Cord.SharedScope.model;
-
-// Scope for a single globally shared Backbone model
-// Final cleanup is automatic on remove() when backbone calls stopListening()
-Cord.plugins.push({
-	name: 'sharedscope',
-	scope: {
-		namespace: 'shared',
-		observe: function() {
-			if(!this._hasObservers('shared'))
-				this.listenTo(sharedModel, 'change', _modelObserver);
-		},
-		unobserve: function() {
-			if(!this._hasObservers('shared'))
-				this.stopListening(sharedModel, 'change', _modelObserver);
-		},
-		getValue: function(key) {
-			return sharedModel.get(key);
-		},
-		setValue: function(key, value) {
-			sharedModel.set(key, value);
-		}
-	}
-});
-
-})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone || require('backbone'));
-
-;(function(Backbone) {
-'use strict';
-
-var Cord = Backbone.Cord;
+var Model = Backbone.Model;
 var _scopes = Cord._scopes;
 
 function _createUnmanagedScope(namespace, model) {
@@ -3337,6 +3300,7 @@ function _createUnmanagedScope(namespace, model) {
 				this._invokeObservers(namespace, key, changed[key]);
 		}
 	};
+	// NOTE: Final cleanup is automatic on remove() when backbone calls stopListening()
 	return {
 		namespace: namespace,
 		model: model,
@@ -3363,8 +3327,13 @@ Cord.UnmanagedScopes = {
 		if(_scopes[namespace])
 			throw new Error('Attempting to override an existing scope.');
 		_scopes[namespace] = _createUnmanagedScope(namespace, model);
+		this[namespace] = model;
 	}
 };
+
+// Create standard unmanaged scopes for global shared and route
+Cord.UnmanagedScopes.set('shared', new Model());
+Cord.UnmanagedScopes.set('route', new Model());
 
 // Plugin for adding scopes into models not managed by views
 // Does not supporting setting an already created namespace
