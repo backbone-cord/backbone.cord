@@ -20,7 +20,7 @@ if(!global.window) {
 	require('../lib/plugins/interpolation');
 	require('../lib/plugins/render');
 	require('../lib/plugins/styles');
-	require('../lib/scopes/sharedscope');
+	require('../lib/scopes/unmanaged');
 	require('../lib/mixins/validation');
 }
 module.exports = require('backbone');
