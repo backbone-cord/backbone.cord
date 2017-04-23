@@ -5,12 +5,17 @@ var Backbone = root.Backbone || require('backbone');
 var compatibilityMode = root.cordCompatibilityMode;
 var debug = root.cordDebug;
 
+// Initialize the Cord View class depending on the compatibility mode
+var View = compatibilityMode ? Backbone.View.extend({}) : Backbone.View;
+var Model = compatibilityMode ? Backbone.Model.extend({}) : Backbone.Model;
+var Collection = compatibilityMode ? Backbone.Collection.extend({}) : Backbone.Collection;
+
 /*
  * Main Cord object.
  * Do NOT overwrite any top-level members, only modify sub objects such as Cord.regex.x
  * Inside modules, only alias top-level members not the modifiable nested because those may change, for example var regex = Cord.regex
  */
-Backbone.Cord = {
+var Cord = Backbone.Cord = {
 	VERSION: '1.0.18',
 	config: {
 		idProperties: true,
@@ -47,21 +52,21 @@ Backbone.Cord = {
 	encoders: {
 		date: function(el, value) { el.value = value.toDateString(); },
 		datetime: function(el, value) { el.value = value.toString(); },
-		bool: function(el, value) { el.checked = Backbone.Cord.convertToBool(value); },
-		checkbox: function(el, value) { el.checked = Backbone.Cord.convertToBool(value); }
+		bool: function(el, value) { el.checked = Cord.convertToBool(value); },
+		checkbox: function(el, value) { el.checked = Cord.convertToBool(value); }
 	},
 	decodeValue: function(el) {
-		var decoder = Backbone.Cord.decoders[el.getAttribute('data-type') || el.getAttribute('type')];
+		var decoder = Cord.decoders[el.getAttribute('data-type') || el.getAttribute('type')];
 		if(el.hasAttribute('data-null') && !el.value)
 			return null;
 		return decoder ? decoder(el) : el.value;
 	},
 	encodeValue: function(el, value) {
-		var encoder = Backbone.Cord.encoders[el.getAttribute('data-type') || el.getAttribute('type')];
+		var encoder = Cord.encoders[el.getAttribute('data-type') || el.getAttribute('type')];
 		if(encoder)
 			encoder(el, value);
 		else
-			el.value = Backbone.Cord.convertToString(value);
+			el.value = Cord.convertToString(value);
 		var evt = document.createEvent('HTMLEvents');
 		evt.initEvent('change', true, true);
 		el.dispatchEvent(evt);
@@ -73,19 +78,21 @@ Backbone.Cord = {
 	convertToNumber: function(value) { return Number(value) || 0; },
 	// Generate a 2-byte time-secured random uid by taking the last 4 characters of a number between 0x10000 and 0x20000
 	randomUID: function() { return (Math.floor((1 + Math.random()) * 0x10000) ^ (Date.now() % 0x10000)).toString(16).substr(1); }, // jshint ignore:line
-	randomGUID: function() { var c4 = this.randomUID; return c4() + c4() + '-' + c4() + '-' + c4() + '-' + c4() + '-' + c4() + c4() + c4(); },
-	randomCode: function(len) { var c = ''; len = len || 12; while(c.length < len) c += this.randomUID(); return c.substr(0, len); },
+	randomGUID: function() { var c4 = Cord.randomUID; return c4() + c4() + '-' + c4() + '-' + c4() + '-' + c4() + '-' + c4() + c4() + c4(); },
+	randomCode: function(len) { var c = ''; len = len || 12; while(c.length < len) c += Cord.randomUID(); return c.substr(0, len); },
 	// Run a callback immediately after the current call stack
 	setImmediate: (root.requestAnimationFrame || root.setTimeout).bind(root),
 	clearImmediate: (root.cancelAnimationFrame || root.clearTimeout).bind(root),
 	// Internally set readonly properties with the ForceValue object
 	ForceValue: function(value) { this.value = value; },
-	// Initialize the Cord View class depending on the compatibility mode
-	View: compatibilityMode ? Backbone.View.extend({}) : Backbone.View,
-	// EmptyModel, EmptyView, and EmptyCollection to use as default model, subview placeholder, and fallback collection on setCollection(null)
-	EmptyModel: new (Backbone.Model.extend({set: function() { return this; }, toString: function() { return ''; }}))(),
-	EmptyView: Backbone.View.extend({ tagName: 'meta' }),
-	EmptyCollection: new (Backbone.Collection.extend({add: function() { return this; }, reset: function() { return this; }, set: function() { return this; }, toString: function() { return ''; }}))(),
+	// View, Model, and Collection
+	View: View,
+	Model: Model,
+	Collection: Collection,
+	// EmptyView, EmptyModel, and EmptyCollection to use as default model, subview placeholder, and fallback collection on setCollection(null)
+	EmptyView: View.extend({ tagName: 'meta' }),
+	EmptyModel: new (Model.extend({set: function() { return this; }, toString: function() { return ''; }}))(),
+	EmptyCollection: new (Collection.extend({add: function() { return this; }, reset: function() { return this; }, set: function() { return this; }, toString: function() { return ''; }}))(),
 	// Unique internal subview id, this unifies how subviews with and without ids are stored
 	_sid: 1,
 	_pluginsChecked: false,
