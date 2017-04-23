@@ -5,6 +5,115 @@ var Backbone = root.Backbone || require('backbone');
 var compatibilityMode = root.cordCompatibilityMode;
 var debug = root.cordDebug;
 
+/*
+ * Main Cord object.
+ * Do NOT overwrite any top-level members, only modify sub objects such as Cord.regex.x
+ * Inside modules, only alias top-level members not the modifiable nested because those may change, for example var regex = Cord.regex
+ */
+Backbone.Cord = {
+	VERSION: '1.0.18',
+	config: {
+		idProperties: true,
+		prefixCreateElement: false
+	},
+	// Collection of reusable regular expression objects
+	// NOTE: Do not use the regex functions test/exec when the global flag is set because it is stateful (lastIndex). Instead use string methods search/match
+	// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions#Working_with_regular_expressions
+	regex: {
+		idPropertyTest: /^[a-zA-Z_$][0-9a-zA-Z_$]*$/,
+		idSelectorValues: /#([a-zA-Z_$][0-9a-zA-Z_$]*)/g
+	},
+	// Plugins install themselves by pushing to this array
+	plugins: [],
+	// Filters installed by the app by setting keys on this object
+	filters: {
+		lower: function(str) { return str.toLowerCase(); },
+		upper: function(str) { return str.toUpperCase(); },
+		title: function(str) { return str.replace(/\b[^\s-]*/g, function(s) { return s.charAt(0).toUpperCase() + s.substr(1).toLowerCase(); }); }
+	},
+	// Value decoders and encoders for when "value" is get or set on an element, keys into decoders/encoders is based on the data-type and type attribute
+	decoders: {
+		range: function(el) { return parseInt(el.value); },
+		number: function(el) { return Number(el.value); },
+		int: function(el) { return parseInt(el.value); },
+		integer: function(el) { return parseInt(el.value); },
+		float: function(el) { return parseFloat(el.value); },
+		decimal: function(el) { return parseFloat(el.value); },
+		date: function(el) { return new Date(el.value); },
+		datetime: function(el) { return new Date(el.value); },
+		bool: function(el) { return el.checked; },
+		checkbox: function(el) { return el.checked; }
+	},
+	encoders: {
+		date: function(el, value) { el.value = value.toDateString(); },
+		datetime: function(el, value) { el.value = value.toString(); },
+		bool: function(el, value) { el.checked = Backbone.Cord.convertToBool(value); },
+		checkbox: function(el, value) { el.checked = Backbone.Cord.convertToBool(value); }
+	},
+	decodeValue: function(el) {
+		var decoder = Backbone.Cord.decoders[el.getAttribute('data-type') || el.getAttribute('type')];
+		if(el.hasAttribute('data-null') && !el.value)
+			return null;
+		return decoder ? decoder(el) : el.value;
+	},
+	encodeValue: function(el, value) {
+		var encoder = Backbone.Cord.encoders[el.getAttribute('data-type') || el.getAttribute('type')];
+		if(encoder)
+			encoder(el, value);
+		else
+			el.value = Backbone.Cord.convertToString(value);
+		var evt = document.createEvent('HTMLEvents');
+		evt.initEvent('change', true, true);
+		el.dispatchEvent(evt);
+	},
+	// Mixins installed by the app by setting keys on this object
+	mixins: {},
+	convertToString: function(obj) { if(obj === null || obj === void(0)) return ''; return obj.toString(); },
+	convertToBool: function(value) { return !!(value && (value.length === void(0) || value.length)); },
+	convertToNumber: function(value) { return Number(value) || 0; },
+	// Generate a 2-byte time-secured random uid by taking the last 4 characters of a number between 0x10000 and 0x20000
+	randomUID: function() { return (Math.floor((1 + Math.random()) * 0x10000) ^ (Date.now() % 0x10000)).toString(16).substr(1); }, // jshint ignore:line
+	randomGUID: function() { var c4 = this.randomUID; return c4() + c4() + '-' + c4() + '-' + c4() + '-' + c4() + '-' + c4() + c4() + c4(); },
+	randomCode: function(len) { var c = ''; len = len || 12; while(c.length < len) c += this.randomUID(); return c.substr(0, len); },
+	// Run a callback immediately after the current call stack
+	setImmediate: (root.requestAnimationFrame || root.setTimeout).bind(root),
+	clearImmediate: (root.cancelAnimationFrame || root.clearTimeout).bind(root),
+	// Internally set readonly properties with the ForceValue object
+	ForceValue: function(value) { this.value = value; },
+	// Initialize the Cord View class depending on the compatibility mode
+	View: compatibilityMode ? Backbone.View.extend({}) : Backbone.View,
+	// EmptyModel, EmptyView, and EmptyCollection to use as default model, subview placeholder, and fallback collection on setCollection(null)
+	EmptyModel: new (Backbone.Model.extend({set: function() { return this; }, toString: function() { return ''; }}))(),
+	EmptyView: Backbone.View.extend({ tagName: 'meta' }),
+	EmptyCollection: new (Backbone.Collection.extend({add: function() { return this; }, reset: function() { return this; }, set: function() { return this; }, toString: function() { return ''; }}))(),
+	// Unique internal subview id, this unifies how subviews with and without ids are stored
+	_sid: 1,
+	_pluginsChecked: false,
+	_scopes: {},
+	// NOTE: classes, attrs, children, and bindings are all copies and may be modified by plugins without side-effects
+	// modifications will be recognized by the default behavior and returning the copy is not necessary
+	_callbacks: {
+		// (el) tag can process the tag value and return an element overriding the default createElement
+		tag: [],
+		// (el and subview) classes is an array of classname, returning [] will prevent default classes being applied
+		classes: [],
+		// (el conditionally invoked) attrs is a dict, returning {} will prevent default attrs being applied
+		attrs: [],
+		// (el conditionally invoked) children is an array of strings or dom elements
+		children: [],
+		// (subview) bindings that by default get converted to event listeners
+		bindings: [],
+		// (el and subview) when creation and setup is complete, right before el and subview return, returning a different element can replace an el
+		complete: [],
+		// View Class extending only, where this is the parent class and context has protoProps and staticProps arguments
+		extend: [],
+		// (new View) create, initialize, and remove apply to all views
+		create: [],
+		initialize: [],
+		remove: []
+	}
+};
+
 // Returns true if the given object is an instance of Object and not of a subclass or other type
 function _isPlainObj(obj) {
 	// First check of just obj is needed because typeof null is object
@@ -129,6 +238,13 @@ function _getPrototypeValuesForKey(objCls, key, isCls) {
 	}
 	return values;
 }
+
+// Add utility functions
+Backbone.Cord.isPlainObj = _isPlainObj;
+Backbone.Cord.copyObj = _copyObj;
+Backbone.Cord.mixObj = _mixObj;
+Backbone.Cord.mixProto = _mixProto;
+Backbone.Cord.getPrototypeValuesForKey = _getPrototypeValuesForKey;
 
 function _callPlugins(name, context) {
 	// For each callbacks, call and return false if false is returned
@@ -335,123 +451,6 @@ function _replace(child, element, container) {
 	this.render(element, container);
 }
 
-/*
- * Main Cord object.
- * Do NOT overwrite any top-level members, only modify sub objects such as Cord.regex.x
- * Inside modules, only alias top-level members not the modifiable nested because those may change, for example var regex = Cord.regex
- */
-Backbone.Cord = {
-	VERSION: '1.0.18',
-	config: {
-		idProperties: true,
-		prefixCreateElement: false
-	},
-	// Collection of reusable regular expression objects
-	// NOTE: Do not use the regex functions test/exec when the global flag is set because it is stateful (lastIndex). Instead use string methods search/match
-	// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions#Working_with_regular_expressions
-	regex: {
-		idPropertyTest: /^[a-zA-Z_$][0-9a-zA-Z_$]*$/,
-		idSelectorValues: /#([a-zA-Z_$][0-9a-zA-Z_$]*)/g
-	},
-	// Plugins install themselves by pushing to this array
-	plugins: [],
-	// Filters installed by the app by setting keys on this object
-	filters: {
-		lower: function(str) { return str.toLowerCase(); },
-		upper: function(str) { return str.toUpperCase(); },
-		title: function(str) { return str.replace(/\b[^\s-]*/g, function(s) { return s.charAt(0).toUpperCase() + s.substr(1).toLowerCase(); }); }
-	},
-	// Value decoders and encoders for when "value" is get or set on an element, keys into decoders/encoders is based on the data-type and type attribute
-	decoders: {
-		range: function(el) { return parseInt(el.value); },
-		number: function(el) { return Number(el.value); },
-		int: function(el) { return parseInt(el.value); },
-		integer: function(el) { return parseInt(el.value); },
-		float: function(el) { return parseFloat(el.value); },
-		decimal: function(el) { return parseFloat(el.value); },
-		date: function(el) { return new Date(el.value); },
-		datetime: function(el) { return new Date(el.value); },
-		bool: function(el) { return el.checked; },
-		checkbox: function(el) { return el.checked; }
-	},
-	encoders: {
-		date: function(el, value) { el.value = value.toDateString(); },
-		datetime: function(el, value) { el.value = value.toString(); },
-		bool: function(el, value) { el.checked = Backbone.Cord.convertToBool(value); },
-		checkbox: function(el, value) { el.checked = Backbone.Cord.convertToBool(value); }
-	},
-	decodeValue: function(el) {
-		var decoder = Backbone.Cord.decoders[el.getAttribute('data-type') || el.getAttribute('type')];
-		if(el.hasAttribute('data-null') && !el.value)
-			return null;
-		return decoder ? decoder(el) : el.value;
-	},
-	encodeValue: function(el, value) {
-		var encoder = Backbone.Cord.encoders[el.getAttribute('data-type') || el.getAttribute('type')];
-		if(encoder)
-			encoder(el, value);
-		else
-			el.value = Backbone.Cord.convertToString(value);
-		var evt = document.createEvent('HTMLEvents');
-		evt.initEvent('change', true, true);
-		el.dispatchEvent(evt);
-	},
-	// Mixins installed by the app by setting keys on this object
-	mixins: {},
-	copyObj: _copyObj,
-	mixObj: _mixObj,
-	mixProto: _mixProto,
-	isPlainObj: _isPlainObj,
-	getPrototypeValuesForKey: _getPrototypeValuesForKey,
-	convertToString: function(obj) { if(obj === null || obj === void(0)) return ''; return obj.toString(); },
-	convertToBool: function(value) { return !!(value && (value.length === void(0) || value.length)); },
-	convertToNumber: function(value) { return Number(value) || 0; },
-	// Generate a 2-byte time-secured random uid by taking the last 4 characters of a number between 0x10000 and 0x20000
-	randomUID: function() { return (Math.floor((1 + Math.random()) * 0x10000) ^ (Date.now() % 0x10000)).toString(16).substr(1); }, // jshint ignore:line
-	randomGUID: function() { var c4 = this.randomUID; return c4() + c4() + '-' + c4() + '-' + c4() + '-' + c4() + '-' + c4() + c4() + c4(); },
-	randomCode: function(len) { var c = ''; len = len || 12; while(c.length < len) c += this.randomUID(); return c.substr(0, len); },
-	// Run a callback immediately after the current call stack
-	setImmediate: (root.requestAnimationFrame || root.setTimeout).bind(root),
-	clearImmediate: (root.cancelAnimationFrame || root.clearTimeout).bind(root),
-	// Internally set readonly properties with the ForceValue object
-	ForceValue: function(value) { this.value = value; },
-	// Initialize the Cord View class depending on the compatibility mode
-	View: compatibilityMode ? Backbone.View.extend({}) : Backbone.View,
-	// EmptyModel, EmptyView, and EmptyCollection to use as default model, subview placeholder, and fallback collection on setCollection(null)
-	EmptyModel: new (Backbone.Model.extend({set: function() { return this; }, toString: function() { return ''; }}))(),
-	EmptyView: Backbone.View.extend({ tagName: 'meta' }),
-	EmptyCollection: new (Backbone.Collection.extend({add: function() { return this; }, reset: function() { return this; }, set: function() { return this; }, toString: function() { return ''; }}))(),
-	// Unique internal subview id, this unifies how subviews with and without ids are stored
-	_sid: 1,
-	_pluginsChecked: false,
-	_callPlugins: _callPlugins,
-	_scopes: {},
-	// NOTE: classes, attrs, children, and bindings are all copies and may be modified by plugins without side-effects
-	// modifications will be recognized by the default behavior and returning the copy is not necessary
-	_callbacks: {
-		// (el) tag can process the tag value and return an element overriding the default createElement
-		tag: [],
-		// (el and subview) classes is an array of classname, returning [] will prevent default classes being applied
-		classes: [],
-		// (el conditionally invoked) attrs is a dict, returning {} will prevent default attrs being applied
-		attrs: [],
-		// (el conditionally invoked) children is an array of strings or dom elements
-		children: [],
-		// (subview) bindings that by default get converted to event listeners
-		bindings: [],
-		// (el and subview) when creation and setup is complete, right before el and subview return, returning a different element can replace an el
-		complete: [],
-		// View Class extending only, where this is the parent class and context has protoProps and staticProps arguments
-		extend: [],
-		// (new View) create, initialize, and remove apply to all views
-		create: [],
-		initialize: [],
-		remove: []
-	}
-};
-if(typeof exports === 'object')
-	module.exports = Backbone.Cord;
-
 Backbone.Cord.log = (debug ? function() {
 	var format = [];
 	var args = Array.prototype.slice.call(arguments);
@@ -461,11 +460,12 @@ Backbone.Cord.log = (debug ? function() {
 	console.log.apply(console, args);
 } : function(){});
 
-// Layout creation methods should be bound to allow importing of each individually
+// Add layout creation methods that should be bound to allow importing of each individually
 Backbone.Cord.h = Backbone.Cord.createElement = _createElement.bind(Backbone.Cord);
 Backbone.Cord.createText = _createText.bind(Backbone.Cord);
 Backbone.Cord.render = _render.bind(Backbone.Cord);
 Backbone.Cord.replace = _replace.bind(Backbone.Cord);
+Backbone.Cord._callPlugins = _callPlugins;
 
 // Override or wrap to provide different keyPath processing, different prefixes, or shorthands
 // The return value must be an array of the different key path components, with the first being the namespace normalized to lowercase
@@ -1079,5 +1079,8 @@ Backbone.Cord.View.prototype.remove = function() {
 	this.trigger('remove', this);
 	return __remove.apply(this, arguments);
 };
+
+if(typeof exports === 'object')
+	module.exports = Backbone.Cord;
 
 })(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)));
