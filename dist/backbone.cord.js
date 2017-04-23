@@ -16,7 +16,7 @@ var Collection = compatibilityMode ? Backbone.Collection.extend({}) : Backbone.C
  * Inside modules, only alias top-level members not the modifiable nested because those may change, for example var regex = Cord.regex
  */
 var Cord = Backbone.Cord = {
-	VERSION: '1.0.19',
+	VERSION: '1.0.20',
 	config: {
 		idProperties: true,
 		prefixCreateElement: false
@@ -411,7 +411,7 @@ function _createSubview(instanceClass, bindings, keyValues) {
 				current.remove();
 				// If the new subview doesn't have an sid it needs to get setup, but without bindings or keyValues
 				if(!value.sid)
-					this._createSubview(value);
+					this.createSubview(value);
 				// Reapply the id or remove the old property if a different id is used
 				if(!Cord.hasId(el))
 					Cord.setId(el, id, this.vuid);
