@@ -224,7 +224,7 @@ function _createElement(tagIdClasses, attrs) {
 }
 
 // id and classes on the subview are maintained, but recommended that id is set by the parent view
-function _createSubview(instanceClass, idClasses, bindings, keyValues) {
+function _createSubview(instanceClass, bindings, keyValues) {
 	var id, classes, subview, context, callback;
 	if(!(instanceClass instanceof Backbone.View))
 		subview = new instanceClass();
@@ -239,21 +239,17 @@ function _createSubview(instanceClass, idClasses, bindings, keyValues) {
 	context = { el: subview.el, isView: this instanceof Backbone.Cord.View, subview: subview };
 	if(!context.isView)
 		throw new Error('Attempting to create a subview without a parent.');
-	if(typeof idClasses === 'string') {
-		idClasses = idClasses.split('.');
-		id = context.id = idClasses[0].substr(1);
+	if(bindings) {
+		id = context.id = bindings.id;
 		if(id && !Backbone.Cord.hasId(subview.el))
 			Backbone.Cord.setId(subview.el, id, this.vuid);
-		classes = idClasses.slice(1);
-		Backbone.Cord.addClass(subview.el, this._callPlugins('classes', context, classes) || classes);
-	}
-	else {
-		keyValues = bindings;
-		bindings = idClasses;
-	}
-	if(bindings) {
+		if(bindings.className) {
+			classes = bindings.className.split(' ');
+			Backbone.Cord.addClass(subview.el, this._callPlugins('classes', context, classes) || classes);
+		}
 		// Copy bindings to prevent side-effects
 		bindings = _copyObj(bindings);
+		delete bindings.id; delete bindings.className;
 		bindings = this._callPlugins('bindings', context, bindings) || bindings;
 		for(var e in bindings) {
 			if(bindings.hasOwnProperty(e)) {
@@ -290,7 +286,7 @@ function _createSubview(instanceClass, idClasses, bindings, keyValues) {
 				current = this.getSubviewById(id);
 				current.el.parentNode.insertBefore(el, current.el);
 				current.remove();
-				// If the new subview doesn't have an sid it needs to get setup, but without idClasses or bindings
+				// If the new subview doesn't have an sid it needs to get setup, but without bindings or keyValues
 				if(!value.sid)
 					this._createSubview(value);
 				// Reapply the id or remove the old property if a different id is used

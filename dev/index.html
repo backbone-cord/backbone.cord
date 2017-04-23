@@ -216,8 +216,8 @@
 							'Thank you much, [model.firstName] [model.lastName] aka [model.nickName]!'),
 						h('input', {value: ' this is [shared.shared] world [blue] hello [model.firstName]', change: 'message'}),
 						h('a', {href: 'http://backbonejs.org', target: '_blank', onclick: function() { return false; } }, 'backbonejs.org'),
-						h(Circle, '#circle', {style: {marginLeft: '{left}px'}, top: 'onCircleTop'}, {top: 100}),
-						h(Circle, '#circle2', {invisible: 'red', onclick: 'onButtonClick'}),
+						h(Circle, {id: 'circle', style: {marginLeft: '{left}px'}, top: 'onCircleTop'}, {top: 100}),
+						h(Circle, {id: 'circle2', invisible: 'red', onclick: 'onButtonClick'}),
 						h(Hello, {who: '[model.firstName]'}),
 						h(Backbone.Cord.EmptyView, '#emptyView')
 					);
