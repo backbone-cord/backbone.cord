@@ -16,7 +16,7 @@ var Collection = compatibilityMode ? Backbone.Collection.extend({}) : Backbone.C
  * Inside modules, only alias top-level members not the modifiable nested because those may change, for example var regex = Cord.regex
  */
 var Cord = Backbone.Cord = {
-	VERSION: '1.0.20',
+	VERSION: '1.0.21',
 	config: {
 		idProperties: true,
 		prefixCreateElement: false
@@ -407,7 +407,7 @@ function _createSubview(instanceClass, bindings, keyValues) {
 				// Add the new subview and remove the old from the DOM
 				el = value.el;
 				current = this.getSubviewById(id);
-				current.el.parentNode.insertBefore(el, current.el);
+				current.el.parentNode.replaceChild(el, current.el);
 				current.remove();
 				// If the new subview doesn't have an sid it needs to get setup, but without bindings or keyValues
 				if(!value.sid)
@@ -713,6 +713,9 @@ View.prototype._synthesizeProperty = function(key, definition) {
 // create is also optional and if true will interally create the observer array or object as needed
 View.prototype._getObservers = function(namespace, key, create) {
 	var observers;
+	// In some cases it is possible for observer functions to run after remove - just return empty
+	if(this._observers === null)
+		return key ? [] : {};
 	namespace = namespace.toLowerCase();
 	observers = this._observers[namespace];
 	if(!observers) {
