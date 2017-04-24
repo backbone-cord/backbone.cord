@@ -16,7 +16,7 @@ var Collection = compatibilityMode ? Backbone.Collection.extend({}) : Backbone.C
  * Inside modules, only alias top-level members not the modifiable nested because those may change, for example var regex = Cord.regex
  */
 var Cord = Backbone.Cord = {
-	VERSION: '1.0.21',
+	VERSION: '1.0.22',
 	config: {
 		idProperties: true,
 		prefixCreateElement: false
@@ -32,9 +32,9 @@ var Cord = Backbone.Cord = {
 	plugins: [],
 	// Filters installed by the app by setting keys on this object
 	filters: {
-		lower: function(str) { return str.toLowerCase(); },
-		upper: function(str) { return str.toUpperCase(); },
-		title: function(str) { return str.replace(/\b[^\s-]*/g, function(s) { return s.charAt(0).toUpperCase() + s.substr(1).toLowerCase(); }); }
+		lower: function(str) { return Cord.convertToString(str).toLowerCase(); },
+		upper: function(str) { return Cord.convertToString(str).toUpperCase(); },
+		title: function(str) { return Cord.convertToString(str).replace(/\b[^\s-]*/g, function(s) { return s.charAt(0).toUpperCase() + s.substr(1).toLowerCase(); }); }
 	},
 	// Value decoders and encoders for when "value" is get or set on an element, keys into decoders/encoders is based on the data-type and type attribute
 	decoders: {
