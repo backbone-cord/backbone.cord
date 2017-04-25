@@ -148,7 +148,7 @@ function _getObjValue(obj, keys) {
 	keys = Array.isArray(keys) ? keys : keys.split('.');
 	for(i = 0; i < keys.length; ++i) {
 		key = keys[i];
-		if(obj instanceof View) {
+		if(obj.getValueForKey) {
 			// If a namespace is included in the keys pass the pair (which is still a single key) to getValueForKey
 			if(Cord._scopes[key.toLowerCase()] && ((i + 1) < keys.length)) {
 				i += 1;
@@ -173,7 +173,7 @@ function _setObjValue(obj, keys, value) {
 	keys = Array.isArray(keys) ? keys : keys.split('.');
 	obj = _getObjValue(obj, keys.slice(0, -1));
 	key = keys[keys.length - 1];
-	if(obj instanceof View) {
+	if(obj.setValueForKey) {
 		obj.setValueForKey(key, value);
 	}
 	else if(obj instanceof Backbone.Model) {
