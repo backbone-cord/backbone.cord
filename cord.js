@@ -114,7 +114,7 @@ var Cord = Backbone.Cord = {
 	},
 
 	// Unique internal subview id, this unifies how subviews with and without ids are stored
-	_scopes: {},
+	scopes: {},
 
 	// Override or wrap to provide different keyPath processing, different prefixes, or shorthands
 	// The return value must be an array of the different key path components, with the first being the namespace normalized to lowercase
@@ -123,7 +123,7 @@ var Cord = Backbone.Cord = {
 		keyPath = keyPath.replace(/__/g, '.');
 		components = keyPath.split('.');
 		// Default to the view scope
-		if(components.length === 1 || !Cord._scopes[components[0].toLowerCase()])
+		if(components.length === 1 || !Cord.scopes[components[0].toLowerCase()])
 			components.unshift('this');
 		else
 			components[0] = components[0].toLowerCase();
@@ -175,7 +175,7 @@ function _getObjValue(obj, keys) {
 		key = keys[i];
 		if(obj.getValueForKey) {
 			// If a namespace is included in the keys pass the pair (which is still a single key) to getValueForKey
-			if(Cord._scopes[key.toLowerCase()] && ((i + 1) < keys.length)) {
+			if(Cord.scopes[key.toLowerCase()] && ((i + 1) < keys.length)) {
 				i += 1;
 				key = key + '.' + keys[i];
 			}
@@ -409,7 +409,7 @@ Cord.Binding = {
 		path = Cord.parseKeyPath(key);
 		namespace = path[0];
 		key = path[1];
-		scope = Cord._scopes[namespace];
+		scope = Cord.scopes[namespace];
 		// Support any subkeys but only changes to the top-level key are observed
 		if(path.length > 2)
 			observer = _applySubkeys(observer, path.slice(2));
@@ -430,7 +430,7 @@ Cord.Binding = {
 		path = Cord.parseKeyPath(key);
 		namespace = path[0];
 		key = path[1];
-		scope = Cord._scopes[namespace];
+		scope = Cord.scopes[namespace];
 		// Remove the observer
 		this._removeObserver(namespace, key, observer);
 		scope.unobserve.call(this, key, observer);
@@ -440,7 +440,7 @@ Cord.Binding = {
 	getValueForKey: function(keyPath) {
 		var path, scope, value;
 		path = Cord.parseKeyPath(keyPath);
-		scope = Cord._scopes[path[0]];
+		scope = Cord.scopes[path[0]];
 		value = scope.getValue.call(this, path[1]);
 		if(path.length > 2)
 			value = _getObjValue(value, path.slice(2));
@@ -450,7 +450,7 @@ Cord.Binding = {
 	setValueForKey: function(keyPath, value) {
 		var path, scope;
 		path = Cord.parseKeyPath(keyPath);
-		scope = Cord._scopes[path[0]];
+		scope = Cord.scopes[path[0]];
 		// Use _setObjValue with subkeys, code is optimized with the first getValue, also valid is: _setObjValue(this, path, value);
 		if(path.length > 2)
 			_setObjValue(scope.getValue.call(this, path[1]), path.slice(2), value);
@@ -538,7 +538,7 @@ Cord.Binding = {
 _extendObj(View.prototype, Cord.Binding);
 
 // Built-in model scope that simply wraps access to the model, the model listening for observing is managed by setModel()
-Cord._scopes.model = {
+Cord.scopes.model = {
 	observe: function(key, observer) {
 		if(key === 'id')
 			this._addObserver('model', this.model.idAttribute, observer);

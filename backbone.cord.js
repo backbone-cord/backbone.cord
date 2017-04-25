@@ -80,9 +80,6 @@ Cord.plugins._register = function(plugin, fnc) {
 		if(Cord._callbacks.hasOwnProperty(callback) && typeof plugin[callback] === 'function')
 			fnc.call(Cord._callbacks[callback], plugin[callback]);
 	}
-	// Register a variable scope
-	if(plugin.scope)
-		Cord._scopes[plugin.scope.namespace.toLowerCase()] = plugin.scope;
 	return fnc.call(this, plugin);
 };
 Cord.plugins.unshift = function(plugin) {
@@ -370,7 +367,7 @@ function _propertyObserver(key, prevSet) {
 	newSet._prevSet = prevSet;
 	return newSet;
 }
-Cord._scopes.this = {
+Cord.scopes.this = {
 	observe: function(key) {
 		var prop = Object.getOwnPropertyDescriptor(this, key);
 		if(!prop)
