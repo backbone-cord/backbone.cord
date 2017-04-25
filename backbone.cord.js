@@ -470,6 +470,7 @@ View.prototype.getSubviewById = function(id) {
 		return this.subviews[node.getAttribute('data-sid')];
 };
 
+
 var __extend = View.extend;
 View.extend = function(protoProps, staticProps) {
 	protoProps = protoProps || {};
@@ -504,6 +505,28 @@ View.extend = function(protoProps, staticProps) {
 	if(this.prototype.observers && protoProps.observers)
 		protoProps.observers = mixObj(this.prototype.observers, protoProps.observers);
 	return __extend.call(this, protoProps, staticProps);
+};
+
+var __setModel = View.prototype.setModel;
+View.prototype.setModel = function(newModel, noCascade) {
+	var key, current, subview;
+	current = this.model;
+	__setModel.apply(this, arguments);
+	if(!noCascade) {
+		for(key in this.subviews) {
+			if(this.subviews.hasOwnProperty(key)) {
+				subview = this.subviews[key];
+				// Do not cascade if the subview is not a Cord View or is intercepted by a cascade method
+				if(!(subview instanceof View))
+					continue;
+				if(subview.cascade && subview.cascade(newModel) === false)
+					continue;
+				if(subview.model === current && !subview.collection)
+					subview.setModel(newModel);
+			}
+		}
+	}
+	return this;
 };
 
 // Wrap _ensureElement to add a subviews array

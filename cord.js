@@ -490,8 +490,8 @@ Cord.Binding = {
 	// setModel will change the model a View has and invoke any observers
 	// For best performance and results, models should normally be provided in the View's constructor - only use setModel to swap out an existing model
 	// setModel is defined as a method and not a property because it would be too confusing to distinguish between the first set and later changes, this is more explicit
-	setModel: function(newModel, noCascade) {
-		var key, current, subview, observers;
+	setModel: function(newModel) {
+		var key, current, observers;
 		if(this.model === newModel)
 			return this;
 		if(!newModel)
@@ -514,20 +514,6 @@ Cord.Binding = {
 			}
 			else {
 				this._modelObserver(this.model, {_changed: current.changedAttributes(this.model.attributes)});
-			}
-		}
-		if(!noCascade) {
-			for(key in this.subviews) {
-				if(this.subviews.hasOwnProperty(key)) {
-					subview = this.subviews[key];
-					// Do not cascade if the subview is not a Cord View or is intercepted by a cascade method
-					if(!(subview instanceof View))
-						continue;
-					if(subview.cascade && subview.cascade(newModel) === false)
-						continue;
-					if(subview.model === current && !subview.collection)
-						subview.setModel(newModel);
-				}
 			}
 		}
 		return this;
