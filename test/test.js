@@ -1,7 +1,7 @@
 const assert = require('assert');
 const jsdom = require('jsdom');
 const _ = require('lodash');
-const cord = require('../backbone.cord');
+const cord = require('../cord');
 
 assert.element = (el, tagName, id, classes, attrs) => {
 	assert.equal(el.nodeType, 1);

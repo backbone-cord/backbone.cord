@@ -9,7 +9,7 @@ if(!global.window) {
 	// jquery needs to be initialized outside of backbone for some strange reason
 	// http://stackoverflow.com/questions/20380958/browserify-with-jquery-2-produces-jquery-requires-a-window-with-a-document
 	window.$ = Backbone.$ = require('jquery');
-	const Cord = require('../backbone.cord');
+	const Cord = require('../cord');
 	// require all of the plugins to activate them
 	require('../lib/plugins/binding');
 	require('../lib/plugins/classes');
