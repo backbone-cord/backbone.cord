@@ -5,12 +5,104 @@ var Cord = Backbone.Cord;
 var View = Cord.View;
 
 var isPlainObj = Cord.isPlainObj;
+var extendObj = Cord.extendObj;
 var copyObj = Cord.copyObj;
 var createSetValueCallback = Cord.createSetValueCallback;
 var mixProto = Cord.mixProto;
 var mixObj = Cord.mixObj;
 var getPrototypeValuesForKey = Cord.getPrototypeValuesForKey;
-var _callPlugins = Cord._callPlugins;
+
+extendObj(Cord, {
+	config: {
+		idProperties: true,
+		prefixCreateElement: false
+	},
+	// Collection of reusable regular expression objects
+	// NOTE: Do not use the regex functions test/exec when the global flag is set because it is stateful (lastIndex). Instead use string methods search/match
+	// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions#Working_with_regular_expressions
+	regex: {
+		idPropertyTest: /^[a-zA-Z_$][0-9a-zA-Z_$]*$/,
+		idSelectorValues: /#([a-zA-Z_$][0-9a-zA-Z_$]*)/g
+	},
+	// Internally set readonly properties with the ForceValue object
+	ForceValue: function(value) { this.value = value; },
+	// Plugins install themselves by pushing to this array
+	plugins: [],
+	_sid: 1,
+	_pluginsChecked: false,
+	// NOTE: classes, attrs, children, and bindings are all copies and may be modified by plugins without side-effects
+	// modifications will be recognized by the default behavior and returning the copy is not necessary
+	_callbacks: {
+		// (el) tag can process the tag value and return an element overriding the default createElement
+		tag: [],
+		// (el and subview) classes is an array of classname, returning [] will prevent default classes being applied
+		classes: [],
+		// (el conditionally invoked) attrs is a dict, returning {} will prevent default attrs being applied
+		attrs: [],
+		// (el conditionally invoked) children is an array of strings or dom elements
+		children: [],
+		// (subview) bindings that by default get converted to event listeners
+		bindings: [],
+		// (el and subview) when creation and setup is complete, right before el and subview return, returning a different element can replace an el
+		complete: [],
+		// View Class extending only, where this is the parent class and context has protoProps and staticProps arguments
+		extend: [],
+		// (new View) create, initialize, and remove apply to all views
+		create: [],
+		initialize: [],
+		remove: []
+	}
+});
+
+Cord.plugins._check = function() {
+	var i, j, plugin, loaded = {};
+	for(i = 0; i < this.length; ++i)
+		loaded[this[i].name] = true;
+	for(i = 0; i < this.length; ++i) {
+		plugin = this[i];
+		if(plugin.requirements) {
+			for(j = 0; j < plugin.requirements.length; ++j)
+				if(!loaded[plugin.requirements[j]])
+					throw new Error('Cord plugin "' + plugin.name + '" requires missing plugin "' + plugin.requirements[j] + '"');
+		}
+	}
+};
+Cord.plugins._register = function(plugin, fnc) {
+	// Copy all of the default config settings
+	if(plugin.config) {
+		for(var setting in plugin.config) {
+			if(plugin.config.hasOwnProperty(setting) && !Cord.config.hasOwnProperty(setting))
+				Cord.config[setting] = plugin.config[setting];
+		}
+	}
+	// Push references to all of the callback methods
+	for(var callback in Cord._callbacks) {
+		if(Cord._callbacks.hasOwnProperty(callback) && typeof plugin[callback] === 'function')
+			fnc.call(Cord._callbacks[callback], plugin[callback]);
+	}
+	// Register a variable scope
+	if(plugin.scope)
+		Cord._scopes[plugin.scope.namespace.toLowerCase()] = plugin.scope;
+	return fnc.call(this, plugin);
+};
+Cord.plugins.unshift = function(plugin) {
+	return this._register(plugin, Array.prototype.unshift);
+};
+Cord.plugins.push = function(plugin) {
+	return this._register(plugin, Array.prototype.push);
+};
+
+function _callPlugins(name, context) {
+	// For each callbacks, call and return false if false is returned
+	// Context object to communicate data between plugins and callbacks
+	var callbacks = Cord._callbacks[name];
+	var args = Array.prototype.slice.call(arguments, 1);
+	delete context[name];
+	for(var i = 0; i < callbacks.length; ++i) {
+		context[name] = callbacks[i].apply(this, args) || context[name];
+	}
+	return context[name];
+}
 
 // Generate an arbitrary DOM node given a tag[id][classes] string, [attributes] dictionary, and [child nodes...]
 // If #id is given it must appear before the .classes, e.g. #id.class1.class2 or span#id.class1.class2
@@ -210,6 +302,7 @@ Cord.h = Cord.createElement = _createElement.bind(Cord);
 Cord.createText = _createText.bind(Cord);
 Cord.render = _render.bind(Cord);
 Cord.replace = _replace.bind(Cord);
+Cord._callPlugins = _callPlugins;
 
 Cord.hasId = function(el) {
 	return !!el.getAttribute('data-id');
