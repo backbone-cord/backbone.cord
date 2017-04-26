@@ -20,7 +20,6 @@ var options = preact.options;
 var _currentComponent = null;
 var _currentBinding = null;
 var _DATA_BINDING_ATTR = 'data-binding';
-var _COMPUTED_GUID = 'computed';
 
 function _bindGUID(uid, proxy) {
 	var guid = null;
@@ -32,21 +31,20 @@ function _bindGUID(uid, proxy) {
 }
 
 var bind = Cord.bind = function(key, guid) {
-	var boundKey, path, component = _currentComponent;
-	if(!component)
+	if(!_currentComponent)
 		return;
-	boundKey = guid || key;
-	if(!component._boundKeys[boundKey]) {
-		component.observe(key, function(key, value) {
+	var boundKey = guid || key;
+	if(!_currentComponent._boundKeys[boundKey]) {
+		_currentComponent.observe(key, function(key, value) {
 			// Wrapped in a function to remove the key, value arguments from passing to forceUpdate
 			if(guid && this._boundGUIDProxies[guid])
 				this._boundGUIDProxies[guid].call(this, guid, key, value);
 			else
 				this.forceUpdate();
 		});
-		component._boundKeys[boundKey] = true;
+		_currentComponent._boundKeys[boundKey] = true;
 	}
-	return component.getValueForKey(key);
+	return _currentComponent.getValueForKey(key);
 };
 
 var computed = Cord.computed = function(func) {
@@ -142,13 +140,13 @@ Cord.Component = function() {
 
 	var __render = this.render;
 	this.render = function() {
-		var ret, prevContext = _currentComponent;
+		var ret, prevComponent = _currentComponent;
 		_currentComponent = this;
 		try {
 			ret = __render.apply(this, arguments);
 		}
 		finally {
-			_currentComponent = prevContext;
+			_currentComponent = prevComponent;
 		}
 		return ret;
 	};
@@ -221,7 +219,7 @@ function _testBindingFeedback(el) {
 	}
 }
 
-function _bindingProxy = function(guid, key, value) {
+function _bindingProxy(guid, key, value) {
 	var el = document.body.querySelector('[' + _DATA_BINDING_ATTR + '="' + guid + '"]');
 	if(!el || _testBindingFeedback(el))
 		return;
@@ -276,8 +274,7 @@ options.vnode = function(vnode) {
 	}
 
 	if(attrs.observe || attrs.change || attrs.input) {
-		var observer, listener, twoWay;
-		var guid = _getGUID(vnode.attrs.key || vnode.attrs.name, _bindingProxy);
+		var guid = _bindGUID(vnode.attrs.key || vnode.attrs.name, _bindingProxy);
 
 		if(!guid) {
 			delete attrs.observe;
@@ -292,16 +289,16 @@ options.vnode = function(vnode) {
 				var value = bind(attrs.observe, guid);
 				delete attrs.observe;
 				if(guid)
-					setImmediate(_bindingProxy.bind(null, guid, key, value));
+					setImmediate(_bindingProxy.bind(null, guid, null, value));
 			}
 
 			// Reverse binding on change or input events to listen to changes in the value
 			if(attrs.change) {
-				attrs.onChange = _createValueListener(key, attrs.onChange || attrs.onchange);
+				attrs.onChange = _createValueListener(attrs.change, attrs.onChange || attrs.onchange);
 				delete attrs.change;
 			}
 			if(attrs.input) {
-				attrs.onInput = _createValueListener(key, attrs.onInput || attrs.oninput);
+				attrs.onInput = _createValueListener(attrs.input, attrs.onInput || attrs.oninput);
 				delete attrs.input;
 			}
 		}
@@ -309,7 +306,7 @@ options.vnode = function(vnode) {
 
 	if(__vnode)
 		__vnode.apply(this, arguments);
-}
+};
 
 if(typeof exports === 'object')
 	module.exports = Cord;

@@ -2,7 +2,7 @@ const gulp = require('gulp');
 const concat = require('gulp-concat');
 
 const scriptsBackbone = ['cord.js', 'backbone.cord.js', 'lib/**/*.js'];
-const scriptsReact = ['cord.js', 'react.cord.js', 'lib/models.js', 'lib/router.js'];
+const scriptsReact = ['cord.js', 'react.cord.js', 'lib/model.js', 'lib/router.js'];
 const files = {
 	mainBackbone: 'backbone.cord.js',
 	minBackbone: 'backbone.cord.min.js',
@@ -41,7 +41,7 @@ gulp.task('scripts-react', [], () => {
 		.pipe(gulp.dest(destDir));
 });
 
-gulp.task('build', ['scripts-backbone']);
+gulp.task('build', ['scripts-backbone', 'scripts-react']);
 
 gulp.task('serve', ['build'], () => {
 	const connect = require('gulp-connect');
