@@ -74,6 +74,9 @@ var Cord = Backbone.Cord = {
 		el.dispatchEvent(evt);
 	},
 
+	// Internally set readonly properties with the ForceValue object Backbone only
+	ForceValue: function(value) { this.value = value; },
+
 	// Conversion functions
 	convertToString: function(obj) { if(obj === null || obj === void(0)) return ''; return obj.toString(); },
 	convertToBool: function(value) { return !!(value && (value.length === void(0) || value.length)); },
@@ -128,8 +131,37 @@ var Cord = Backbone.Cord = {
 		else
 			components[0] = components[0].toLowerCase();
 		return components;
-	}
+	},
+
+	// Regular expressions
+	// NOTE: Do not use the regex functions test/exec when the global flag is set because it is stateful (lastIndex). Instead use string methods search/match
+	// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions#Working_with_regular_expressions
+	regex: {}
 };
+
+/******************* Interpolation regex *******************/
+
+function _escapeRegExp(str) { return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, '\\$&'); }
+function _regexPropertyDescriptor(name) {
+	var search = name + 'Search';
+	var value = name + 'Value';
+	name = '_' + name;
+	return {
+		get: function() { return this[name]; },
+		set: function(format) {
+			this[name] = format;
+			this[search] = new RegExp(_escapeRegExp(format.prefix) + '.*?' + _escapeRegExp(format.suffix), 'g');
+			this[value] = new RegExp(_escapeRegExp(format.prefix) + '\\s*(.*?)\\s*' + _escapeRegExp(format.suffix));
+		}
+	};
+}
+Object.defineProperties(Cord.regex, {
+	variable: _regexPropertyDescriptor('variable'),
+	conditional: _regexPropertyDescriptor('conditional')
+});
+// Regex patterns can be configured by setting prefix/suffix values through these properties
+Cord.regex.variable = {prefix: '[', suffix: ']'};
+Cord.regex.conditional = {prefix: '(', suffix: ')'};
 
 /******************* Utilities *******************/
 
@@ -272,6 +304,16 @@ function _getPrototypeValuesForKey(objCls, key, isCls) {
 	return values;
 }
 
+function _getFunctionArgs(func) {
+	// Get all argument names for a function
+	// Based on http://stackoverflow.com/questions/1007981/how-to-get-function-parameter-names-values-dynamically-from-javascript
+	var str = func.toString();
+	var args = str.slice(str.indexOf('(') + 1, str.indexOf(')')).match(/([^\s,]+)/g);
+	if(!args)
+		args = [];
+	return args;
+}
+
 // Add object utility functions
 _extendObj(Cord, {
 	isPlainObj: _isPlainObj,
@@ -280,6 +322,7 @@ _extendObj(Cord, {
 	mixObj: _mixObj,
 	mixProto: _mixProto,
 	getPrototypeValuesForKey: _getPrototypeValuesForKey,
+	getFunctionArgs: _getFunctionArgs,
 	log: (debug ? function() {
 		var format = [];
 		var args = Array.prototype.slice.call(arguments);
@@ -435,6 +478,10 @@ Cord.Binding = {
 		this._removeObserver(namespace, key, observer);
 		scope.unobserve.call(this, key, observer);
 		return this;
+	},
+
+	stopObserving: function() {
+		this._observers = null;
 	},
 
 	getValueForKey: function(keyPath) {

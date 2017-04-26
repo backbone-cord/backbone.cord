@@ -17,15 +17,6 @@ extendObj(Cord, {
 		idProperties: true,
 		prefixCreateElement: false
 	},
-	// Collection of reusable regular expression objects
-	// NOTE: Do not use the regex functions test/exec when the global flag is set because it is stateful (lastIndex). Instead use string methods search/match
-	// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions#Working_with_regular_expressions
-	regex: {
-		idPropertyTest: /^[a-zA-Z_$][0-9a-zA-Z_$]*$/,
-		idSelectorValues: /#([a-zA-Z_$][0-9a-zA-Z_$]*)/g
-	},
-	// Internally set readonly properties with the ForceValue object
-	ForceValue: function(value) { this.value = value; },
 	// Plugins install themselves by pushing to this array
 	plugins: [],
 	_sid: 1,
@@ -295,11 +286,19 @@ function _replace(child, element, container) {
 }
 
 // Add layout creation methods that should be bound to allow importing of each individually
-Cord.h = Cord.createElement = _createElement.bind(Cord);
-Cord.createText = _createText.bind(Cord);
-Cord.render = _render.bind(Cord);
-Cord.replace = _replace.bind(Cord);
-Cord._callPlugins = _callPlugins;
+extendObj(Cord, {
+	createElement: _createElement.bind(Cord),
+	createText: _createText.bind(Cord),
+	render: _render.bind(Cord),
+	replace: _replace.bind(Cord),
+	_callPlugins: _callPlugins
+});
+Cord.h = Cord.createElement;
+
+extendObj(Cord.regex, {
+	idPropertyTest: /^[a-zA-Z_$][0-9a-zA-Z_$]*$/,
+	idSelectorValues: /#([a-zA-Z_$][0-9a-zA-Z_$]*)/g
+});
 
 Cord.hasId = function(el) {
 	return !!el.getAttribute('data-id');
@@ -320,27 +319,6 @@ Cord.regex.testIdProperty = function(id, noThrow) {
 		throw new Error('Invalid id "' + id + '" used');
 	return result;
 };
-function _escapeRegExp(str) { return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, '\\$&'); }
-function _regexPropertyDescriptor(name) {
-	var search = name + 'Search';
-	var value = name + 'Value';
-	name = '_' + name;
-	return {
-		get: function() { return this[name]; },
-		set: function(format) {
-			this[name] = format;
-			this[search] = new RegExp(_escapeRegExp(format.prefix) + '.*?' + _escapeRegExp(format.suffix), 'g');
-			this[value] = new RegExp(_escapeRegExp(format.prefix) + '\\s*(.*?)\\s*' + _escapeRegExp(format.suffix));
-		}
-	};
-}
-Object.defineProperties(Cord.regex, {
-	variable: _regexPropertyDescriptor('variable'),
-	conditional: _regexPropertyDescriptor('conditional')
-});
-// Regex patterns can be configured by setting prefix/suffix values through these properties
-Cord.regex.variable = {prefix: '[', suffix: ']'};
-Cord.regex.conditional = {prefix: '(', suffix: ')'};
 
 // Expose createElement and createSubview on the View object as well
 // _callPlugins is added because this._callPlugins is used for callbacks
@@ -466,7 +444,6 @@ View.prototype.getSubviewById = function(id) {
 	if(node)
 		return this.subviews[node.getAttribute('data-sid')];
 };
-
 
 var __extend = View.extend;
 View.extend = function(protoProps, staticProps) {
@@ -594,10 +571,10 @@ View.prototype.remove = function() {
 			this.subviews[key].remove();
 	}
 	this.subviews = null;
-	// Some scopes do not need extra cleanup - just setting observers to null and calling stopListening() in __remove()
-	// other scopes should implement remove() plugin callback
-	this._observers = null;
+	// Stop all current observers
+	this.stopObserving();
 	this.trigger('remove', this);
+	// Backbone's remove will call stopListening(), which will provide extra cleanup and be sufficient also for some scopes
 	return __remove.apply(this, arguments);
 };
 
