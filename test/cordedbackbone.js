@@ -21,7 +21,7 @@ if(!global.window) {
 	require('../lib/plugins/interpolation');
 	require('../lib/plugins/render');
 	require('../lib/plugins/styles');
-	require('../lib/scopes/unmanaged');
+	require('../lib/scopes/shared');
 	require('../lib/mixins/validation');
 }
 module.exports = require('backbone');
