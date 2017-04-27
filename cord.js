@@ -481,6 +481,14 @@ Cord.Binding = {
 	},
 
 	stopObserving: function() {
+		var namespace, scope;
+		for(namespace in this._observers) {
+			if(this._observers.hasOwnProperty(namespace)) {
+				scope = Cord.scopes[namespace];
+				if(scope.stop)
+					scope.stop.call(this);
+			}
+		}
 		this._observers = null;
 	},
 

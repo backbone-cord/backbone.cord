@@ -2,7 +2,7 @@ const gulp = require('gulp');
 const concat = require('gulp-concat');
 
 const scriptsBackbone = ['cord.js', 'backbone.cord.js', 'lib/**/*.js'];
-const scriptsReact = ['cord.js', 'react.cord.js', 'lib/model.js', 'lib/router.js'];
+const scriptsReact = ['cord.js', 'react.cord.js', 'lib/model.js', 'lib/router.js', 'lib/mixins/syncing.js', 'lib/mixins/validation.js'];
 const files = {
 	mainBackbone: 'backbone.cord.js',
 	minBackbone: 'backbone.cord.min.js',
