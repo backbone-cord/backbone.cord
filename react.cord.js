@@ -1,6 +1,7 @@
-;(function(Backbone) {
+;(function(root) {
 'use strict';
 
+var Backbone = root.Backbone || require('backbone');
 var Cord = Backbone.Cord;
 var extendObj = Cord.extendObj;
 var isPlainObj = Cord.isPlainObj;
@@ -13,7 +14,7 @@ var randomGUID = Cord.randomGUID;
 var setImmediate = Cord.setImmediate;
 var regex = Cord.regex;
 
-var preact = require('preact');
+var preact = root.preact || require('preact');
 var Component = preact.Component;
 var options = preact.options;
 
@@ -116,6 +117,9 @@ function _normalizeMixin(mixin) {
 Cord.Component = function() {
 	Component.apply(this, arguments);
 
+	// Init observers
+	this._observers = {};
+
 	// Keys is true/false is a bound key is used in the render pipeline
 	// GUIDs is mapping of vnode uids to GUIDs
 	// Proxies maps GUIDs to a callback function
@@ -138,6 +142,7 @@ Cord.Component = function() {
 		proto._mixinsApplied = true;
 	}
 
+	// Wrap render to allow bind() function to work without a context
 	var __render = this.render;
 	this.render = function() {
 		var ret, prevComponent = _currentComponent;
@@ -175,7 +180,7 @@ Cord.Component = function() {
 			__componentWillMount.apply(this, arguments);
 	};
 };
-Cord.Component.prototype = Object.create(Component);
+Cord.Component.prototype = Object.create(Component.prototype);
 Cord.Component.prototype.constructor = Cord.Component;
 
 Cord.Component.prototype.setState = function(state, callback) {
@@ -189,7 +194,7 @@ Cord.Component.prototype.setState = function(state, callback) {
 };
 
 // Extend Component with data binding methods without backwards compatibility Event functions (bind/unbind)
-Cord.objExtend(Cord.Component.prototype, Cord.Binding, Backbone.Events);
+extendObj(Cord.Component.prototype, Cord.Binding, Backbone.Events);
 delete Cord.Component.prototype.bind;
 delete Cord.Component.prototype.unbind;
 
@@ -242,9 +247,9 @@ options.vnode = function(vnode) {
 	// vnode contains: nodeName, children (one item or array), attributes, key
 	var i, j, child, strings, matches, spliceArgs;
 	var children = Array.isArray(vnode.children) ? vnode.children : [vnode.children];
-	var attrs = vnode.attributes;
+	var attrs = vnode.attributes || {};
 
-	if(!vnode.attributes.raw) {
+	if(!attrs.raw) {
 		for(i = children.length - 1; i >= 0; --i) {
 			child = children[i];
 			if(typeof child === 'string') {
@@ -311,4 +316,4 @@ options.vnode = function(vnode) {
 if(typeof exports === 'object')
 	module.exports = Cord;
 
-})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone || require('backbone'));
+})(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)));
