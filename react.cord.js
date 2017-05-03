@@ -5,7 +5,7 @@ var Backbone = root.Backbone || require('backbone');
 var Cord = Backbone.Cord;
 var extendObj = Cord.extendObj;
 var isPlainObj = Cord.isPlainObj;
-var mixProto = Cord.mixProto;
+var mixObj = Cord.mixObj;
 var ForceValue = Cord.ForceValue;
 
 var convertToString = Cord.convertToString;
@@ -138,7 +138,7 @@ Cord.Component = function() {
 			mixin = Cord.mixins[proto.mixins[i]];
 			if(!mixin._normalized)
 				_normalizeMixin(mixin);
-			extendObj(proto, mixProto(proto, mixin.methods));
+			extendObj(proto, mixObj(mixin.methods, proto));
 			extendObj(state, mixin.state);
 		}
 		proto._mixinState = state;
