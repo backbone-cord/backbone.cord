@@ -15,13 +15,14 @@ var randomGUID = Cord.randomGUID;
 var setImmediate = Cord.setImmediate;
 var regex = Cord.regex;
 
-var preact = root.preact || require('preact');
-var Component = preact.Component;
-var options = preact.options;
+var react = root.preact || root.react || require('preact') || require('react');
+var Component = react.Component;
+var options = react.options;
 
 var _currentComponent = null;
 var _currentBinding = null;
-var _DATA_BINDING_ATTR = 'data-binding';
+var _DATA_BINDING_ATTR = 'data-binding-guid';
+var _DATA_FEEDBACK_ATTR = 'data-binding-feedback';
 
 function _bindGUID(uid, proxy) {
 	var guid = null;
@@ -55,6 +56,7 @@ var computed = Cord.computed = function(func) {
 		return func;
 	var compFunc = function(compKey) {
 		var i, values = [], state = {};
+		compKey = compKey.split('@')[0];
 		for(i = 0; i < args.length; ++i)
 			values.push(this.getValueForKey(args[i]));
 		state[compKey] = func.apply(this, values);
@@ -114,7 +116,7 @@ function _normalizeMixin(mixin) {
 	mixin._normalized = true;
 }
 
-// Inherit from preact's Component so render can be wrapped and mixins applied
+// Inherit from react's Component so render can be wrapped and mixins applied
 Cord.Component = function() {
 	Component.apply(this, arguments);
 
@@ -159,7 +161,7 @@ Cord.Component = function() {
 
 	var __componentWillMount = this.componentWillMount;
 	this.componentWillMount = function() {
-		var i, attr, args, value, state = this.state;
+		var i, attr, args, value, prevComponent, guid, state = this.state;
 		// Initialize computed state and any initial state from mixins
 		if(this._mixinState)
 			extendObj(state, this._mixinState);
@@ -168,12 +170,21 @@ Cord.Component = function() {
 				value = state[attr];
 				if(typeof value === 'function' && value._computed) {
 					args = value._args;
-					// Setup as proxy setting the name of the property as the guid
-					this._boundGUIDProxies[attr] = value;
-					for(i = 0; i < args.length; ++i)
-						bind(args[i], attr);
-					// Run once to set the initial state
-					value(attr);
+					prevComponent = _currentComponent;
+					_currentComponent = this;
+					try {
+						for(i = 0; i < args.length; ++i) {
+							// Setup as proxy setting the name of the (property @ arg number) as the guid for each bound argument
+							guid = attr + '@' + i;
+							this._boundGUIDProxies[guid] = value;
+							bind(args[i], guid);
+						}
+						// Run once to set the initial state
+						value.call(this, attr);
+					}
+					finally {
+						_currentComponent = prevComponent;
+					}
 				}
 			}
 		}
@@ -214,6 +225,8 @@ options.beforeUnmount = function(component) {
 
 function _testBindingFeedback(el) {
 	// Prevent two-way data binding from creating an infinite feedback loop through dispatching events
+	if(!el.hasAttribute(_DATA_FEEDBACK_ATTR))
+		return false;
 	var bindingUid = el.getAttribute(_DATA_BINDING_ATTR);
 	if(bindingUid && bindingUid === _currentBinding) {
 		_currentBinding = null;
@@ -234,7 +247,7 @@ function _bindingProxy(guid, key, value) {
 
 function _createValueListener(key, wrapped) {
 	return function(e) {
-		var el = e.currenTarget;
+		var el = e.currentTarget;
 		if(_testBindingFeedback(el))
 			return;
 		this.setValueForKey(key, decodeValue(el));
@@ -281,7 +294,7 @@ options.vnode = function(vnode) {
 	}
 
 	if(attrs.observe || attrs.change || attrs.input) {
-		var guid = _bindGUID(vnode.attrs.key || vnode.attrs.name, _bindingProxy);
+		var guid = _bindGUID(vnode.key || attrs.name, _bindingProxy);
 
 		if(!guid) {
 			delete attrs.observe;
@@ -295,8 +308,12 @@ options.vnode = function(vnode) {
 			if(attrs.observe) {
 				var value = bind(attrs.observe, guid);
 				delete attrs.observe;
+				// Set the initial value on a delayed callback
 				if(guid)
 					setImmediate(_bindingProxy.bind(null, guid, null, value));
+				// If two-way this element is sensitive to binding feedback
+				if(attrs.observe === attrs.change || attrs.observe === attrs.input)
+					attrs[_DATA_FEEDBACK_ATTR] = true;
 			}
 
 			// Reverse binding on change or input events to listen to changes in the value
@@ -314,6 +331,11 @@ options.vnode = function(vnode) {
 	if(__vnode)
 		__vnode.apply(this, arguments);
 };
+
+// Export onto the react object
+react.Cord = Cord;
+if(!root.cordCompatibilityMode)
+	react.Component = Component;
 
 if(typeof exports === 'object')
 	module.exports = Cord;
