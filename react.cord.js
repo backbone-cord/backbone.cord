@@ -8,6 +8,7 @@ var isPlainObj = Cord.isPlainObj;
 var mixProto = Cord.mixProto;
 var ForceValue = Cord.ForceValue;
 
+var convertToString = Cord.convertToString;
 var encodeValue = Cord.encodeValue;
 var decodeValue = Cord.decodeValue;
 var randomGUID = Cord.randomGUID;
@@ -260,7 +261,8 @@ options.vnode = function(vnode) {
 					for(j = 0; j < matches.length; ++j) {
 						if(strings[j].length)
 							spliceArgs.push(strings[j]);
-						spliceArgs.push(Cord.bind(regex.variableValue.exec(matches[j])[1]));
+						// Force to a string because it is what preact expects
+						spliceArgs.push(convertToString(bind(regex.variableValue.exec(matches[j])[1])));
 					}
 					if(strings[j].length)
 						spliceArgs.push(strings[j]);
