@@ -72,6 +72,9 @@ var Cord = Backbone.Cord = {
 		var evt = document.createEvent('HTMLEvents');
 		evt.initEvent('change', true, true);
 		el.dispatchEvent(evt);
+		evt = document.createEvent('HTMLEvents');
+		evt.initEvent('input', true, true);
+		el.dispatchEvent(evt);
 	},
 
 	// Internally set readonly properties with the ForceValue object Backbone only

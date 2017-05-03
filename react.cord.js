@@ -309,8 +309,7 @@ options.vnode = function(vnode) {
 				var value = bind(attrs.observe, guid);
 				delete attrs.observe;
 				// Set the initial value on a delayed callback
-				if(guid)
-					setImmediate(_bindingProxy.bind(null, guid, null, value));
+				setImmediate(_bindingProxy.bind(null, guid, null, value));
 				// If two-way this element is sensitive to binding feedback
 				if(attrs.observe === attrs.change || attrs.observe === attrs.input)
 					attrs[_DATA_FEEDBACK_ATTR] = true;
