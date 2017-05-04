@@ -1,7 +1,7 @@
 About
 -------------------------------
 
-**backbone.cord.js** is a Backbone library for data binding and a JSX-compatible declarative layout pipeline.
+**backbone.cord.js** is a React/Backbone library for data binding and a JSX-compatible declarative layout pipeline.
 
 Requirements
 -------------------------------
