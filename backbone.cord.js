@@ -7,10 +7,9 @@ var View = Cord.View;
 var isPlainObj = Cord.isPlainObj;
 var extendObj = Cord.extendObj;
 var copyObj = Cord.copyObj;
-var createSetValueCallback = Cord.createSetValueCallback;
-var mixProto = Cord.mixProto;
 var mixObj = Cord.mixObj;
 var getPrototypeValuesForKey = Cord.getPrototypeValuesForKey;
+var createSetValueCallback = Cord.createSetValueCallback;
 
 extendObj(Cord, {
 	config: {
@@ -62,13 +61,13 @@ Cord.plugins._register = function(plugin, fnc) {
 	// Copy all of the default config settings
 	if(plugin.config) {
 		for(var setting in plugin.config) {
-			if(plugin.config.hasOwnProperty(setting) && !Cord.config.hasOwnProperty(setting))
+			if(!Cord.config.hasOwnProperty(setting))
 				Cord.config[setting] = plugin.config[setting];
 		}
 	}
 	// Push references to all of the callback methods
 	for(var callback in Cord._callbacks) {
-		if(Cord._callbacks.hasOwnProperty(callback) && typeof plugin[callback] === 'function')
+		if(typeof plugin[callback] === 'function')
 			fnc.call(Cord._callbacks[callback], plugin[callback]);
 	}
 	return fnc.call(this, plugin);
@@ -143,10 +142,8 @@ function _createElement(tagIdClasses, attrs) {
 				delete attrs.htmlFor;
 			}
 			attrs = this._callPlugins('attrs', context, attrs) || attrs;
-			for(var attr in attrs) {
-				if(attrs.hasOwnProperty(attr))
-					el.setAttribute(attr, attrs[attr]);
-			}
+			for(var attr in attrs)
+				el.setAttribute(attr, attrs[attr]);
 		}
 		// Copy arguments to prevent side-effects
 		var child, children = Array.prototype.slice.call(arguments, i);
@@ -202,14 +199,12 @@ function _createSubview(instanceClass, bindings, keyValues) {
 		delete bindings.id; delete bindings.className;
 		bindings = this._callPlugins('bindings', context, bindings) || bindings;
 		for(var e in bindings) {
-			if(bindings.hasOwnProperty(e)) {
-				callback = (typeof bindings[e] === 'string') ? (this[bindings[e]] || createSetValueCallback(bindings[e])) : bindings[e];
-				if(typeof callback === 'function') {
-					if(subview.properties && subview.properties.hasOwnProperty(e))
-						subview.observe(e, callback.bind(this));
-					else
-						this.listenTo(subview, e, callback);
-				}
+			callback = (typeof bindings[e] === 'string') ? (this[bindings[e]] || createSetValueCallback(bindings[e])) : bindings[e];
+			if(typeof callback === 'function') {
+				if(subview.properties && subview.properties.hasOwnProperty(e))
+					subview.observe(e, callback.bind(this));
+				else
+					this.listenTo(subview, e, callback);
 			}
 		}
 	}
@@ -445,6 +440,22 @@ View.prototype.getSubviewById = function(id) {
 		return this.subviews[node.getAttribute('data-sid')];
 };
 
+function _terminate(f, key) { return function() { var ret = f.apply(this, arguments); var parent = Object.getPrototypeOf(Object.getPrototypeOf(this)); return (parent && parent[key]) ? parent[key].apply(this, arguments) : ret || this; }; }
+
+// Same as _mixObj, but will terminate (call parent) any function chains if the last (terminal) obj did not implement the function
+function _mixProtoProps() {
+	var key, value, obj = mixObj.apply(this, arguments);
+	var terminal = arguments[arguments.length - 1];
+	if(typeof terminal === 'string')
+		terminal = Cord.mixins[terminal] || {};
+	for(key in obj) {
+		value = obj[key];
+		if(typeof value === 'function' && typeof terminal[key] !== 'function')
+			obj[key] = _terminate(value, key);
+	}
+	return obj;
+}
+
 var __extend = View.extend;
 View.extend = function(protoProps, staticProps) {
 	protoProps = protoProps || {};
@@ -453,7 +464,7 @@ View.extend = function(protoProps, staticProps) {
 		var mixArgs = protoProps.mixins;
 		delete protoProps.mixins;
 		mixArgs.push(protoProps);
-		protoProps = mixProto.apply(Cord, mixArgs);
+		protoProps = _mixProtoProps.apply(Cord, mixArgs);
 	}
 	// Create a unique view id for this view class. Can set a static vuid for debugging
 	protoProps.vuid = protoProps.vuid || Cord.randomUID() + Cord.randomUID();
@@ -463,7 +474,7 @@ View.extend = function(protoProps, staticProps) {
 	var key, value, events = protoProps.events;
 	if(events) {
 		for(key in events) {
-			if(events.hasOwnProperty(key) && key.indexOf('#') !== -1) {
+			if(key.indexOf('#') !== -1) {
 				value = events[key];
 				delete events[key];
 				key = Cord.regex.replaceIdSelectors(key, protoProps.vuid);
@@ -488,16 +499,14 @@ View.prototype.setModel = function(newModel, noCascade) {
 	__setModel.apply(this, arguments);
 	if(!noCascade) {
 		for(key in this.subviews) {
-			if(this.subviews.hasOwnProperty(key)) {
-				subview = this.subviews[key];
-				// Do not cascade if the subview is not a Cord View or is intercepted by a cascade method
-				if(!(subview instanceof View))
-					continue;
-				if(subview.cascade && subview.cascade(newModel) === false)
-					continue;
-				if(subview.model === current && !subview.collection)
-					subview.setModel(newModel);
-			}
+			subview = this.subviews[key];
+			// Do not cascade if the subview is not a Cord View or is intercepted by a cascade method
+			if(!(subview instanceof View))
+				continue;
+			if(subview.cascade && subview.cascade(newModel) === false)
+				continue;
+			if(subview.model === current && !subview.collection)
+				subview.setModel(newModel);
 		}
 	}
 	return this;
@@ -526,8 +535,7 @@ View.prototype._ensureElement = function() {
 	if(this.properties) {
 		var properties = this.properties;
 		for(key in properties)
-			if(properties.hasOwnProperty(key))
-				this._synthesizeProperty(key, properties[key]);
+			this._synthesizeProperty(key, properties[key]);
 	}
 	// Bind the el method with prefixed args
 	// _createElement is added to override Backbone's _createElement when el is not a function
@@ -555,8 +563,7 @@ View.prototype._ensureElement = function() {
 	if(this.observers) {
 		var observers = this.observers;
 		for(key in observers)
-			if(observers.hasOwnProperty(key))
-				this.observe(key, observers[key], false);
+			this.observe(key, observers[key], false);
 	}
 	return ret;
 };
@@ -566,10 +573,8 @@ var __remove = View.prototype.remove;
 View.prototype.remove = function() {
 	var key;
 	this._callPlugins('remove', {});
-	for(key in this.subviews) {
-		if(this.subviews.hasOwnProperty(key))
-			this.subviews[key].remove();
-	}
+	for(key in this.subviews)
+		this.subviews[key].remove();
 	this.subviews = null;
 	// Stop all current observers
 	this.stopObserving();

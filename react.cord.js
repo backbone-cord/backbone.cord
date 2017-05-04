@@ -5,7 +5,7 @@ var Backbone = root.Backbone || require('backbone');
 var Cord = Backbone.Cord;
 var extendObj = Cord.extendObj;
 var isPlainObj = Cord.isPlainObj;
-var mixObj = Cord.mixObj;
+var extendProto = Cord.extendProto;
 var ForceValue = Cord.ForceValue;
 
 var convertToString = Cord.convertToString;
@@ -18,6 +18,7 @@ var regex = Cord.regex;
 var react = root.preact || root.react || require('preact') || require('react');
 var Component = react.Component;
 var options = react.options;
+var __setState = Component.prototype.setState;
 
 var _currentComponent = null;
 var _currentBinding = null;
@@ -39,11 +40,11 @@ var bind = Cord.bind = function(key, guid) {
 	var boundKey = guid || key;
 	if(!_currentComponent._boundKeys[boundKey]) {
 		_currentComponent.observe(key, function(key, value) {
-			// Wrapped in a function to remove the key, value arguments from passing to forceUpdate
+			// Don't this.forceUpdate() because it is synchronous, instead call setState with no updates to enqueue a rerender
 			if(guid && this._boundGUIDProxies[guid])
 				this._boundGUIDProxies[guid].call(this, guid, key, value);
 			else
-				this.forceUpdate();
+				__setState.call(this, {});
 		});
 		_currentComponent._boundKeys[boundKey] = true;
 	}
@@ -94,22 +95,18 @@ function _normalizeMixin(mixin) {
 	};
 	if(mixin.properties) {
 		for(attr in mixin.properties) {
-			if(mixin.properties.hasOwnProperty(attr)) {
-				value = mixin.properties[attr];
-				if(typeof value === 'function')
-					state[attr] = computed(value);
-				else if(isPlainObj(value))
-					state[attr] = value.get ? computed(value.get) : value.value;
-				else state[attr] = value;
-			}
+			value = mixin.properties[attr];
+			if(typeof value === 'function')
+				state[attr] = computed(value);
+			else if(isPlainObj(value))
+				state[attr] = value.get ? computed(value.get) : value.value;
+			else state[attr] = value;
 		}
 	}
 	for(attr in mixin) {
-		if(mixin.hasOwnProperty(attr)) {
-			value = mixin[attr];
-			if(typeof value === 'function')
-				methods[(lifecycleMap[attr] || attr)] = value;
-		}
+		value = mixin[attr];
+		if(typeof value === 'function')
+			methods[(lifecycleMap[attr] || attr)] = value;
 	}
 	mixin.methods = methods;
 	mixin.state = state;
@@ -138,7 +135,7 @@ Cord.Component = function() {
 			mixin = Cord.mixins[proto.mixins[i]];
 			if(!mixin._normalized)
 				_normalizeMixin(mixin);
-			extendObj(proto, mixObj(mixin.methods, proto));
+			extendProto(proto, mixin.methods);
 			extendObj(state, mixin.state);
 		}
 		proto._mixinState = state;
@@ -166,25 +163,23 @@ Cord.Component = function() {
 		if(this._mixinState)
 			extendObj(state, this._mixinState);
 		for(attr in state) {
-			if(state.hasOwnProperty(attr)) {
-				value = state[attr];
-				if(typeof value === 'function' && value._computed) {
-					args = value._args;
-					prevComponent = _currentComponent;
-					_currentComponent = this;
-					try {
-						for(i = 0; i < args.length; ++i) {
-							// Setup as proxy setting the name of the (property @ arg number) as the guid for each bound argument
-							guid = attr + '@' + i;
-							this._boundGUIDProxies[guid] = value;
-							bind(args[i], guid);
-						}
-						// Run once to set the initial state
-						value.call(this, attr);
+			value = state[attr];
+			if(typeof value === 'function' && value._computed) {
+				args = value._args;
+				prevComponent = _currentComponent;
+				_currentComponent = this;
+				try {
+					for(i = 0; i < args.length; ++i) {
+						// Setup as proxy setting the name of the (property @ arg number) as the guid for each bound argument
+						guid = attr + '@' + i;
+						this._boundGUIDProxies[guid] = value;
+						bind(args[i], guid);
 					}
-					finally {
-						_currentComponent = prevComponent;
-					}
+					// Run once to set the initial state
+					value.call(this, attr);
+				}
+				finally {
+					_currentComponent = prevComponent;
 				}
 			}
 		}
@@ -199,10 +194,10 @@ Cord.Component.prototype.setState = function(state, callback) {
 	if(typeof state === 'function')
 		state = state(this.state, this.props);
 	for(var key in state) {
-		if(state.hasOwnProperty(key) && this._hasObservers('this', key))
+		if(this._hasObservers('this', key))
 			this._invokeObservers('this', key, state[key]);
 	}
-	Component.prototype.setState.call(this, state, callback);
+	__setState.call(this, state, callback);
 };
 
 // Extend Component with data binding methods without backwards compatibility Event functions (bind/unbind)
@@ -332,9 +327,12 @@ options.vnode = function(vnode) {
 };
 
 // Export onto the react object
-react.Cord = Cord;
-if(!root.cordCompatibilityMode)
+if(!root.cordCompatibilityMode) {
+	react.bind = bind;
+	react.computed = computed;
 	react.Component = Component;
+	react.Cord = Cord;
+}
 
 if(typeof exports === 'object')
 	module.exports = Cord;

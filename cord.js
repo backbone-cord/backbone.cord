@@ -168,6 +168,9 @@ Cord.regex.conditional = {prefix: '(', suffix: ')'};
 
 /******************* Utilities *******************/
 
+// Helper functions for mixing objects and prototypes
+function _chain(f1, f2) { return function() { f1.apply(this, arguments); return f2.apply(this, arguments); }; }
+
 // Returns true if the given object is an instance of Object and not of a subclass or other type
 function _isPlainObj(obj) {
 	// First check of just obj is needed because typeof null is object
@@ -179,12 +182,10 @@ function _isPlainObj(obj) {
 function _copyObj(obj) {
 	var key, value, copy = {};
 	for(key in obj) {
-		if(obj.hasOwnProperty(key)) {
-			value = obj[key];
-			if(_isPlainObj(value))
-				value = _copyObj(value);
-			copy[key] = value;
-		}
+		value = obj[key];
+		if(_isPlainObj(value))
+			value = _copyObj(value);
+		copy[key] = value;
 	}
 	return copy;
 }
@@ -194,13 +195,97 @@ function _extendObj(obj) {
 	var i, key, other;
 	for(i = 1; i < arguments.length; ++i) {
 		other = arguments[i];
+		for(key in other)
+			obj[key] = other[key];
+	}
+	return obj;
+}
+
+// Copy attributes into the first object argument (assumed to be a prototype) given a number of additional object arguments
+// Same as extendObj but detects functions and chains them together from last to first
+function _extendProto(proto) {
+	var i, key, other, value, otherValue;
+	for(i = 1; i < arguments.length; ++i) {
+		other = arguments[i];
 		for(key in other) {
-			if(other.hasOwnProperty(key))
-				obj[key] = other[key];
+			value = proto[key];
+			otherValue = other[key];
+			if(typeof value === 'function' && typeof otherValue === 'function')
+				proto[key] = _chain(otherValue, value);
+			else
+				proto[key] = other[key];
+		}
+	}
+	return proto;
+}
+
+// Create a copy of obj and mixin the other arguments in order
+// Works much like _.extend() but does a recursive merging of plain objects
+// Good for creating and using view mixins
+// Register mixins with Cord.mixins
+function _mixObj(obj) {
+	var i, key, value, other, otherValue;
+	if(typeof obj === 'string')
+		obj = Cord.mixins[obj] || {};
+	obj = _copyObj(obj);
+	for(i = 1; i < arguments.length; ++i) {
+		other = arguments[i];
+		if(typeof other === 'string')
+			other = Cord.mixins[other] || {};
+		for(key in other) {
+			value = obj[key];
+			otherValue = other[key];
+			if(_isPlainObj(value) && _isPlainObj(otherValue))
+				obj[key] = _mixObj(value, otherValue);
+			else if(typeof value === 'function' && typeof otherValue === 'function')
+				obj[key] = _chain(value, otherValue);
+			else
+				obj[key] = otherValue;
 		}
 	}
 	return obj;
 }
+
+// Get all values for a key on a prototype chain, ordered by parent values first
+function _getPrototypeValuesForKey(objCls, key, isCls) {
+	var proto = isCls ? objCls.prototype : Object.getPrototypeOf(objCls), values = [];
+	for(; proto; proto = Object.getPrototypeOf(proto)) {
+		if(proto.hasOwnProperty(key))
+			values.unshift(proto[key]);
+	}
+	return values;
+}
+
+function _getFunctionArgs(func) {
+	// Get all argument names for a function
+	// Based on http://stackoverflow.com/questions/1007981/how-to-get-function-parameter-names-values-dynamically-from-javascript
+	var str = func.toString();
+	var args = str.slice(str.indexOf('(') + 1, str.indexOf(')')).match(/([^\s,]+)/g);
+	if(!args)
+		args = [];
+	return args;
+}
+
+// Add object utility functions
+_extendObj(Cord, {
+	isPlainObj: _isPlainObj,
+	copyObj: _copyObj,
+	extendObj: _extendObj,
+	extendProto: _extendProto,
+	mixObj: _mixObj,
+	getPrototypeValuesForKey: _getPrototypeValuesForKey,
+	getFunctionArgs: _getFunctionArgs,
+	log: (debug ? function() {
+		var format = [];
+		var args = Array.prototype.slice.call(arguments);
+		for(var i = 0; i < args.length; ++i)
+			format.push((typeof args[i] === 'object') ? '%O' : '%s');
+		args.unshift(format.join(' | '));
+		console.log.apply(console, args);
+	} : function(){})
+});
+
+/******************* Data binding object extensions *******************/
 
 // Internal use only for when there are one or more subkeys to resolve on an object, view, or model
 function _getObjValue(obj, keys) {
@@ -247,96 +332,6 @@ function _setObjValue(obj, keys, value) {
 			obj[key] = value;
 	}
 }
-
-// Helper functions for mixing objects and prototypes
-function _chain(f1, f2) { return function() { f1.apply(this, arguments); return f2.apply(this, arguments); }; }
-function _terminate(f, key) { return function() { var ret = f.apply(this, arguments); var parent = Object.getPrototypeOf(Object.getPrototypeOf(this)); return (parent && parent[key]) ? parent[key].apply(this, arguments) : ret || this; }; }
-
-// Create a copy of obj and mixin the other arguments in order
-// Works much like _.extend() but does a recursive merging of plain objects
-// Good for creating and using view mixins
-// Register mixins with Cord.mixins
-function _mixObj(obj) {
-	var i, key, value, other, otherValue;
-	if(typeof obj === 'string')
-		obj = Cord.mixins[obj] || {};
-	obj = _copyObj(obj);
-	for(i = 1; i < arguments.length; ++i) {
-		other = arguments[i];
-		if(typeof other === 'string')
-			other = Cord.mixins[other] || {};
-		for(key in other) {
-			if(other.hasOwnProperty(key)) {
-				value = obj[key];
-				otherValue = other[key];
-				if(_isPlainObj(value) && _isPlainObj(otherValue))
-					obj[key] = _mixObj(value, otherValue);
-				else if(typeof value === 'function' && typeof otherValue === 'function')
-					obj[key] = _chain(value, otherValue);
-				else
-					obj[key] = otherValue;
-			}
-		}
-	}
-	return obj;
-}
-
-// Same as _mixObj, but will terminate (call parent) any function chains if the last (terminal) obj did not implement the function
-function _mixProto() {
-	var key, value, obj = _mixObj.apply(this, arguments);
-	var terminal = arguments[arguments.length - 1];
-	if(typeof terminal === 'string')
-		terminal = Cord.mixins[terminal] || {};
-	for(key in obj) {
-		if(obj.hasOwnProperty(key)) {
-			value = obj[key];
-			if(typeof value === 'function' && typeof terminal[key] !== 'function')
-				obj[key] = _terminate(value, key);
-		}
-	}
-	return obj;
-}
-
-// Get all values for a key on a prototype chain, ordered by parent values first
-function _getPrototypeValuesForKey(objCls, key, isCls) {
-	var proto = isCls ? objCls.prototype : Object.getPrototypeOf(objCls), values = [];
-	for(; proto; proto = Object.getPrototypeOf(proto)) {
-		if(proto.hasOwnProperty(key))
-			values.unshift(proto[key]);
-	}
-	return values;
-}
-
-function _getFunctionArgs(func) {
-	// Get all argument names for a function
-	// Based on http://stackoverflow.com/questions/1007981/how-to-get-function-parameter-names-values-dynamically-from-javascript
-	var str = func.toString();
-	var args = str.slice(str.indexOf('(') + 1, str.indexOf(')')).match(/([^\s,]+)/g);
-	if(!args)
-		args = [];
-	return args;
-}
-
-// Add object utility functions
-_extendObj(Cord, {
-	isPlainObj: _isPlainObj,
-	copyObj: _copyObj,
-	extendObj: _extendObj,
-	mixObj: _mixObj,
-	mixProto: _mixProto,
-	getPrototypeValuesForKey: _getPrototypeValuesForKey,
-	getFunctionArgs: _getFunctionArgs,
-	log: (debug ? function() {
-		var format = [];
-		var args = Array.prototype.slice.call(arguments);
-		for(var i = 0; i < args.length; ++i)
-			format.push((typeof args[i] === 'object') ? '%O' : '%s');
-		args.unshift(format.join(' | '));
-		console.log.apply(console, args);
-	} : function(){})
-});
-
-/******************* Data binding object extensions *******************/
 
 // A simple event callback, where the last argument is taken as a value to pass into setValueForKey
 var _createSetValueCallback = Cord.createSetValueCallback = function(keyPath) {
@@ -486,11 +481,9 @@ Cord.Binding = {
 	stopObserving: function() {
 		var namespace, scope;
 		for(namespace in this._observers) {
-			if(this._observers.hasOwnProperty(namespace)) {
-				scope = Cord.scopes[namespace];
-				if(scope.stop)
-					scope.stop.call(this);
-			}
+			scope = Cord.scopes[namespace];
+			if(scope.stop)
+				scope.stop.call(this);
 		}
 		this._observers = null;
 	},
@@ -520,11 +513,10 @@ Cord.Binding = {
 	setValuesForKeys: function(values) {
 		var i, key;
 		if(_isPlainObj(values)) {
-			for(key in values) {
-				if(values.hasOwnProperty(key))
-					this.setValueForKey(key, values[key]);
-			}
-		} else {
+			for(key in values)
+				this.setValueForKey(key, values[key]);
+		}
+		else {
 			for(i = 0; (i + 1) < arguments.length; i += 2)
 				this.setValueForKey(arguments[i], arguments[i + 1]);
 		}
@@ -539,10 +531,8 @@ Cord.Binding = {
 		var key, changed = options._changed || model.changedAttributes();
 		if(!changed)
 			return;
-		for(key in changed) {
-			if(changed.hasOwnProperty(key))
-				this._invokeObservers('model', key, changed[key]);
-		}
+		for(key in changed)
+			this._invokeObservers('model', key, changed[key]);
 	},
 
 	// setModel will change the model a View has and invoke any observers
@@ -565,10 +555,8 @@ Cord.Binding = {
 		if(Object.keys(observers).length) {
 			// Invoke all observers if the model is the empty model
 			if(this.model === Cord.EmptyModel) {
-				for(key in observers) {
-					if(observers.hasOwnProperty(key))
-						this._invokeObservers('model', key, void(0));
-				}
+				for(key in observers)
+					this._invokeObservers('model', key, void(0));
 			}
 			else {
 				this._modelObserver(this.model, {_changed: current.changedAttributes(this.model.attributes)});
