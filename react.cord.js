@@ -142,18 +142,33 @@ Cord.Component = function() {
 		proto._mixinsApplied = true;
 	}
 
-	// Wrap render to allow bind() function to work without a context
+	// Wrap render, componentDidMount, and componentDidUpdate to allow bind() function to work without a context
+	// Wrapping just render is not enough because child vnodes that are functions are not called until after render
 	var __render = this.render;
+	var __componentDidMount = this.componentDidMount;
+	var __componentDidUpdate = this.componentDidUpdate;
 	this.render = function() {
-		var ret, prevComponent = _currentComponent;
+		var ret;
+		this._prevComponent = _currentComponent;
 		_currentComponent = this;
 		try {
 			ret = __render.apply(this, arguments);
 		}
-		finally {
-			_currentComponent = prevComponent;
+		catch(err) {
+			_currentComponent = this._prevComponent;
+			throw err;
 		}
 		return ret;
+	};
+	this.componentDidMount = function() {
+		_currentComponent = this._prevComponent;
+		if(__componentDidMount)
+			__componentDidMount.apply(this, arguments);
+	};
+	this.componentDidUpdate = function() {
+		_currentComponent = this._prevComponent;
+		if(__componentDidUpdate)
+			__componentDidUpdate.apply(this, arguments);
 	};
 
 	var __componentWillMount = this.componentWillMount;
