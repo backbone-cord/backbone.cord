@@ -639,7 +639,7 @@ var _DATA_FEEDBACK_ATTR = 'data-binding-feedback';
 
 function _bindGUID(uid, proxy) {
 	var guid = null;
-	if(uid) {
+	if(uid && _currentComponent) {
 		guid = _currentComponent._boundGUIDs[uid] || (_currentComponent._boundGUIDs[uid] = randomGUID());
 		_currentComponent._boundGUIDProxies[guid] = proxy;
 	}
@@ -726,7 +726,7 @@ function _normalizeMixin(mixin) {
 }
 
 // Inherit from react's Component so render can be wrapped and mixins applied
-Cord.Component = function() {
+Cord.Component = function(props) {
 	Component.apply(this, arguments);
 
 	// Init observers
@@ -813,9 +813,30 @@ Cord.Component = function() {
 		if(__componentWillMount)
 			__componentWillMount.apply(this, arguments);
 	};
+
+	// Wrap componentWillReceiveProps to automatically check for model and collection updates as props
+	var __componentWillReceiveProps = this.componentWillReceiveProps;
+	this.componentWillReceiveProps = function(props) {
+		if(props.model)
+			this.setModel(props.model);
+		if(props.collection)
+			this.setCollection(props.collection);
+		if(__componentWillReceiveProps)
+			__componentWillReceiveProps.apply(this, arguments);
+	};
+	// Set the initial model or collection
+	if(props.model)
+		this.setModel(props.model);
+	if(props.collection)
+		this.setCollection(props.collection);
 };
 Cord.Component.prototype = Object.create(Component.prototype);
 Cord.Component.prototype.constructor = Cord.Component;
+
+// Extend Component with data binding methods without backwards compatibility Event functions (bind/unbind)
+extendObj(Cord.Component.prototype, Cord.Binding, Backbone.Events);
+delete Cord.Component.prototype.bind;
+delete Cord.Component.prototype.unbind;
 
 Cord.Component.prototype.setState = function(state, callback) {
 	if(typeof state === 'function')
@@ -827,10 +848,21 @@ Cord.Component.prototype.setState = function(state, callback) {
 	__setState.call(this, state, callback);
 };
 
-// Extend Component with data binding methods without backwards compatibility Event functions (bind/unbind)
-extendObj(Cord.Component.prototype, Cord.Binding, Backbone.Events);
-delete Cord.Component.prototype.bind;
-delete Cord.Component.prototype.unbind;
+// Wrap setCollection to rerender on a new collection
+var __setCollection = Cord.Component.prototype.setCollection;
+Cord.Component.prototype.setCollection = function(newCollection) {
+	if(this.collection === newCollection)
+		return this;
+	__setCollection.apply(this, arguments);
+	var rerender = function() {
+		__setState.call(this, {length: this.collection.length});
+	};
+	this.listenTo(newCollection, 'add', rerender);
+	this.listenTo(newCollection, 'remove', rerender);
+	this.listenTo(newCollection, 'sort', rerender);
+	this.listenTo(newCollection, 'reset', rerender);
+	rerender.call(this);
+};
 
 // Cleanup code for all components
 var __beforeUnmount = options.beforeUnmount;
@@ -952,14 +984,6 @@ options.vnode = function(vnode) {
 	if(__vnode)
 		__vnode.apply(this, arguments);
 };
-
-// Export onto the react object
-if(!root.cordCompatibilityMode) {
-	react.bind = bind;
-	react.computed = computed;
-	react.Component = Component;
-	react.Cord = Cord;
-}
 
 if(typeof exports === 'object')
 	module.exports = Cord;
