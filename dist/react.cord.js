@@ -754,18 +754,33 @@ Cord.Component = function() {
 		proto._mixinsApplied = true;
 	}
 
-	// Wrap render to allow bind() function to work without a context
+	// Wrap render, componentDidMount, and componentDidUpdate to allow bind() function to work without a context
+	// Wrapping just render is not enough because child vnodes that are functions are not called until after render
 	var __render = this.render;
+	var __componentDidMount = this.componentDidMount;
+	var __componentDidUpdate = this.componentDidUpdate;
 	this.render = function() {
-		var ret, prevComponent = _currentComponent;
+		var ret;
+		this._prevComponent = _currentComponent;
 		_currentComponent = this;
 		try {
 			ret = __render.apply(this, arguments);
 		}
-		finally {
-			_currentComponent = prevComponent;
+		catch(err) {
+			_currentComponent = this._prevComponent;
+			throw err;
 		}
 		return ret;
+	};
+	this.componentDidMount = function() {
+		_currentComponent = this._prevComponent;
+		if(__componentDidMount)
+			__componentDidMount.apply(this, arguments);
+	};
+	this.componentDidUpdate = function() {
+		_currentComponent = this._prevComponent;
+		if(__componentDidUpdate)
+			__componentDidUpdate.apply(this, arguments);
 	};
 
 	var __componentWillMount = this.componentWillMount;
@@ -1112,31 +1127,38 @@ Cord.parseError = Cord.parseError || function(response) {
 	return response.status;
 };
 
+function _setValues(progress, syncing, error, modelCollection, response, options) {
+	error = error && Cord.parseError(response, options);
+	if(this.setValueForKey) {
+		this.setValueForKey('syncProgress', new ForceValue(progress));
+		this.setValueForKey('syncing', new ForceValue(syncing));
+		this.setValueForKey('syncError', new ForceValue(error));
+	}
+	else {
+		this.syncProgress = progress;
+		this.syncing = syncing;
+		this.syncError = error;
+	}
+}
+
 // Notes on events:
 // request (when fetch starts)
 // sync (when sync has finished successfully, fetch, save, and destroy)
 // error (when a sync error occurs)
 function _addListeners(modelCollection) {
-	this.listenTo(modelCollection, 'request', function() {
-		this.setValueForKey('syncProgress', new ForceValue(0.0));
-		this.setValueForKey('syncing', new ForceValue(true));
-		this.setValueForKey('syncError', new ForceValue(null));
-	});
-	this.listenTo(modelCollection, 'sync', function() {
-		this.setValueForKey('syncProgress', new ForceValue(1.0));
-		this.setValueForKey('syncing', new ForceValue(false));
-		this.setValueForKey('syncError', new ForceValue(null));
-	});
-	this.listenTo(modelCollection, 'error', function(collection, response, options) {
-		this.setValueForKey('syncProgress', new ForceValue(1.0));
-		this.setValueForKey('syncing', new ForceValue(false));
-		this.setValueForKey('syncError', new ForceValue(Cord.parseError(response, options)));
-	});
+	this.listenTo(modelCollection, 'request', _setValues.bind(this, 0.0, true, null));
+	this.listenTo(modelCollection, 'sync', _setValues.bind(this, 1.0, false, null));
+	this.listenTo(modelCollection, 'error', _setValues.bind(this, 1.0, false, true));
 }
 
 function _onProgress(evt) {
-	if(evt.lengthComputable)
-		this.setValueForKey('syncProgress', new ForceValue(evt.loaded / evt.total));
+	if(evt.lengthComputable) {
+		var progress = evt.loaded / evt.total;
+		if(this.setValueForKey)
+			this.setValueForKey('syncProgress', new ForceValue(progress));
+		else
+			this.syncProgress = progress;
+	}
 }
 
 function _startSync(method, model, options) {
