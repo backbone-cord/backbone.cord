@@ -663,21 +663,24 @@ var bind = Cord.bind = function(key, guid) {
 	return _currentComponent.getValueForKey(key);
 };
 
-var Key = Cord.Key = function(key) {
+var _Key = function(key) {
 	this.key = key;
 };
+var _keyCache = {};
+Cord.Key = function(key) { return _keyCache[key] || (_keyCache[key] = new _Key(key)); };
 
 var bindKey = Cord.bindKey = function(valueKey) {
-	if(valueKey instanceof Key)
+	if(valueKey instanceof _Key)
 		return bind(valueKey.key);
 	else
 		return valueKey;
 };
 
-Cord.bindPropKeys = function(props, keys) {
+Cord.bindProps = function(props, keys) {
 	keys = keys || Object.keys(props);
 	for(var i = 0; i < keys.length; ++i)
 		props[keys[i]] = bindKey(props[keys[i]]);
+	return props;
 };
 
 var computed = Cord.computed = function(func) {
