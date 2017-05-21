@@ -663,6 +663,23 @@ var bind = Cord.bind = function(key, guid) {
 	return _currentComponent.getValueForKey(key);
 };
 
+var Key = Cord.Key = function(key) {
+	this.key = key;
+};
+
+var bindKey = Cord.bindKey = function(valueKey) {
+	if(valueKey instanceof Key)
+		return bind(valueKey.key);
+	else
+		return valueKey;
+};
+
+Cord.bindPropKeys = function(props, keys) {
+	keys = keys || Object.keys(props);
+	for(var i = 0; i < keys.length; ++i)
+		props[keys[i]] = bindKey(props[keys[i]]);
+};
+
 var computed = Cord.computed = function(func) {
 	var args = Cord.getFunctionArgs(func);
 	if(!args.length)
@@ -913,7 +930,7 @@ function _createValueListener(key, wrapped) {
 var __vnode = options.vnode;
 options.vnode = function(vnode) {
 	// vnode contains: nodeName, children (one item or array), attributes, key
-	var i, j, child, strings, matches, spliceArgs;
+	var i, j, child, strings, matches, spliceArgs, value;
 	var children = Array.isArray(vnode.children) ? vnode.children : [vnode.children];
 	var attrs = vnode.attributes || {};
 
@@ -939,6 +956,9 @@ options.vnode = function(vnode) {
 		}
 		vnode.children = children;
 	}
+	else {
+		delete attrs.raw;
+	}
 
 	// The attr bind is shorthand for both observe and change
 	if(attrs.bind) {
@@ -960,7 +980,7 @@ options.vnode = function(vnode) {
 
 			// Observer binding to set the value
 			if(attrs.observe) {
-				var value = bind(attrs.observe, guid);
+				value = bind(attrs.observe, guid);
 				delete attrs.observe;
 				// Set the initial value on a delayed callback
 				setImmediate(_bindingProxy.bind(null, guid, null, value));
