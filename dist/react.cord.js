@@ -875,7 +875,7 @@ Cord.Component.prototype.setCollection = function(newCollection) {
 		return this;
 	__setCollection.apply(this, arguments);
 	var rerender = function() {
-		__setState.call(this, {length: this.collection.length});
+		__setState.call(this, {});
 	};
 	this.listenTo(newCollection, 'add', rerender);
 	this.listenTo(newCollection, 'remove', rerender);
@@ -963,43 +963,47 @@ options.vnode = function(vnode) {
 		delete attrs.raw;
 	}
 
-	// The attr bind is shorthand for both observe and change
-	if(attrs.bind) {
-		attrs.observe = attrs.bind;
-		attrs.change = attrs.bind;
-		delete attrs.bind;
-	}
+	// If nodeName is a function then allow the special props to just pass through
+	if(typeof vnode.nodeName !== 'function') {
 
-	if(attrs.observe || attrs.change || attrs.input) {
-		var guid = _bindGUID(vnode.key || attrs.name, _bindingProxy);
-
-		if(!guid) {
-			delete attrs.observe;
-			delete attrs.change;
-			delete attrs.input;
+		// The attr bind is shorthand for both observe and change
+		if(attrs.bind) {
+			attrs.observe = attrs.bind;
+			attrs.change = attrs.bind;
+			delete attrs.bind;
 		}
-		else {
-			attrs[_DATA_BINDING_ATTR] = guid;
 
-			// Observer binding to set the value
-			if(attrs.observe) {
-				value = bind(attrs.observe, guid);
+		if(attrs.observe || attrs.change || attrs.input) {
+			var guid = _bindGUID(vnode.key || attrs.name, _bindingProxy);
+
+			if(!guid) {
 				delete attrs.observe;
-				// Set the initial value on a delayed callback
-				setImmediate(_bindingProxy.bind(null, guid, null, value));
-				// If two-way this element is sensitive to binding feedback
-				if(attrs.observe === attrs.change || attrs.observe === attrs.input)
-					attrs[_DATA_FEEDBACK_ATTR] = true;
-			}
-
-			// Reverse binding on change or input events to listen to changes in the value
-			if(attrs.change) {
-				attrs.onChange = _createValueListener(attrs.change, attrs.onChange || attrs.onchange);
 				delete attrs.change;
-			}
-			if(attrs.input) {
-				attrs.onInput = _createValueListener(attrs.input, attrs.onInput || attrs.oninput);
 				delete attrs.input;
+			}
+			else {
+				attrs[_DATA_BINDING_ATTR] = guid;
+
+				// Observer binding to set the value
+				if(attrs.observe) {
+					value = bind(attrs.observe, guid);
+					delete attrs.observe;
+					// Set the initial value on a delayed callback
+					setImmediate(_bindingProxy.bind(null, guid, null, value));
+					// If two-way this element is sensitive to binding feedback
+					if(attrs.observe === attrs.change || attrs.observe === attrs.input)
+						attrs[_DATA_FEEDBACK_ATTR] = true;
+				}
+
+				// Reverse binding on change or input events to listen to changes in the value
+				if(attrs.change) {
+					attrs.onChange = _createValueListener(attrs.change, attrs.onChange || attrs.onchange);
+					delete attrs.change;
+				}
+				if(attrs.input) {
+					attrs.onInput = _createValueListener(attrs.input, attrs.onInput || attrs.oninput);
+					delete attrs.input;
+				}
 			}
 		}
 	}
