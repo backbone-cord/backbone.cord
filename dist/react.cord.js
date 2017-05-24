@@ -16,7 +16,7 @@ var Collection = compatibilityMode ? Backbone.Collection.extend({}) : Backbone.C
  * Inside modules, only alias top-level members not the modifiable nested because those may change, for example var regex = Cord.regex
  */
 var Cord = Backbone.Cord = {
-	VERSION: '1.0.29',
+	VERSION: '1.0.30',
 
 	// View, Model, and Collection
 	View: View,
@@ -717,34 +717,6 @@ Cord.scopes.this = {
 	}
 };
 
-function _normalizeMixin(mixin) {
-	var methods = {};
-	var state = {};
-	var attr, value;
-	var lifecycleMap = {
-		initialize: 'componentWillMount',
-		remove: 'componentWillUnmount'
-	};
-	if(mixin.properties) {
-		for(attr in mixin.properties) {
-			value = mixin.properties[attr];
-			if(typeof value === 'function')
-				state[attr] = computed(value);
-			else if(isPlainObj(value))
-				state[attr] = value.get ? computed(value.get) : value.value;
-			else state[attr] = value;
-		}
-	}
-	for(attr in mixin) {
-		value = mixin[attr];
-		if(typeof value === 'function')
-			methods[(lifecycleMap[attr] || attr)] = value;
-	}
-	mixin.methods = methods;
-	mixin.state = state;
-	mixin._normalized = true;
-}
-
 // Inherit from react's Component so render can be wrapped and mixins applied
 Cord.Component = function(props) {
 	Component.apply(this, arguments);
@@ -758,21 +730,6 @@ Cord.Component = function(props) {
 	this._boundKeys = {};
 	this._boundGUIDs = {};
 	this._boundGUIDProxies = {};
-
-	// Apply any mixins
-	var proto = Object.getPrototypeOf(this);
-	if(proto.mixins && !proto._mixinsApplied) {
-		var i, mixin, state = {};
-		for(i = 0; i < proto.mixins.length; ++i) {
-			mixin = Cord.mixins[proto.mixins[i]];
-			if(!mixin._normalized)
-				_normalizeMixin(mixin);
-			extendProto(proto, mixin.methods);
-			extendObj(state, mixin.state);
-		}
-		proto._mixinState = state;
-		proto._mixinsApplied = true;
-	}
 
 	// Wrap render, componentDidMount, and componentDidUpdate to allow bind() function to work without a context
 	// Wrapping just render is not enough because child vnodes that are functions are not called until after render
@@ -1010,6 +967,56 @@ options.vnode = function(vnode) {
 
 	if(__vnode)
 		__vnode.apply(this, arguments);
+};
+
+function _normalizeMixin(mixin) {
+	var methods = {};
+	var state = {};
+	var attr, value;
+	var lifecycleMap = {
+		initialize: 'componentWillMount',
+		remove: 'componentWillUnmount'
+	};
+	if(mixin.properties) {
+		for(attr in mixin.properties) {
+			value = mixin.properties[attr];
+			if(typeof value === 'function')
+				state[attr] = computed(value);
+			else if(isPlainObj(value))
+				state[attr] = value.get ? computed(value.get) : value.value;
+			else state[attr] = value;
+		}
+	}
+	for(attr in mixin) {
+		value = mixin[attr];
+		if(typeof value === 'function')
+			methods[(lifecycleMap[attr] || attr)] = value;
+	}
+	mixin.methods = methods;
+	mixin.state = state;
+	mixin._normalized = true;
+}
+
+// Add a static mixin method for adding mixins to a Component class
+// Calling this should only be done once and will permantently alter the class
+// Also should be done before instantiating any objects of the class
+Cord.Component.mixin = function() {
+	var proto = this.prototype;
+	var mixins = arguments;
+	var i, mixin, state = {};
+	if(!proto._mixinsApplied) {
+		for(i = 0; i < mixins.length; ++i) {
+			mixin = mixins[i];
+			if(typeof mixin === 'string')
+				mixin = Cord.mixins[mixin];
+			if(!mixin._normalized)
+				_normalizeMixin(mixin);
+			extendProto(proto, mixin.methods);
+			extendObj(state, mixin.state);
+		}
+		proto._mixinState = state;
+		proto._mixinsApplied = true;
+	}
 };
 
 if(typeof exports === 'object')
