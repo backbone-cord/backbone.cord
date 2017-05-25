@@ -16,7 +16,7 @@ var Collection = compatibilityMode ? Backbone.Collection.extend({}) : Backbone.C
  * Inside modules, only alias top-level members not the modifiable nested because those may change, for example var regex = Cord.regex
  */
 var Cord = Backbone.Cord = {
-	VERSION: '1.0.30',
+	VERSION: '1.0.31',
 
 	// View, Model, and Collection
 	View: View,
@@ -571,10 +571,11 @@ Cord.Binding = {
 		if(this.collection === newCollection)
 			return this;
 		if(!newCollection)
-			newCollection = Cord.EmptyCollection;
+			newCollection = Object.getPrototypeOf(this).collection;
 		if(!(newCollection instanceof Backbone.Collection))
 			throw new Error('Attempting to assign a non-Backbone.Collection to View.collection.');
-		this.stopListening(this.collection);
+		if(this.collection)
+			this.stopListening(this.collection);
 		this.collection = newCollection;
 		return this;
 	}
