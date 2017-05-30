@@ -71,8 +71,8 @@ Cord.bindProps = function(props, keys) {
 	return props;
 };
 
-var computed = Cord.computed = function(func) {
-	var args = Cord.getFunctionArgs(func);
+var computed = Cord.computed = function(func, args) {
+	args = args || Cord.getFunctionArgs(func);
 	if(!args.length)
 		return func;
 	var compFunc = function(compKey) {

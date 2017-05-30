@@ -16,7 +16,7 @@ var Collection = compatibilityMode ? Backbone.Collection.extend({}) : Backbone.C
  * Inside modules, only alias top-level members not the modifiable nested because those may change, for example var regex = Cord.regex
  */
 var Cord = Backbone.Cord = {
-	VERSION: '1.0.31',
+	VERSION: '1.0.32',
 
 	// View, Model, and Collection
 	View: View,
@@ -257,10 +257,16 @@ function _getPrototypeValuesForKey(objCls, key, isCls) {
 }
 
 function _getFunctionArgs(func) {
+	var str, args;
+	if(func.args)
+		return func.args;
 	// Get all argument names for a function
 	// Based on http://stackoverflow.com/questions/1007981/how-to-get-function-parameter-names-values-dynamically-from-javascript
-	var str = func.toString();
-	var args = str.slice(str.indexOf('(') + 1, str.indexOf(')')).match(/([^\s,]+)/g);
+	str = func.toString();
+	if(/__args__/.test(str))
+		args = func('__args__');
+	else
+		args = str.slice(str.indexOf('(') + 1, str.indexOf(')')).match(/([^\s,]+)/g);
 	if(!args)
 		args = [];
 	return args;
@@ -684,8 +690,8 @@ Cord.bindProps = function(props, keys) {
 	return props;
 };
 
-var computed = Cord.computed = function(func) {
-	var args = Cord.getFunctionArgs(func);
+var computed = Cord.computed = function(func, args) {
+	args = args || Cord.getFunctionArgs(func);
 	if(!args.length)
 		return func;
 	var compFunc = function(compKey) {
