@@ -16,7 +16,7 @@ var Collection = compatibilityMode ? Backbone.Collection.extend({}) : Backbone.C
  * Inside modules, only alias top-level members not the modifiable nested because those may change, for example var regex = Cord.regex
  */
 var Cord = Backbone.Cord = {
-	VERSION: '1.0.32',
+	VERSION: '1.0.33',
 
 	// View, Model, and Collection
 	View: View,
@@ -1369,6 +1369,8 @@ Cord.mixins.collection = {
 			value: 0
 		},
 		start: function(length, pageStart, pageLength) {
+			if(length === '__args__')
+				return ['length', 'pageStart', 'pageLength'];
 			var start = 0;
 			if(pageStart > 0)
 				start = pageStart;
@@ -1379,6 +1381,8 @@ Cord.mixins.collection = {
 			return start;
 		},
 		end: function(start, length, pageStart, pageLength) {
+			if(start === '__args__')
+				return ['start', 'length', 'pageStart', 'pageLength'];
 			var end = length - 1;
 			if(pageLength > 0)
 				end = start + pageLength - 1;
@@ -1389,6 +1393,8 @@ Cord.mixins.collection = {
 			return end;
 		},
 		more: function(end, length) {
+			if(end === '__args__')
+				return ['end', 'length'];
 			return length - (end + 1);
 		},
 		pageStart: {
@@ -1855,10 +1861,14 @@ Cord.mixins.validation = {
 	properties: {
 		allErrors: { readonly: true },
 		latestError: { readonly: true },
-		isValid: function(allErrors) { return !allErrors || !allErrors.length; }
+		isValid: function(allErrors) {
+			if(allErrors === '__args__')
+				return ['allErrors'];
+			return !allErrors || !allErrors.length;
+		}
 	},
 	events: {
-		'submit form': 'validateForm'
+		'submit form': 'onSubmitValidate'
 	},
 	initialize: function() {
 		this.errors = new Model();
@@ -1869,14 +1879,13 @@ Cord.mixins.validation = {
 			for(key in changed)
 				this._invokeObservers('errors', key, changed[key]);
 		});
-		this._addInvalidListener(this.model);
+		this._addValidatonListeners(this.model);
 	},
 	setModel: function(newModel) {
-		this._addInvalidListener(newModel);
+		this._addValidatonListeners(newModel);
 	},
-	validateForm: function(e) {
+	onSubmitValidate: function(e) {
 		if(this.model.isValid()) {
-			this._onValid(this.model, []);
 			return true;
 		}
 		else {
@@ -1887,9 +1896,11 @@ Cord.mixins.validation = {
 			return false;
 		}
 	},
-	_addInvalidListener: function(model) {
-		if(model !== EmptyModel)
+	_addValidatonListeners: function(model) {
+		if(model !== EmptyModel) {
 			this.listenTo(model, 'invalid', this._onInvalid);
+			this.listenTo(model, 'valid', this._onValid);
+		}
 	},
 	_onInvalid: function(model, validationErrors) {
 		var attr, errors, allErrors, latestError, changed;
@@ -1916,9 +1927,9 @@ Cord.mixins.validation = {
 		this.setValueForKey('latestError', new ForceValue(latestError));
 
 	},
-	_onValid: function() {
+	_onValid: function(model) {
 		// Use code within _onInvalid to clear previous error messages
-		this._onInvalid(this.model, {});
+		this._onInvalid(model, {});
 	}
 };
 
@@ -1931,15 +1942,15 @@ Cord.mixins.validateOnBlur = {
 	},
 	_addBlurListener: function(model) {
 		if(model !== EmptyModel) {
-			model.listen('change', function() {
-				if(this.model.validate(this.model.changedAttributes()))
-					this._onValid(this.model, []);
+			model.listen('change', function(model) {
+				var errors = model.validate(model.changedAttributes(), { partial: true });
+				// TODO: update based on only new errors
 			});
 		}
 	}
 };
 
-Model.prototype.validate = function(attributes) {
+Model.prototype.validate = function(attributes, options) {
 	var attr, rule, ret, errors = {};
 	if(!this.rules)
 		return null;
@@ -1958,6 +1969,8 @@ Model.prototype.validate = function(attributes) {
 		this.extendedValidate(errors);
 	if(Object.keys(errors).length)
 		return errors;
+	else if(!options.partial)
+		this.trigger('valid', this, options);
 };
 
 })(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone || require('backbone'));

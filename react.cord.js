@@ -222,10 +222,7 @@ Cord.Component.prototype.setCollection = function(newCollection) {
 	var rerender = function() {
 		__setState.call(this, {});
 	};
-	this.listenTo(newCollection, 'add', rerender);
-	this.listenTo(newCollection, 'remove', rerender);
-	this.listenTo(newCollection, 'sort', rerender);
-	this.listenTo(newCollection, 'reset', rerender);
+	this.listenTo(newCollection, 'add remove sort reset', rerender);
 	rerender.call(this);
 };
 
@@ -318,8 +315,9 @@ options.vnode = function(vnode) {
 			delete attrs.bind;
 		}
 
-		if(attrs.observe || attrs.change || attrs.input) {
-			var guid = _bindGUID(vnode.key || attrs.name, _bindingProxy);
+		var databind = attrs.observe || attrs.change || attrs.input;
+		if(databind) {
+			var guid = _bindGUID(vnode.key || attrs.name || databind, _bindingProxy);
 
 			if(!guid) {
 				delete attrs.observe;
