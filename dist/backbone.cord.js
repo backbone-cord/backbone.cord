@@ -16,7 +16,7 @@ var Collection = compatibilityMode ? Backbone.Collection.extend({}) : Backbone.C
  * Inside modules, only alias top-level members not the modifiable nested because those may change, for example var regex = Cord.regex
  */
 var Cord = Backbone.Cord = {
-	VERSION: '1.0.33',
+	VERSION: '1.0.34',
 
 	// View, Model, and Collection
 	View: View,
@@ -1655,7 +1655,10 @@ Cord.parseError = Cord.parseError || function(response) {
 	return response.status;
 };
 
-function _setValues(progress, syncing, error, modelCollection, response, options) {
+function _setValues(isCollection, progress, syncing, error, modelCollection, response, options) {
+	// When receiving model syncing events on the collection ignore them
+	if(isCollection && !(modelCollection instanceof Collection))
+		return;
 	error = error && Cord.parseError(response, options);
 	if(this.setValueForKey) {
 		this.setValueForKey('syncProgress', new ForceValue(progress));
@@ -1674,9 +1677,10 @@ function _setValues(progress, syncing, error, modelCollection, response, options
 // sync (when sync has finished successfully, fetch, save, and destroy)
 // error (when a sync error occurs)
 function _addListeners(modelCollection) {
-	this.listenTo(modelCollection, 'request', _setValues.bind(this, 0.0, true, null));
-	this.listenTo(modelCollection, 'sync', _setValues.bind(this, 1.0, false, null));
-	this.listenTo(modelCollection, 'error', _setValues.bind(this, 1.0, false, true));
+	var isCollection = modelCollection instanceof Collection;
+	this.listenTo(modelCollection, 'request', _setValues.bind(this, isCollection, 0.0, true, null));
+	this.listenTo(modelCollection, 'sync', _setValues.bind(this, isCollection, 1.0, false, null));
+	this.listenTo(modelCollection, 'error', _setValues.bind(this, isCollection, 1.0, false, true));
 }
 
 function _onProgress(evt) {
