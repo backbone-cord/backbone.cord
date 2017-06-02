@@ -16,7 +16,7 @@ var Collection = compatibilityMode ? Backbone.Collection.extend({}) : Backbone.C
  * Inside modules, only alias top-level members not the modifiable nested because those may change, for example var regex = Cord.regex
  */
 var Cord = Backbone.Cord = {
-	VERSION: '1.0.34',
+	VERSION: '1.0.35',
 
 	// View, Model, and Collection
 	View: View,
@@ -1272,8 +1272,10 @@ Model.prototype._addComputed = function(key, func) {
 
 // Wrap extend to wrap the initialize method
 var __extend = Model.extend;
-Model.extend = function(properties) {
+Model.extend = function(properties, staticProps) {
 	var __initialize;
+	staticProps = staticProps || {};
+	// Apply any computed attributes on initialize
 	if(properties.computed) {
 		__initialize = properties.initialize || Model.prototype.initialize;
 		properties.initialize = function() {
@@ -1284,7 +1286,14 @@ Model.extend = function(properties) {
 			return __initialize.apply(this, arguments);
 		};
 	}
-	return __extend.apply(this, arguments);
+	// Copy useful references from properties to staticProps for easier accessibility
+	staticProps.choices = properties.choices;
+	staticProps.defaults = properties.defaults;
+	staticProps.instructions = properties.instructions;
+	staticProps.titles = properties.titles;
+	staticProps.subtitles = properties.subtitles;
+	staticProps.rules = properties.rules;
+	return __extend.call(this, properties, staticProps);
 };
 
 })(((typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global)).Backbone || require('backbone'));
