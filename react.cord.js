@@ -355,7 +355,7 @@ options.vnode = function(vnode) {
 		// Try to bind each attr if an interpolation key is detected
 		for(key in attrs) {
 			value = attrs[key];
-			if(value[0] === regex.variable.prefix && value[value.length - 1] === regex.variable.suffix)
+			if(typeof value === 'string' && value[0] === regex.variable.prefix && value[value.length - 1] === regex.variable.suffix)
 				attrs[key] = bind(value.substr(1, value.length - 2));
 		}
 	}

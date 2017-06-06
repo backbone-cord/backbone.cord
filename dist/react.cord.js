@@ -16,7 +16,7 @@ var Collection = compatibilityMode ? Backbone.Collection.extend({}) : Backbone.C
  * Inside modules, only alias top-level members not the modifiable nested because those may change, for example var regex = Cord.regex
  */
 var Cord = Backbone.Cord = {
-	VERSION: '1.0.36',
+	VERSION: '1.0.37',
 
 	// View, Model, and Collection
 	View: View,
@@ -974,7 +974,7 @@ options.vnode = function(vnode) {
 		// Try to bind each attr if an interpolation key is detected
 		for(key in attrs) {
 			value = attrs[key];
-			if(value[0] === regex.variable.prefix && value[value.length - 1] === regex.variable.suffix)
+			if(typeof value === 'string' && value[0] === regex.variable.prefix && value[value.length - 1] === regex.variable.suffix)
 				attrs[key] = bind(value.substr(1, value.length - 2));
 		}
 	}
