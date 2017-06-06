@@ -330,12 +330,12 @@ options.vnode = function(vnode) {
 				// Observer binding to set the value
 				if(attrs.observe) {
 					value = bind(attrs.observe, guid);
-					delete attrs.observe;
 					// Set the initial value on a delayed callback
 					setImmediate(_bindingProxy.bind(null, guid, null, value));
 					// If two-way this element is sensitive to binding feedback
 					if(attrs.observe === attrs.change || attrs.observe === attrs.input)
 						attrs[_DATA_FEEDBACK_ATTR] = true;
+					delete attrs.observe;
 				}
 
 				// Reverse binding on change or input events to listen to changes in the value

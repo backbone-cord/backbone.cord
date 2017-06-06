@@ -16,7 +16,7 @@ var Collection = compatibilityMode ? Backbone.Collection.extend({}) : Backbone.C
  * Inside modules, only alias top-level members not the modifiable nested because those may change, for example var regex = Cord.regex
  */
 var Cord = Backbone.Cord = {
-	VERSION: '1.0.37',
+	VERSION: '1.0.38',
 
 	// View, Model, and Collection
 	View: View,
@@ -949,12 +949,12 @@ options.vnode = function(vnode) {
 				// Observer binding to set the value
 				if(attrs.observe) {
 					value = bind(attrs.observe, guid);
-					delete attrs.observe;
 					// Set the initial value on a delayed callback
 					setImmediate(_bindingProxy.bind(null, guid, null, value));
 					// If two-way this element is sensitive to binding feedback
 					if(attrs.observe === attrs.change || attrs.observe === attrs.input)
 						attrs[_DATA_FEEDBACK_ATTR] = true;
+					delete attrs.observe;
 				}
 
 				// Reverse binding on change or input events to listen to changes in the value
